@@ -1,0 +1,163 @@
+{
+  "description": "Casos de validación del motor de simulación contra reportes reales de AggFlow",
+  "source": "Proyecto 176849 (AMECO), reportes Finlay C-1540RS, Metso LT120",
+  "cases": [
+    {
+      "id": "case_1_jaw64_cone20",
+      "title": "Caso 1: Mandíbula CSS 64 → Cono CSS 20 (serie directa)",
+      "feed": {
+        "tph": 125,
+        "description": "ROM granito típico",
+        "curve": {
+          "406.4": 100,
+          "304.8": 54,
+          "203.2": 41,
+          "152.4": 33,
+          "101.6": 30,
+          "76.2": 28,
+          "50.8": 18,
+          "38.1": 15,
+          "25.4": 12,
+          "19.05": 10,
+          "12.7": 9,
+          "9.53": 8,
+          "6.35": 5,
+          "4.76": 3,
+          "2.38": 2,
+          "2.0": 0.5
+        }
+      },
+      "stages": [
+        {
+          "type": "crusher",
+          "subtype": "jaw",
+          "css_mm": 64,
+          "equipment": "Finlay J-1175"
+        },
+        {
+          "type": "crusher",
+          "subtype": "cone",
+          "css_mm": 20,
+          "equipment": "Finlay C-1540RS"
+        }
+      ],
+      "expected_output": {
+        "p80_mm": 18.11,
+        "passing_38mm": 100,
+        "tph": 125,
+        "curve_reference": {
+          "38": 100,
+          "28": 95,
+          "20": 84,
+          "14": 71,
+          "10": 58,
+          "6.3": 44,
+          "5": 38,
+          "3.35": 31,
+          "2.36": 25,
+          "1.7": 21,
+          "1.18": 18
+        }
+      },
+      "tolerances": {
+        "p80_error_pct": 10,
+        "tph_error_pct": 2,
+        "curve_error_points": 5,
+        "mass_balance_tph": 0.1
+      }
+    },
+    {
+      "id": "case_2_jaw90_screen38_cone20",
+      "title": "Caso 2: Mandíbula CSS 90 → Harnero 38 mm → Cono CSS 20 (circuito cerrado)",
+      "feed": {
+        "tph": 175,
+        "description": "ROM granito, alimentación para circuito cerrado",
+        "curve": {
+          "406.4": 100,
+          "304.8": 54,
+          "203.2": 41,
+          "152.4": 33,
+          "101.6": 30,
+          "76.2": 28,
+          "50.8": 18,
+          "38.1": 15,
+          "25.4": 12,
+          "19.05": 10,
+          "12.7": 9,
+          "9.53": 8,
+          "6.35": 5,
+          "4.76": 3,
+          "2.38": 2,
+          "2.0": 0.5
+        }
+      },
+      "stages": [
+        {
+          "type": "crusher",
+          "subtype": "jaw",
+          "css_mm": 90,
+          "equipment": "Finlay J-1280"
+        },
+        {
+          "type": "screen",
+          "aperture_mm": 38.1,
+          "efficiency": 0.95,
+          "equipment": "Metso LT120 (1 deck)"
+        },
+        {
+          "type": "crusher",
+          "subtype": "cone",
+          "css_mm": 20,
+          "equipment": "Finlay C-1540RS"
+        }
+      ],
+      "expected_output": {
+        "fines": {
+          "tph": 59,
+          "p80_mm": 28.98,
+          "curve_reference": {
+            "38.1": 100,
+            "28": 78,
+            "25.4": 72,
+            "20": 57,
+            "19.05": 55,
+            "14": 47,
+            "12.7": 43,
+            "10": 34,
+            "9.53": 33,
+            "6.35": 23,
+            "5": 18,
+            "4.76": 17,
+            "2.38": 9.8,
+            "2": 3.3
+          }
+        },
+        "product_cone": {
+          "tph": 115,
+          "p80_mm": 18.11,
+          "curve_reference": {
+            "38": 100,
+            "28": 95,
+            "20": 84,
+            "14": 71,
+            "10": 58,
+            "6.3": 44,
+            "5": 38,
+            "3.35": 31,
+            "2.36": 25,
+            "1.7": 21,
+            "1.18": 18
+          }
+        }
+      },
+      "tolerances": {
+        "fines_tph_error": 3,
+        "fines_p80_error_pct": 10,
+        "fines_curve_error_points": 5,
+        "product_p80_error_pct": 10,
+        "product_curve_error_points": 5,
+        "mass_balance_tph": 0.1
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+.env
+backend/.env
+# Python artifacts
+__pycache__/
+*.pyc
+.env.example
+# Node / frontend
+node_modules/
+dist/
+build/
+krushrock-app/node_modules/
+.venv/
+*.env.local
