@@ -42,7 +42,7 @@ class SimNode(BaseModel):
 
 
 class ProductDef(BaseModel):
-    id: Optional[str] = None
+    id: Optional[Any] = None
     label: Optional[str] = ""
     min_mm: Optional[float] = 0
     max_mm: Optional[float] = 9999
