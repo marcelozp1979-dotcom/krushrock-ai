@@ -49,7 +49,7 @@ app.include_router(opex.router,        prefix="/api/v1/opex",        tags=["OPEX
 async def health():
     return {
         "status": "ok",
-        "version": "2.0.0",
+        "version": "2.0.1",
         "app": "KrushRock",
         "key_loaded": bool(settings.ANTHROPIC_API_KEY),
     }
