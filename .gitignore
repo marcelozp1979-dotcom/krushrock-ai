@@ -11,3 +11,4 @@ build/
 krushrock-app/node_modules/
 .venv/
 *.env.local
+.vercel

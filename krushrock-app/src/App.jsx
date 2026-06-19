@@ -1066,6 +1066,7 @@ function normalizeExtractionResult(data) {
     p80_mm: null,
     css_primario_mm: null,
     css_secundario_mm: null,
+    plazo_meses: null,
     notas_adicionales: null,
     supuestos: [],
   };
@@ -1080,11 +1081,24 @@ function normalizeExtractionResult(data) {
   result.p80_mm = parsePositiveNumber(result.p80_mm);
   result.css_primario_mm = parsePositiveNumber(result.css_primario_mm);
   result.css_secundario_mm = parsePositiveNumber(result.css_secundario_mm);
+  result.plazo_meses = parsePositiveNumber(result.plazo_meses);
   result.notas_adicionales = result.notas_adicionales || null;
   result.supuestos = Array.isArray(result.supuestos)
     ? result.supuestos.filter((s) => Boolean(s))
     : [];
-  const rockKey = findRockKeyByName(result.tipo_roca);
+  // Si el tipo de roca es genérico ("mineral", "mineral cobre", etc.) y no hay clave específica,
+  // asumir pórfido cuprífero (el más común en Chile y Sudamérica)
+  let rockKey = findRockKeyByName(result.tipo_roca);
+  if (!rockKey && result.tipo_roca) {
+    const norm = normalizeText(result.tipo_roca);
+    if (norm.includes("mineral") && !norm.includes("hierro") && !norm.includes("zinc") && !norm.includes("oro") && !norm.includes("plata")) {
+      rockKey = "porfido";
+      result.supuestos = [
+        ...result.supuestos,
+        "Tipo de roca 'mineral' sin especificar → asumido pórfido cuprífero (más común en Chile y Sudamérica)"
+      ];
+    }
+  }
   result.tipo_roca_key = rockKey || "desconocida";
   return result;
 }
@@ -1141,7 +1155,7 @@ function karraEff(aperturaM, p80Feed, humN, deck, rrN, d63) {
   return Math.max(0.5, Math.min(0.97, E_base * k_near * k_hum * k_deck));
 }
 
-const API_BASE = "http://localhost:8000/api/v1";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
 
 // ── MOTOR DE SIMULACIÓN v2 — llama al backend con curvas reales ────────────
 async function runSimulation(inp) {
@@ -1284,7 +1298,7 @@ async function runSimulation(inp) {
     f50ApiVal = f50;
   }
 
-  const apiProducts = actP.map((p) => ({ id: p.id, label: p.label || "", min_mm: p.minMm || 0, max_mm: p.maxMm || 9999 }));
+  const apiProducts = actP.map((p) => ({ id: String(p.id), label: p.label || "", min_mm: p.minMm || 0, max_mm: p.maxMm || 9999 }));
 
   let apiResult = null;
   try {
@@ -1315,7 +1329,7 @@ async function runSimulation(inp) {
     }
   } catch (err) {
     throw new Error(
-      "El servidor KrushRock no está disponible. Asegúrate de que el backend Python esté corriendo en http://localhost:8000 antes de simular.\n\nDetalle: " + err.message
+      `El servidor KrushRock no está disponible (${API_BASE}). Verifica tu conexión o vuelve a intentar.\n\nDetalle: ${err.message}`
     );
   }
 
@@ -2365,25 +2379,53 @@ function Onboarding({
     if (panelValues.work_index !== null) setCWi(panelValues.work_index);
     if (panelValues.densidad_tm3 !== null) setCDen(panelValues.densidad_tm3);
 
+    // Aplicar horizonte de producción
+    if (panelValues.plazo_meses !== null && panelValues.plazo_meses >= 1) {
+      setPlazoMeses(Math.round(panelValues.plazo_meses));
+    }
+
     // Aplicar valores de granulometría
+    // Si no hay F80 pero sí F_max, estimarlo como 75% del F_max (distribución ROM típica)
     const hasF80 = panelValues.f80_mm !== null;
-    if (hasF80) setF80(panelValues.f80_mm);
+    const hasFmax = panelValues.f_max_mm !== null;
+    let f80Estimated = false;
+    if (hasF80) {
+      setF80(panelValues.f80_mm);
+    } else if (hasFmax) {
+      const estimado = Math.round(panelValues.f_max_mm * 0.75);
+      setF80(Math.max(50, estimado));
+      f80Estimated = true;
+    }
     if (panelValues.capacidad_tph !== null) setOverrideTph(panelValues.capacidad_tph);
+
+    // Aplicar producto extraído: si hay p_max_mm, crear un solo producto activo
+    if (panelValues.p_max_mm !== null && panelValues.p_max_mm > 0) {
+      setProds([
+        { id: 1, active: true, label: "", minMm: 0, maxMm: panelValues.p_max_mm, targetTon: 0 },
+        { id: 2, active: false, label: "", minMm: 0, maxMm: 9999, targetTon: 0 },
+        { id: 3, active: false, label: "", minMm: 0, maxMm: 9999, targetTon: 0 },
+        { id: 4, active: false, label: "", minMm: 0, maxMm: 9999, targetTon: 0 },
+      ]);
+    }
 
     // Registrar qué se pre-llenó para mostrar banners
     const filled = {};
     if (hasRock) filled.rock = true;
-    if (hasF80) filled.f80 = true;
+    if (hasF80 || f80Estimated) filled.f80 = true;
+    if (f80Estimated) filled.f80Estimated = true;
+    if (hasFmax) filled.fmax = true;
     if (panelValues.capacidad_tph !== null) filled.tph = true;
     if (panelValues.work_index !== null) filled.wi = true;
     if (panelValues.densidad_tm3 !== null) filled.den = true;
+    if (panelValues.plazo_meses !== null) filled.plazo = true;
+    if (panelValues.p_max_mm !== null) filled.producto = true;
     setAiPrefilled(filled);
 
     // Avanzar al primer paso que aún necesita input del usuario:
-    //   Roca + F80 conocidos → saltar a Step 2 (Productos)
-    //   Solo roca conocida   → saltar a Step 1 (Granulometría, ya pre-llenada)
-    //   Ninguno              → quedar en Step 0
-    if (hasRock && hasF80) {
+    //   Roca + F80 (real o estimado) → saltar a Step 2 (Productos)
+    //   Solo roca conocida           → saltar a Step 1 (Granulometría)
+    //   Ninguno                      → quedar en Step 0
+    if (hasRock && (hasF80 || f80Estimated)) {
       setStep(2);
     } else if (hasRock) {
       setStep(1);
@@ -2420,7 +2462,7 @@ function Onboarding({
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 1000,
-          system: `Eres un asistente experto en plantas de chancado y zarandeo minero.\nTu única tarea es extraer parámetros técnicos de un texto libre y devolver SOLO un objeto JSON válido, sin texto adicional, sin backticks, sin explicaciones.\n\nEl JSON debe tener EXACTAMENTE esta estructura: {\n  "tipo_roca": string o null,\n  "work_index": number o null,\n  "f_max_mm": number o null,\n  "f80_mm": number o null,\n  "capacidad_tph": number o null,\n  "densidad_tm3": number o null,\n  "p_max_mm": number o null,\n  "p80_mm": number o null,\n  "css_primario_mm": number o null,\n  "css_secundario_mm": number o null,\n  "notas_adicionales": string o null,\n  "supuestos": array de strings\n}\n\nReglas de extracción:\n- Convierte siempre pulgadas a mm (1 pulgada = 25.4 mm)\n- Si el texto dice "10-15 pulgadas", usar el promedio: 317.5 mm para f_max\n- Si menciona m³/día, convertir a tph usando densidad si está disponible, si no, asumir 1.6 t/m³ y registrarlo en supuestos\n- Si un dato no está en el texto, dejarlo en null (NO inventar valores)\n- En el array "supuestos" listar CADA conversión o inferencia realizada, por ejemplo: "CSS primario asumido 75mm por tamaño de alimentación típico"\n- tipo_roca debe ser una de: caliza, granito, basalto, cuarcita, arenisca, pórfido de cobre, mineral de hierro, dolomita, mármol, esquisto. Si no coincide exactamente, poner el nombre tal como aparece en el texto.`,
+          system: `Eres un asistente experto en plantas de chancado y zarandeo minero.\nTu única tarea es extraer parámetros técnicos de un texto libre y devolver SOLO un objeto JSON válido, sin texto adicional, sin backticks, sin explicaciones.\n\nEl JSON debe tener EXACTAMENTE esta estructura: {\n  "tipo_roca": string o null,\n  "work_index": number o null,\n  "f_max_mm": number o null,\n  "f80_mm": number o null,\n  "capacidad_tph": number o null,\n  "densidad_tm3": number o null,\n  "p_max_mm": number o null,\n  "p80_mm": number o null,\n  "css_primario_mm": number o null,\n  "css_secundario_mm": number o null,\n  "plazo_meses": number o null,\n  "notas_adicionales": string o null,\n  "supuestos": array de strings\n}\n\nReglas de extracción:\n- Convierte siempre pulgadas a mm (1 pulgada = 25.4 mm)\n- Si el texto dice "10-15 pulgadas", usar el promedio: 317.5 mm para f_max\n- Si menciona m³/día, convertir a tph usando densidad si está disponible, si no, asumir 1.6 t/m³ y registrarlo en supuestos\n- plazo_meses: extraer si menciona duración del proyecto, horizonte, plazo, "X meses", "X semanas" (convertir a meses)\n- Si un dato no está en el texto, dejarlo en null (NO inventar valores)\n- En el array "supuestos" listar CADA conversión o inferencia realizada, por ejemplo: "CSS primario asumido 75mm por tamaño de alimentación típico"\n- tipo_roca debe ser una de: caliza, granito, basalto, cuarcita, arenisca, pórfido de cobre, mineral de hierro, dolomita, mármol, esquisto. Si no coincide exactamente, poner el nombre tal como aparece en el texto.\n- Si el texto menciona "mineral" sin especificar tipo y el contexto es minería en Chile o Sudamérica, usar "mineral" como tipo_roca (el sistema lo inferirá).`,
           messages: [
             {
               role: "user",
@@ -4154,14 +4196,24 @@ function Onboarding({
           {/* STEP 1 — CURVA GRANULOMÉTRICA DE INGRESO */}
           {step === 1 && (
             <div style={{ display: "grid", gap: 8 }}>
-              {aiPrefilled.f80 && (
+              {aiPrefilled.f80 && !aiPrefilled.f80Estimated && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8,
                   background: `${G.green}18`, border: `1px solid ${G.green}`,
                   borderRadius: 8, padding: "10px 14px", fontSize: 12, color: G.green }}>
                   <span style={{ fontSize: 16 }}>✦</span>
-                  <span>F80 pre-llenado por IA: <strong>{f80} mm</strong>
+                  <span>F80 extraído del texto: <strong>{f80} mm</strong>
                     {aiPrefilled.tph ? ` · Tonelaje: ${overrideTph} tph` : ""}
                     {" — "}confirma o ajusta abajo, luego continúa.
+                  </span>
+                </div>
+              )}
+              {aiPrefilled.f80Estimated && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8,
+                  background: `${G.accent}18`, border: `1px solid ${G.accent}`,
+                  borderRadius: 8, padding: "10px 14px", fontSize: 12, color: G.accent }}>
+                  <span style={{ fontSize: 16 }}>⚠</span>
+                  <span>F80 no indicado en el texto — estimado como <strong>75% del F máximo ({aiPrefilled.fmax ? Math.round(f80 / 0.75) : "?"} mm) → {f80} mm</strong>.
+                    Esto es una aproximación conservadora para material ROM. Ajusta si tienes datos reales.
                   </span>
                 </div>
               )}
@@ -4651,7 +4703,13 @@ function Onboarding({
                     </span>
                   </div>
                 </div>
-                <div style={{ fontSize: 10, color: G.muted, marginTop: 6 }}>
+                {aiPrefilled.plazo && (
+                  <div style={{ fontSize: 11, color: G.green, marginTop: 6, display: "flex", gap: 6, alignItems: "center" }}>
+                    <span>✦</span>
+                    <span>Horizonte extraído del texto: <strong>{plazoMeses} mes{plazoMeses !== 1 ? "es" : ""}</strong> — ajusta si es necesario.</span>
+                  </div>
+                )}
+                <div style={{ fontSize: 10, color: G.muted, marginTop: 4 }}>
                   Define el horizonte para calcular tonelajes totales y
                   planificación de campaña
                 </div>
@@ -5273,34 +5331,29 @@ function Onboarding({
                 >
                   <SectionTitle>EQUIPOS A INCLUIR</SectionTitle>
                   <div style={{ display: "grid", gap: 7 }}>
+                    {/* Equipos principales — chancadores destacados */}
                     {[
-                      { k: "jaw", label: "Chancador Mandíbula (Primario)" },
-                      {
-                        k: "cone",
-                        label: "Chancador Cono (Secundario / Terciario)",
-                      },
-                      {
-                        k: "hsi",
-                        label: "Chancador HSI (Primario / Secundario)",
-                      },
-                      { k: "screen3d", label: "Seleccionadora 3 Deck" },
-                      { k: "screen2d", label: "Seleccionadora 2 Deck" },
-                      { k: "screen1d", label: "Seleccionadora 1 Deck" },
-                      {
-                        k: "screen_hf",
-                        label: "Seleccionadora Alta Frecuencia",
-                      },
-                      { k: "scalper", label: "Scalper (Pre-primario)" },
+                      { k: "jaw", label: "⚙ Chancador Mandíbula", sub: "Primario — obligatorio en circuito típico", primary: true },
+                      { k: "cone", label: "⚙ Chancador Cono", sub: "Secundario / Terciario — reduce a tamaño final", primary: true },
+                      { k: "hsi", label: "Chancador HSI", sub: "Impacto horizontal — Primario o Secundario" },
+                      { k: "screen3d", label: "Seleccionadora 3 Deck", sub: null },
+                      { k: "screen2d", label: "Seleccionadora 2 Deck", sub: null },
+                      { k: "screen1d", label: "Seleccionadora 1 Deck", sub: null },
+                      { k: "screen_hf", label: "Seleccionadora Alta Frecuencia", sub: null },
+                      { k: "scalper", label: "Scalper", sub: "Pre-primario — elimina finos antes de chancado" },
                     ].map((eq) => (
                       <label
                         key={eq.k}
                         style={{
                           display: "flex",
-                          alignItems: "center",
+                          alignItems: "flex-start",
                           gap: 10,
                           cursor: "pointer",
-                          fontSize: 13,
-                          color: G.text,
+                          padding: eq.primary ? "10px 12px" : "6px 10px",
+                          borderRadius: 7,
+                          background: eq.primary && manualEq[eq.k] ? `${G.accent}18` : eq.primary ? `${G.faint}` : "transparent",
+                          border: eq.primary ? `1px solid ${manualEq[eq.k] ? G.accent : G.border}` : "none",
+                          transition: "all .15s",
                         }}
                       >
                         <input
@@ -5313,13 +5366,18 @@ function Onboarding({
                             }))
                           }
                           style={{
-                            width: 16,
-                            height: 16,
+                            width: 17,
+                            height: 17,
                             accentColor: G.accent,
                             cursor: "pointer",
+                            marginTop: 2,
+                            flexShrink: 0,
                           }}
                         />
-                        {eq.label}
+                        <div>
+                          <div style={{ fontSize: eq.primary ? 14 : 13, color: eq.primary ? G.text : G.muted, fontWeight: eq.primary ? 600 : 400 }}>{eq.label}</div>
+                          {eq.sub && <div style={{ fontSize: 11, color: G.muted, marginTop: 2 }}>{eq.sub}</div>}
+                        </div>
                       </label>
                     ))}
                     <div
