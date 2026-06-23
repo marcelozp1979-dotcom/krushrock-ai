@@ -1125,36 +1125,6 @@ function fitRR(points) {
   return { n: Math.max(0.3, Math.min(4.0, n)), d63: Math.max(0.1, d63) };
 }
 
-// ── MOTOR DE SIMULACIÓN — HELPERS CSS (se mantienen para sugerencia de CSS) ──
-
-function jawFactor(palanca, wi, humN, rpm) {
-  const F_base = palanca === "simple" ? 1.9 : 1.68;
-  const k_wi = 1 + (wi - 13) * 0.012;
-  const k_hum = 1 - humN * 0.025;
-  const k_rpm = 1 - (rpm - 280) * 0.0006;
-  return Math.max(1.4, Math.min(2.2, F_base * k_wi * k_hum * k_rpm));
-}
-
-function coneFactor(perfil, wi, rpm) {
-  const bases = { EF: 1.4, F: 1.52, M: 1.62, C: 1.75, EC: 1.9 };
-  const F_base = bases[perfil] || 1.62;
-  const k_wi = 1 + (wi - 13) * 0.01;
-  const k_rpm = 1 - (rpm - 285) * 0.0005;
-  return Math.max(1.25, Math.min(2.1, F_base * k_wi * k_rpm));
-}
-
-function karraEff(aperturaM, p80Feed, humN, deck, rrN, d63) {
-  const pct_pass = Math.min(0.98, 1 - Math.exp(-Math.pow(aperturaM / d63, rrN)));
-  const pct_hi = Math.min(0.98, 1 - Math.exp(-Math.pow((aperturaM * 1.25) / d63, rrN)));
-  const pct_lo = Math.min(0.98, 1 - Math.exp(-Math.pow((aperturaM * 0.75) / d63, rrN)));
-  const near_pct = (pct_hi - pct_lo) / Math.max(pct_pass, 0.01);
-  const k_near = Math.max(0.6, 1 - near_pct * 0.55);
-  const k_hum = humN === 0 ? 1.0 : humN === 1 ? 0.9 : humN === 2 ? 0.78 : 0.65;
-  const k_deck = deck === 1 ? 1.0 : 0.9;
-  const E_base = Math.min(0.97, 0.75 + pct_pass * 0.22);
-  return Math.max(0.5, Math.min(0.97, E_base * k_near * k_hum * k_deck));
-}
-
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
 
 // ── MOTOR DE SIMULACIÓN v2 — llama al backend con curvas reales ────────────
@@ -1193,31 +1163,24 @@ async function runSimulation(inp) {
   const cone_rpm = coneEq?.rpm || 285;
   const cone_perfil = inp.conePerfil || "M";
 
-  const F_JAW_DYN = jawFactor(jaw_palanca, rock.wi, humN, jaw_rpm);
-  const F_CONE_DYN = coneFactor(cone_perfil, rock.wi, cone_rpm);
-  const F_VSI_DYN = coneFactor("EF", rock.wi, 310);
-
+  // Targets P80 por etapa — el backend resuelve el CSS con bisección sobre curvas normalizadas.
+  // No se usan jawFactor/coneFactor: Wi y humedad afectan energía Bond y eficiencia de harnero,
+  // no la curva de producto normalizada (supuesto físicamente correcto).
   const needsT = p80T < 18;
-  let cssT = 0;
-  if (needsT) cssT = Math.max(5, Math.min(20, p80T / F_VSI_DYN));
-  const secTgt = needsT ? cssT * 3.8 : p80T;
-  const cssS = Math.max(10, Math.min(55, secTgt / F_CONE_DYN));
-  const cssP = Math.max(50, Math.min(185, (cssS * 4.0) / F_JAW_DYN));
-  const feedOk = f80 <= cssP * 3.2;
+  const jawTargetP80  = Math.max(60, p80T * 2.5);            // primario: ~2.5× el objetivo final
+  const coneTargetP80 = needsT ? p80T * 2.0 : p80T;         // secundario
+  const vsiTargetP80  = p80T;                                 // terciario = objetivo final
+
+  // Estimación de CSS primario solo para validar compatibilidad con F80 de alimentación
+  const roughJawCss = Math.max(50, Math.min(185, jawTargetP80 / 1.7));
+  const feedOk = f80 <= roughJawCss * 3.2;
 
   const hasScreen = manualEq && (manualEq.screen3d || manualEq.screen2d || manualEq.screen1d || manualEq.screen_hf);
   const isOpen = circPath === "manual" && !hasScreen;
   const autoMesh = Math.round(p80T * 0.9);
   const md = inp.meshDecks || {};
   const meshMm = md[1] > 0 ? md[1] : autoMesh;
-  const mesh2 = md[2] > 0 ? md[2] : Math.round(meshMm * 0.6);
   const nDecks = inp.screenDecks || 1;
-  const rrNmat = rock.rrN || 0.85;
-  const p80Pre = needsT ? cssT * F_VSI_DYN : cssS * F_CONE_DYN;
-  const d63_pre = p80Pre / Math.pow(-Math.log(0.2), 1 / rrNmat);
-  const eff1 = karraEff(meshMm, p80Pre, humN, 1, rrNmat, d63_pre);
-  const eff2 = nDecks >= 2 ? karraEff(mesh2, p80Pre, humN, 2, rrNmat, d63_pre) : 1.0;
-  const eff = isOpen ? 1.0 : Math.min(eff1, nDecks >= 2 ? eff2 : eff1);
 
   let circActual = "cerrado";
   if (circPath === "ai") {
@@ -1226,17 +1189,17 @@ async function runSimulation(inp) {
     circActual = manualEq?.screen3d ? "cerrado_doble" : hasScreen ? "cerrado" : "abierto";
   }
 
-  const jawRec = EQ.jaw.filter((e) => cssP >= e.cssR[0] && cssP <= e.cssR[1] && tph <= e.capR[1]).slice(0, 3);
-  const coneRec = EQ.cone.filter((e) => cssS >= e.cssR[0] && cssS <= e.cssR[1]).slice(0, 3);
+  // Recomendaciones de equipo filtradas por capacidad (CSS lo calcula el backend)
   const is3d = actP.length >= 3 || needsT;
   const screenSrc = is3d ? EQ.screen.filter((e) => e.decks === 3) : EQ.screen.filter((e) => e.decks === 2);
-  const screenRec = screenSrc.filter((e) => tph <= e.capR[1]).slice(0, 3);
-  const hsiRec = EQ.hsi.filter((e) => tph <= e.capR[1]).slice(0, 3);
   const eqRec = {
-    jaw:    jawRec.length  ? jawRec  : EQ.jaw.slice(0, 2),
-    cone:   coneRec.length ? coneRec : EQ.cone.slice(0, 2),
-    screen: screenRec.length ? screenRec : screenSrc.slice(0, 2),
-    hsi:    hsiRec.length  ? hsiRec  : EQ.hsi.slice(0, 2),
+    jaw:    EQ.jaw.filter((e) => tph <= e.capR[1]).slice(0, 3).length
+              ? EQ.jaw.filter((e) => tph <= e.capR[1]).slice(0, 3) : EQ.jaw.slice(0, 2),
+    cone:   EQ.cone.slice(0, 3),
+    screen: screenSrc.filter((e) => tph <= e.capR[1]).slice(0, 3).length
+              ? screenSrc.filter((e) => tph <= e.capR[1]).slice(0, 3) : screenSrc.slice(0, 2),
+    hsi:    EQ.hsi.filter((e) => tph <= e.capR[1]).slice(0, 3).length
+              ? EQ.hsi.filter((e) => tph <= e.capR[1]).slice(0, 3) : EQ.hsi.slice(0, 2),
     is3d,
   };
 
@@ -1266,22 +1229,23 @@ async function runSimulation(inp) {
 
   const apiNodes = [];
   apiNodes.push({
-    id: "jaw_1", type: "jaw", css_mm: cssP,
+    id: "jaw_1", type: "jaw", target_p80_mm: jawTargetP80,
     equipment: { id: "jaw_1", brand: "", model: manModel?.jaw || "Jaw", type: "jaw", specs: {}, curves: {}, capex_usd: 600000 },
   });
   if (!isOpen) {
     apiNodes.push({
-      id: "screen_1", type: "screen", aperture_mm: meshMm, efficiency: eff,
+      id: "screen_1", type: "screen", aperture_mm: meshMm,
       equipment: { id: "screen_1", brand: "", model: "Screen", type: "screen", specs: {}, curves: {}, capex_usd: 250000 },
     });
   }
   apiNodes.push({
-    id: "cone_1", type: "cone", css_mm: manConeCSS > 0 ? Number(manConeCSS) : cssS,
+    id: "cone_1", type: "cone",
+    ...(manConeCSS > 0 ? { css_mm: Number(manConeCSS) } : { target_p80_mm: coneTargetP80 }),
     equipment: { id: "cone_1", brand: "", model: manModel?.cone || "Cone", type: "cone", specs: {}, curves: {}, capex_usd: 800000 },
   });
   if (needsT) {
     apiNodes.push({
-      id: "vsi_1", type: "vsi", css_mm: cssT,
+      id: "vsi_1", type: "vsi", target_p80_mm: vsiTargetP80,
       equipment: { id: "vsi_1", brand: "", model: "VSI", type: "vsi", specs: {}, curves: {}, capex_usd: 500000 },
     });
   }
@@ -1343,6 +1307,7 @@ async function runSimulation(inp) {
   const toUm = (mm) => mm * 1000;
 
   let primaryP80, secondaryP80, tertP80;
+  let primaryCss = 0, secondaryCss = 0, tertiaryCss = 0;
   let screenEffVal, screenOverVal, ccLoadVal, finalP80;
   let ePerTVal, eTotKwVal, scoreVal;
   let products_display, bottlenecks_display, productAlerts;
@@ -1353,10 +1318,15 @@ async function runSimulation(inp) {
     const screenRes = apiResult.node_results?.screen_1 || {};
     const vsiRes    = apiResult.node_results?.vsi_1    || {};
 
-    primaryP80   = jawRes.p80_out_mm    ?? cssP * F_JAW_DYN;
-    secondaryP80 = coneRes.p80_out_mm   ?? cssS * F_CONE_DYN;
-    tertP80      = vsiRes.p80_out_mm    ?? (needsT ? cssT * F_VSI_DYN : secondaryP80);
-    screenEffVal = screenRes.efficiency_pct ?? eff * 100;
+    // CSS calculado por el backend (bisección sobre curvas normalizadas)
+    primaryCss   = jawRes.css_mm    ?? 0;
+    secondaryCss = coneRes.css_mm   ?? 0;
+    tertiaryCss  = vsiRes.css_mm    ?? 0;
+
+    primaryP80   = jawRes.p80_out_mm    ?? jawTargetP80;
+    secondaryP80 = coneRes.p80_out_mm   ?? coneTargetP80;
+    tertP80      = vsiRes.p80_out_mm    ?? vsiTargetP80;
+    screenEffVal = screenRes.efficiency_pct ?? 85;
     screenOverVal= screenRes.oversize_tph   ?? 0;
     ccLoadVal    = apiResult.circ_load_pct  ?? 0;
     finalP80     = apiResult.final_p80_mm   ?? secondaryP80;
@@ -1390,15 +1360,15 @@ async function runSimulation(inp) {
     alerts: productAlerts,
     jawPalanca: jaw_palanca, jawRpm: jaw_rpm, coneRpm: cone_rpm, conePerfil: cone_perfil, meshMm,
     recommendedDecks, recommendedMesh,
-    primary:   { css: cssP.toFixed(0), p80: primaryP80.toFixed(0),   energy: ePrimShow.toFixed(2) },
-    secondary: { css: cssS.toFixed(0), p80: secondaryP80.toFixed(0), energy: eSecShow.toFixed(2)  },
-    tertiary: needsT ? { css: cssT.toFixed(0), p80: tertP80.toFixed(0), energy: eTShow.toFixed(2) } : null,
-    screening: { eff: screenEffVal.toFixed(1), over: screenOverVal.toFixed(1), ccLoad: ccLoadVal.toFixed(1) },
+    primary:   { css: primaryCss.toFixed(0),   p80: (primaryP80   ?? 0).toFixed(0), energy: ePrimShow.toFixed(2) },
+    secondary: { css: secondaryCss.toFixed(0), p80: (secondaryP80 ?? 0).toFixed(0), energy: eSecShow.toFixed(2)  },
+    tertiary: needsT ? { css: tertiaryCss.toFixed(0), p80: (tertP80 ?? 0).toFixed(0), energy: eTShow.toFixed(2) } : null,
+    screening: { eff: (screenEffVal ?? 0).toFixed(1), over: (screenOverVal ?? 0).toFixed(1), ccLoad: (ccLoadVal ?? 0).toFixed(1) },
     final: {
-      p80:   finalP80.toFixed(1),
-      ePerT: ePerTVal.toFixed(2),
-      eTot:  eTotKwVal.toFixed(0),
-      score: scoreVal.toFixed(0),
+      p80:   (finalP80  ?? 0).toFixed(1),
+      ePerT: (ePerTVal  ?? 0).toFixed(2),
+      eTot:  (eTotKwVal ?? 0).toFixed(0),
+      score: (scoreVal  ?? 0).toFixed(0),
     },
     products: products_display,
     bottlenecks: bottlenecks_display,
@@ -1502,6 +1472,15 @@ function buildAnalysis(r) {
 }
 
 // ── MÓDULO CAMPAÑA — funciones auxiliares ─────────────────────────────────
+// coneFactor: usado SOLO para modelar variación de P80 por desgaste de manto en campaña.
+// NO usar para cálculo de CSS de circuito — eso vive en el backend (css_selection.py).
+function coneFactor(perfil, wi, rpm) {
+  const bases = { EF: 1.4, F: 1.52, M: 1.62, C: 1.75, EC: 1.9 };
+  const F_base = bases[perfil] || 1.62;
+  const k_wi = 1 + (wi - 13) * 0.01;
+  const k_rpm = 1 - (rpm - 285) * 0.0005;
+  return Math.max(1.25, Math.min(2.1, F_base * k_wi * k_rpm));
+}
 
 function calcYieldsForCSS(cssMm, products, rrN, FCONE) {
   const p80 = cssMm * FCONE;

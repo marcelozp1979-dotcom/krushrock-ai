@@ -14,6 +14,7 @@ from app.services.equipment_models import (
     JAW_PRODUCT_NORMALIZED,
     IMPACTOR_PRODUCT_NORMALIZED,
 )
+from app.services.css_selection import solve_css, CSS_RANGES
 
 # ── BASE DE DATOS DE ROCAS ────────────────────────────────────────────────────
 ROCK_DB: Dict[str, Dict] = {
@@ -133,36 +134,46 @@ def _bond_energy_kwh_t(wi: float, p80_out_mm: float, p80_in_mm: float) -> float:
     return max(0.0, 10.0 * wi * (1.0 / math.sqrt(p_um) - 1.0 / math.sqrt(f_um)))
 
 
-def _get_crusher_css(node: Dict, p80_target: float) -> float:
+def _get_crusher_css(
+    node: Dict,
+    p80_target: float,
+    feed_stream: Optional[Stream] = None,
+) -> float:
     """
-    Extrae el CSS de un nodo chancador.
-    Prioridad: css_mm explícito → curvas de equipo → fórmula conservadora.
+    Resuelve el CSS para un nodo chancador.
+
+    Prioridad:
+    1. css_mm explícito en el nodo (frontend o usuario lo fijó)
+    2. target_p80_mm en el nodo + bisección sobre curvas normalizadas (NUEVO)
+    3. p80_target global + bisección (cuando el nodo no trae su propio target)
+    4. Factor lineal de respaldo (solo si no hay feed_stream disponible)
     """
+    # Prioridad 1: CSS fijo explícito
     if node.get("css_mm") and float(node["css_mm"]) > 0:
         return float(node["css_mm"])
 
+    node_type = node.get("type", "jaw")
     eq = node.get("equipment", {})
     specs = eq.get("specs", {})
-    curves = eq.get("curves", {})
-    css_range = specs.get("cssRange", [10, 200])
-    node_type = node.get("type", "jaw")
+    css_range_spec = specs.get("cssRange")
+    css_min, css_max = (
+        (float(css_range_spec[0]), float(css_range_spec[1]))
+        if css_range_spec and len(css_range_spec) == 2
+        else CSS_RANGES.get(node_type, (6.0, 200.0))
+    )
 
-    css_curve = curves.get("css", [])
-    p80_curve = curves.get("p80factor", [])
-    if css_curve and p80_curve:
-        # Calcular CSS a partir de las curvas de rendimiento del equipo
-        # CSS tal que p80_factor × CSS ≈ p80_target
-        for i, factor in enumerate(p80_curve):
-            if factor > 0:
-                css_candidate = p80_target / factor
-                css_opt = max(css_range[0], min(css_range[1], css_candidate))
-                return css_opt
+    # Prioridad 2 y 3: bisección sobre curvas normalizadas
+    if feed_stream is not None:
+        target = node.get("target_p80_mm")
+        target = float(target) if target and float(target) > 0 else p80_target
+        norm_curve = _NORM_CURVES.get(node_type, JAW_PRODUCT_NORMALIZED)
+        css_solved, _, _ = solve_css(feed_stream, target, norm_curve, css_min, css_max)
+        return css_solved
 
-    # Fórmula de respaldo: relación CSS/P80 real (no el factor 0.14 incorrecto)
-    # Para mandíbula: P80 ≈ CSS × 1.7, para cono: P80 ≈ CSS × 0.9-1.1
+    # Prioridad 4: factor lineal de respaldo (sin corriente disponible)
     factor = 1.65 if node_type in ("jaw", "scalper") else 1.0
-    css_opt = max(css_range[0], min(css_range[1], p80_target / factor))
-    return css_opt
+    target = node.get("target_p80_mm") or p80_target
+    return max(css_min, min(css_max, float(target) / factor))
 
 
 def _get_screen_params(node: Dict, p80_target: float, humidity: int) -> Tuple[float, float]:
@@ -265,7 +276,7 @@ def simulate(
         p80_in = current_stream.pXX(80)
 
         if node_type in ("jaw", "cone", "scalper", "impactor", "hsi", "vsi"):
-            css = _get_crusher_css(node, p80_target)
+            css = _get_crusher_css(node, p80_target, feed_stream=current_stream)
             norm_curve = _NORM_CURVES.get(node_type, JAW_PRODUCT_NORMALIZED)
 
             out_stream = crusher(current_stream, css, norm_curve)

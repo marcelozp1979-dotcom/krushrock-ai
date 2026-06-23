@@ -35,8 +35,10 @@ class SimNode(BaseModel):
     equipment: NodeEquipment
     x: Optional[float] = 0
     y: Optional[float] = 0
-    # Campos nuevos: permiten enviar CSS/apertura explícitos desde el frontend
+    # css_mm: si se envía, se usa directamente (sobreescribe target_p80_mm)
     css_mm: Optional[float] = None
+    # target_p80_mm: el backend resuelve el CSS via bisección sobre curvas normalizadas
+    target_p80_mm: Optional[float] = None
     aperture_mm: Optional[float] = None
     efficiency: Optional[float] = None
 
