@@ -2441,42 +2441,20 @@ function Onboarding({
       setExtractError("El texto es muy corto para extraer datos.");
       return;
     }
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      setExtractError(
-        "Falta la clave de API de Claude. Define VITE_ANTHROPIC_API_KEY y vuelve a intentar.",
-      );
-      return;
-    }
     setExtractError("");
     setExtracting(true);
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch(`${API_BASE}/ai/extract`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          system: `Eres un asistente experto en plantas de chancado y zarandeo minero.\nTu única tarea es extraer parámetros técnicos de un texto libre y devolver SOLO un objeto JSON válido, sin texto adicional, sin backticks, sin explicaciones.\n\nEl JSON debe tener EXACTAMENTE esta estructura: {\n  "tipo_roca": string o null,\n  "work_index": number o null,\n  "f_max_mm": number o null,\n  "f80_mm": number o null,\n  "capacidad_tph": number o null,\n  "densidad_tm3": number o null,\n  "p_max_mm": number o null,\n  "p80_mm": number o null,\n  "css_primario_mm": number o null,\n  "css_secundario_mm": number o null,\n  "plazo_meses": number o null,\n  "notas_adicionales": string o null,\n  "supuestos": array de strings\n}\n\nReglas de extracción:\n- Convierte siempre pulgadas a mm (1 pulgada = 25.4 mm)\n- Si el texto dice "10-15 pulgadas", usar el promedio: 317.5 mm para f_max\n- Si menciona m³/día, convertir a tph usando densidad si está disponible, si no, asumir 1.6 t/m³ y registrarlo en supuestos\n- plazo_meses: extraer si menciona duración del proyecto, horizonte, plazo, "X meses", "X semanas" (convertir a meses)\n- Si un dato no está en el texto, dejarlo en null (NO inventar valores)\n- En el array "supuestos" listar CADA conversión o inferencia realizada, por ejemplo: "CSS primario asumido 75mm por tamaño de alimentación típico"\n- tipo_roca debe ser una de: caliza, granito, basalto, cuarcita, arenisca, pórfido de cobre, mineral de hierro, dolomita, mármol, esquisto. Si no coincide exactamente, poner el nombre tal como aparece en el texto.\n- Si el texto menciona "mineral" sin especificar tipo y el contexto es minería en Chile o Sudamérica, usar "mineral" como tipo_roca (el sistema lo inferirá).`,
-          messages: [
-            {
-              role: "user",
-              content: pasteText,
-            },
-          ],
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: pasteText }),
       });
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
-        throw new Error(`API ${response.status}: ${errBody?.error?.message || response.statusText}`);
+        throw new Error(`API ${response.status}: ${errBody?.detail || response.statusText}`);
       }
       const data = await response.json();
-      const content = data.content?.[0]?.text || "";
+      const content = data.content || "";
       const payload = extractJsonFromText(content);
       const normalized = normalizeExtractionResult(payload);
       const technicalKeys = [

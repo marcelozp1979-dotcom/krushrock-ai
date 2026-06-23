@@ -32,7 +32,6 @@ jobs:
         run: npm run build
         env:
           VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
-          VITE_ANTHROPIC_API_KEY: ${{ secrets.VITE_ANTHROPIC_API_KEY }}
 
   # ── BACKEND: verifica que Python importa sin errores ────────────────────────
   backend-check:
