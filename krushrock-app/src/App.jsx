@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 
 const G = {
   bg: "#0a0e1a",
@@ -212,8 +212,10 @@ const ROCK_CATS = {
   roca_blanda: ["caliza", "caliche", "arenisca", "dolomita"],
 };
 
-// ── CATÁLOGO DE EQUIPOS ────────────────────────────────────────────────────
-const EQ = {
+// ── CATÁLOGO DE EQUIPOS (FALLBACK LOCAL) ──────────────────────────────────
+// TODO: eliminar cuando el endpoint /equipment esté estable en producción.
+// El componente App lo sobreescribe con datos de Supabase al montarse.
+const EQ_LOCAL = {
   jaw: [
     {
       brand: "Terex Finlay",
@@ -841,14 +843,16 @@ const EQ = {
   ],
 };
 
-const EQ_BY_CAT = {
-  jaw: EQ.jaw,
-  cone: EQ.cone,
-  hsi: EQ.hsi,
-  screen3d: EQ.screen.filter((e) => e.decks === 3),
-  screen2d: EQ.screen.filter((e) => e.decks === 2),
-  screen1d: EQ.screen_1d,
-  screen_hf: EQ.screen_hf,
+// EQ_BY_CAT se define dentro del componente App (accede al catálogo remoto vía estado).
+// Esta constante local solo se usa como fallback si el componente no ha cargado aún.
+const EQ_BY_CAT_LOCAL = {
+  jaw: EQ_LOCAL.jaw,
+  cone: EQ_LOCAL.cone,
+  hsi: EQ_LOCAL.hsi,
+  screen3d: EQ_LOCAL.screen.filter((e) => e.decks === 3),
+  screen2d: EQ_LOCAL.screen.filter((e) => e.decks === 2),
+  screen1d: EQ_LOCAL.screen_1d,
+  screen_hf: EQ_LOCAL.screen_hf,
 };
 
 const CAT_LABELS = {
@@ -1129,6 +1133,9 @@ const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1"
 
 // ── MOTOR DE SIMULACIÓN v2 — llama al backend con curvas reales ────────────
 async function runSimulation(inp) {
+  // Catálogo de equipos: usa el del componente (remoto) o el fallback local
+  const EQ = inp.eqCatalog || EQ_LOCAL;
+
   const {
     rockKey, customName, customWi, customDen, customAb,
     tph, f80, products, humidity, circPath, manualEq, manModel,
@@ -8989,6 +8996,31 @@ export default function App() {
   const [simLoading, setSimLoading] = useState(false);
   const [simError, setSimError] = useState(null);
 
+  // Catálogo de equipos remoto (Supabase vía backend). Fallback: EQ_LOCAL.
+  const [eqCatalog, setEqCatalog] = useState(EQ_LOCAL);
+  useEffect(() => {
+    fetch(`${API_BASE}/equipment`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.equipment && typeof data.equipment === "object") {
+          setEqCatalog(data.equipment);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Alias para usar el catálogo en JSX y funciones dentro del componente
+  const EQ = eqCatalog;
+  const EQ_BY_CAT = {
+    jaw:      EQ.jaw,
+    cone:     EQ.cone,
+    hsi:      EQ.hsi,
+    screen3d: EQ.screen.filter((e) => e.decks === 3),
+    screen2d: EQ.screen.filter((e) => e.decks === 2),
+    screen1d: EQ.screen_1d,
+    screen_hf: EQ.screen_hf,
+  };
+
   // Historial en localStorage — máx 50 simulaciones
   const [savedSims, setSavedSims] = useState(() => {
     try {
@@ -9051,7 +9083,7 @@ export default function App() {
     setSimLoading(true);
     setSimError(null);
     try {
-      const result = await runSimulation(inp);
+      const result = await runSimulation({ ...inp, eqCatalog });
       setRes(result);
     } catch (err) {
       setSimError(err.message);
