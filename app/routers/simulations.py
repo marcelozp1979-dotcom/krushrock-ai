@@ -175,23 +175,28 @@ async def calculate_simulation(req: SimulationRequest):
     Solo cálculo — no guarda en base de datos.
     Permite al frontend obtener resultados del motor v2 sin login.
     """
-    nodes_raw = [n.dict() for n in req.nodes]
-    products_raw = [p.dict() for p in req.products] if req.products else None
+    try:
+        nodes_raw = [n.dict() for n in req.nodes]
+        products_raw = [p.dict() for p in req.products] if req.products else None
 
-    result = simulate(
-        nodes=nodes_raw,
-        tph=req.tph,
-        f80=req.f80,
-        p80_target=req.p80_target,
-        rock_type=req.rock_type,
-        humidity=req.humidity,
-        circuit=req.circuit,
-        hours_per_year=req.hours_per_year,
-        f50=req.f50,
-        feed_curve_dict=req.feed_curve,
-        products=products_raw,
-    )
-    return {"result": result}
+        result = simulate(
+            nodes=nodes_raw,
+            tph=req.tph,
+            f80=req.f80,
+            p80_target=req.p80_target,
+            rock_type=req.rock_type,
+            humidity=req.humidity,
+            circuit=req.circuit,
+            hours_per_year=req.hours_per_year,
+            f50=req.f50,
+            feed_curve_dict=req.feed_curve,
+            products=products_raw,
+        )
+        return {"result": result}
+    except Exception as exc:
+        import traceback
+        detail = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"
+        raise HTTPException(status_code=500, detail=detail)
 
 
 @router.post("/compare")

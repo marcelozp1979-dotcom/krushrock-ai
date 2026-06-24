@@ -26,11 +26,13 @@ class Settings(BaseSettings):
     # Anthropic
     ANTHROPIC_API_KEY: str = ""
 
-    # CORS — en producción pon tu dominio exacto
+    # CORS — incluye todos los orígenes de producción
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
-        "https://krushrock.app",      # tu dominio
+        "https://krushrock.app",
+        "https://krushrock-ai.vercel.app",
+        "https://krushrock-ai-production.up.railway.app",
     ]
 
     # Storage PDF
