@@ -1272,6 +1272,8 @@ async function runSimulation(inp) {
   const apiProducts = actP.map((p) => ({ id: String(p.id), label: p.label || "", min_mm: p.minMm || 0, max_mm: p.maxMm || 9999 }));
 
   let apiResult = null;
+  let apiErrorStatus = 0;
+  let apiErrorBody = "";
   try {
     const apiUrl = API_BASE + "/simulations/calculate";
     const resp = await fetch(apiUrl, {
@@ -1296,7 +1298,9 @@ async function runSimulation(inp) {
       const data = await resp.json();
       apiResult = data.result;
     } else {
-      console.warn("KrushRock API error:", resp.status);
+      apiErrorStatus = resp.status;
+      try { apiErrorBody = await resp.text(); } catch {}
+      console.error("KrushRock API error:", resp.status, apiErrorBody);
     }
   } catch (err) {
     throw new Error(
@@ -1306,7 +1310,9 @@ async function runSimulation(inp) {
 
   if (!apiResult) {
     throw new Error(
-      "El servidor respondió pero no devolvió resultados válidos. Revisa los logs del backend."
+      apiErrorStatus
+        ? `Error del servidor (HTTP ${apiErrorStatus}): ${apiErrorBody.slice(0, 500) || "sin detalle"}`
+        : "El servidor respondió pero no devolvió resultados válidos. Revisa los logs del backend."
     );
   }
 

@@ -157,9 +157,9 @@ def main():
 
     try:
         result = sb.table("equipment").upsert(records, on_conflict="brand,model").execute()
-        print(f"✅ Seed completado. Registros procesados: {len(result.data)}")
+        print(f"[OK] Seed completado. Registros procesados: {len(result.data)}")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"[ERROR] {e}")
         print()
         print("Si la tabla no existe, ejecuta primero en el SQL Editor de Supabase:")
         print("  migrations/001_equipment_table.sql")
