@@ -5906,7 +5906,7 @@ function Onboarding({
 }
 
 // ── RESULTADOS ─────────────────────────────────────────────────────────────
-function Results({ res, unit: initUnit, onReset, onSave, onEdit }) {
+function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_LOCAL }) {
   const [tab, setTab] = useState("equipos");
   const [unit, setUnit] = useState(initUnit || "mm");
   const [showSave, setShowSave] = useState(false);
@@ -5933,6 +5933,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit }) {
     });
     return init;
   });
+  const EQ = eqCatalog || EQ_LOCAL;
   const analysis = buildAnalysis(res);
   const score = Number(res.final.score),
     cc = Number(res.screening.ccLoad);
@@ -9188,6 +9189,7 @@ export default function App() {
       onReset={handleReset}
       onEdit={handleEdit}
       onSave={saveSim}
+      eqCatalog={eqCatalog}
     />
   );
 }
