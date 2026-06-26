@@ -2120,6 +2120,7 @@ function Onboarding({
   initialInp = null,
   initialStep = 0,
   cancelEdit = null,
+  eqCatalog = EQ_LOCAL,
 }) {
   const init = initialInp || {};
   const [step, setStep] = useState(initialStep || 0);
@@ -2201,6 +2202,18 @@ function Onboarding({
   const [showAssumptions, setShowAssumptions] = useState(true);
   const [overrideTph, setOverrideTph] = useState(null);
   const [aiPrefilled, setAiPrefilled] = useState({});
+
+  // Catálogo de equipos indexado por tipo — usa el prop remoto con fallback local
+  const _EQ = eqCatalog || EQ_LOCAL;
+  const EQ_BY_CAT = {
+    jaw:       _EQ.jaw       || [],
+    cone:      _EQ.cone      || [],
+    hsi:       _EQ.hsi       || [],
+    screen3d:  (_EQ.screen   || []).filter((e) => e.decks === 3),
+    screen2d:  (_EQ.screen   || []).filter((e) => e.decks === 2),
+    screen1d:  _EQ.screen_1d || [],
+    screen_hf: _EQ.screen_hf || [],
+  };
 
   const STEP_ITEMS = [
     { id: 0, label: "Tipo de roca" },
@@ -9121,6 +9134,7 @@ export default function App() {
         initialInp={currentInp}
         initialStep={editStep}
         cancelEdit={handleCancelEdit}
+        eqCatalog={eqCatalog}
       />
     );
 
@@ -9163,6 +9177,7 @@ export default function App() {
         savedSims={savedSims}
         onDeleteSim={deleteSim}
         initialInp={currentInp}
+        eqCatalog={eqCatalog}
       />
     );
   return (
