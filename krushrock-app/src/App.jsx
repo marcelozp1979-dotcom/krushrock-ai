@@ -1129,7 +1129,8 @@ function fitRR(points) {
   return { n: Math.max(0.3, Math.min(4.0, n)), d63: Math.max(0.1, d63) };
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
+// .replace elimina BOM (U+FEFF) que Vercel puede inyectar al guardar el env var en su dashboard
+const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1").replace(/^\ufeff/, "").trim();
 
 // ── MOTOR DE SIMULACIÓN v2 — llama al backend con curvas reales ────────────
 async function runSimulation(inp) {
