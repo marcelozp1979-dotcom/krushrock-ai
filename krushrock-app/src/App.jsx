@@ -2673,7 +2673,7 @@ function Onboarding({
               Math.round(totalTargetTon / (plazoMeses * effHrsPerMonth)),
             ),
           )
-        : 200);
+        : 0);
     const activeProds = prods.filter((p) => p.active);
     const recDecks =
       activeProds.length >= 3 ? 3 : activeProds.length >= 2 ? 2 : 1;
@@ -2721,6 +2721,10 @@ function Onboarding({
         add("Ingresa abrasividad (Ab) válida para material personalizado.", 0);
     }
     if (!f80 || f80 <= 0) add("Ingresa un valor F80 válido.", 1);
+    const totalTargetTonVal = prods.filter((p) => p.active).reduce((s, p) => s + (Number(p.targetTon) || 0), 0);
+    if (!overrideTph && !totalTargetTonVal) {
+      add("Ingresa la capacidad en tph (Paso 1) o una meta de tonelaje en algún producto (Paso 2) — sin eso la simulación no tiene datos de producción.", 1);
+    }
     if (curveType === "full") {
       const validCurvePts = curvePoints.filter((p) => p.sizeMm > 0).length;
       if (validCurvePts < 2)

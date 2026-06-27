@@ -3,7 +3,7 @@ KrushRock — Router de Simulaciones
 Ejecutar, guardar, recuperar, comparar simulaciones
 """
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import uuid
@@ -69,6 +69,13 @@ class SimulationRequest(BaseModel):
     f50: Optional[float] = None
     feed_curve: Optional[Dict[str, float]] = None
     products: Optional[List[ProductDef]] = None
+
+    @field_validator("tph")
+    @classmethod
+    def tph_must_be_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("tph debe ser mayor que 0 — indica la capacidad en tph o una meta de tonelaje por producto")
+        return v
 
 
 class CompareRequest(BaseModel):
