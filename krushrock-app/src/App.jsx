@@ -1349,7 +1349,7 @@ async function runSimulation(inp) {
     scoreVal     = apiResult.eff_score ?? 0;
 
     products_display = actP.map((p) => {
-      const ap = apiResult.product_yields?.find((x) => x.id === p.id);
+      const ap = apiResult.product_yields?.find((x) => String(x.id) === String(p.id));
       return { ...p, yldPct: ap ? ap.yld_pct.toFixed(1) : "0.0", tphOut: ap ? ap.tph_out.toFixed(0) : "0" };
     });
 
