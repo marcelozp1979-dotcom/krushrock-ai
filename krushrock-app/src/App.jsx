@@ -2723,7 +2723,7 @@ function Onboarding({
     if (!f80 || f80 <= 0) add("Ingresa un valor F80 válido.", 1);
     const totalTargetTonVal = prods.filter((p) => p.active).reduce((s, p) => s + (Number(p.targetTon) || 0), 0);
     if (!overrideTph && !totalTargetTonVal) {
-      add("Ingresa la capacidad en tph (Paso 1) o una meta de tonelaje en algún producto (Paso 2) — sin eso la simulación no tiene datos de producción.", 1);
+      add("Ingresa la capacidad en tph (paso Curva granulométrica) o una meta de tonelaje en algún producto (paso Productos) — sin eso la simulación no tiene datos de producción.", 1);
     }
     if (curveType === "full") {
       const validCurvePts = curvePoints.filter((p) => p.sizeMm > 0).length;
@@ -4591,7 +4591,7 @@ function Onboarding({
                 <div style={{ fontSize: 11, color: G.muted }}>
                   Toneladas por hora (tph) que entra al circuito. Si no lo
                   conoces, déjalo vacío — el sistema lo derivará de las metas
-                  de producción en el Paso 2.
+                  de producción en el paso Productos.
                 </div>
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <input
