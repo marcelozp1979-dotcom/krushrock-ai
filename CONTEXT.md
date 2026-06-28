@@ -2,45 +2,48 @@
 
 ## Qué es
 Simulador de plantas de chancado móvil con IA.
-Autor: experto en chancado, no en programación (2 semanas programando).
-Stack: Python/FastAPI (backend) + React/JSX (frontend).
+Autor: experto en chancado, no en programación.
+Stack: Python/FastAPI (backend, Railway) + React/JSX (frontend, Vercel) + Supabase.
 
-## Estado al 10/06/2026
+## Estado al 28/06/2026
 ### ✓ COMPLETADO
 - Fase A: granulometry.py, equipment_models.py (curvas completas, balance de masas exacto)
 - Fase B: tests/test_validation_aggflow.py (5 tests contra datos reales AggFlow)
-- casos_validacion_aggflow.json (2 casos reales: Finlay J-1160 + C-1540RS)
+- Fase C: simulation_engine.py reescrito — usa Stream/crusher()/screen() reales,
+  sin propagar P80 escalar. krushrock-ai.jsx (motor duplicado del frontend)
+  eliminado. Frontend conectado a la API como única fuente de verdad.
+- Limpieza de raíz: eliminados 9 archivos huérfanos (prototipos jsx sueltos,
+  scripts standalone, zip de backup). motor_curvas_prototipo.py ya no existe
+  (cumplió su rol de referencia, está documentado en DIAGNOSTICO_MOTOR_KRUSHROCK.md).
+- 22/22 tests pasan (pytest tests/ -v).
 
-### 🔴 PENDIENTE — Fase C
-1. Reescribir simulation_engine.py usando Stream, crusher(), screen()
-2. Eliminar motor duplicado en krushrock-ai.jsx
-3. Conectar frontend a API (una sola fuente de verdad)
+### 🔴 PENDIENTE — Fase D (UX para cliente no-experto)
+El motor de cálculo está validado, pero la app expone jerga técnica
+(Wi, CSS, P80, carga circulante) sin ningún glosario ni explicación en
+lenguaje simple. El motor de alertas/recomendaciones (App.jsx, función de
+observaciones ~línea 1420) ya genera mensajes útiles, pero en el mismo
+lenguaje técnico — sirve a un experto, no al cliente final.
+Falta: traducir resultados a lenguaje simple, explicar qué significa un
+índice bajo y qué hacer, mapear los 11 escenarios reales de clientes
+(correos de Marcelo) contra las features actuales del wizard.
 
-### 📋 FUTURO (después de Fase C)
-- Rediseño visual completo (más moderno, intuitivo)
-- Nueva arquitectura de navegación (menos pasos)
+### 📋 FUTURO
+- Rediseño visual del wizard pensado para no-experto
 - Más equipos y marcas en catálogo
-- Módulos nuevos por definir
-- Calibración con más casos reales
+- Conectar learning_engine.py (Fase 7) a un flujo real de feedback —
+  hoy existe pero no está conectado a ningún endpoint ni dato real
 
 ## Archivos clave
-- DIAGNOSTICO_MOTOR_KRUSHROCK.md — diagnóstico completo y plan
-- motor_curvas_prototipo.py — motor validado de referencia
+- DIAGNOSTICO_MOTOR_KRUSHROCK.md — diagnóstico original del motor (histórico,
+  ya resuelto — ver sección Estado arriba)
 - casos_validacion_aggflow.json — datos reales de validación
 - app/services/granulometry.py — clase Stream ✓
 - app/services/equipment_models.py — crusher() y screen() ✓
+- app/services/simulation_engine.py — motor activo, usa Stream/crusher/screen ✓
 - tests/test_validation_aggflow.py — 5 tests ✓
-
-## Problema central (ya diagnosticado)
-Motor actual propaga P80 escalar entre equipos, no curvas completas.
-Factor cono incorrecto: software usa ×1.62, real es ×0.91 (error 83%).
-Bond calculado en mm no µm (infla energía ×31.6).
-Dos motores duplicados: backend Python + frontend JSX.
 
 ## Instrucción para Claude Code al iniciar
 Siempre ejecuta primero: pytest tests/ -v
-Si todos pasan, continúa con Fase C.
-Si alguno falla, corrígelo antes de seguir.
-
-## Instrucción para chat Claude.ai al iniciar
-Leer este archivo + preguntar en qué sesión estamos.
+Si todos pasan, el motor sigue íntegro — continuar con la Fase D pendiente
+(UX no-experto) salvo que se indique otra cosa.
+Si alguno falla, corregirlo antes de seguir.
