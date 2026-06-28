@@ -496,7 +496,7 @@ const EQ_LOCAL = {
       feedMm: 150,
       cssR: [8, 32],
       capR: [90, 200],
-      notes: "Diesel-eléctrico Tier 4",
+      notes: "Diesel-eléctrico",
     },
     {
       brand: "Kleemann",
@@ -5102,25 +5102,6 @@ function Onboarding({
                     )}
                   </>
                 )}
-                <div
-                  style={{
-                    marginTop: 12,
-                    padding: "10px 12px",
-                    background: G.faint,
-                    borderRadius: 6,
-                    fontSize: 11,
-                    color: G.muted,
-                    borderLeft: `3px solid ${G.border}`,
-                  }}
-                >
-                  <strong style={{ color: G.text }}>
-                    Nota Tier y año de equipo:
-                  </strong>{" "}
-                  los estándares de emisión Tier 3/4 no afectan la potencia de
-                  trituración. El año del equipo no modifica los parámetros de
-                  proceso (CSS, capacidad). No se incluyen en el modelo para
-                  evitar estimaciones sin base técnica sólida.
-                </div>
               </div>
               <div
                 style={{

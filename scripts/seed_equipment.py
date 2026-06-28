@@ -64,7 +64,7 @@ EQ_SEED = {
         {"brand": "Sandvik",       "model": "QH331",      "rpm": 310, "feedMm": 185, "cssR": [6,  38], "capR": [100, 240], "notes": "CH430 Hydrocone"},
         {"brand": "Sandvik",       "model": "QH332",      "rpm": 310, "feedMm": 185, "cssR": [6,  38], "capR": [120, 260], "notes": "CH430 Hydrocone"},
         {"brand": "Sandvik",       "model": "QH441",      "rpm": 290, "feedMm": 275, "cssR": [8,  45], "capR": [180, 400], "notes": "CH660 Hydrocone"},
-        {"brand": "Kleemann",      "model": "MCO 9i S EVO","rpm": 315, "feedMm": 150, "cssR": [8,  32], "capR": [90,  200], "notes": "Diesel-eléctrico Tier 4"},
+        {"brand": "Kleemann",      "model": "MCO 9i S EVO","rpm": 315, "feedMm": 150, "cssR": [8,  32], "capR": [90,  200], "notes": "Diesel-eléctrico"},
         {"brand": "Kleemann",      "model": "MCO 11i EVO","rpm": 298, "feedMm": 185, "cssR": [8,  44], "capR": [130, 300], "notes": "Diesel-eléctrico"},
         {"brand": "Kleemann",      "model": "MCO 13i EVO","rpm": 285, "feedMm": 225, "cssR": [10, 48], "capR": [180, 400], "notes": ""},
         {"brand": "Metso Outotec", "model": "LT200HPS",   "rpm": 280, "feedMm": 215, "cssR": [8,  44], "capR": [140, 300], "notes": "Orugas, cono HP"},
