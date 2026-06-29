@@ -5952,6 +5952,10 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
     });
     return init;
   });
+  // ── VALIDACIÓN VS. REFERENCIA DEL CLIENTE ─────────────────────────────────
+  const [refModelo, setRefModelo] = useState(res.inp.refModelo || "");
+  const [refTph, setRefTph] = useState(res.inp.refTph ? String(res.inp.refTph) : "");
+
   // ── MÓDULO COMERCIAL ──────────────────────────────────────────────────────
   const [arrOpen, setArrOpen] = useState(true);
   const [arrUnit, setArrUnit] = useState("hora");
@@ -6798,6 +6802,67 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                 </div>
               </div>
             ))}
+
+            {/* ── Validar vs. equipo de referencia del cliente ───────────── */}
+            {(() => {
+              const refTphVal = Number(refTph) || 0;
+              const delta = tphEfectivo - refTphVal;
+              const pctDelta = refTphVal > 0 ? (delta / refTphVal) * 100 : 0;
+              const cumple = delta >= 0;
+              const mostrarIndicador = refTph !== "" && refTphVal > 0;
+              return (
+                <div style={{ background: G.card, border: `1px solid ${G.border}`, borderRadius: 8, padding: 14 }}>
+                  <SectionTitle>VALIDAR VS. EQUIPO DE REFERENCIA DEL CLIENTE</SectionTitle>
+                  <div style={{ display: "grid", gap: 10, marginBottom: mostrarIndicador ? 12 : 0 }}>
+                    <div>
+                      <label style={{ fontSize: 11, color: G.muted, display: "block", marginBottom: 4 }}>
+                        Modelo citado por el cliente
+                      </label>
+                      <input
+                        type="text"
+                        value={refModelo}
+                        onChange={e => setRefModelo(e.target.value)}
+                        placeholder="ej. Sandvik QJ241"
+                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, background: G.surface, border: `1px solid ${G.border}`, color: G.text, fontSize: 13, fontFamily: G.font, boxSizing: "border-box" }}
+                      />
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div>
+                        <label style={{ fontSize: 11, color: G.muted, display: "block", marginBottom: 4 }}>
+                          Capacidad citada (tph)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={refTph}
+                          onChange={e => setRefTph(e.target.value)}
+                          placeholder="ej. 150"
+                          style={{ width: "100%", padding: "7px 10px", borderRadius: 6, background: G.surface, border: `1px solid ${G.border}`, color: G.text, fontSize: 13, fontFamily: G.font, boxSizing: "border-box" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 11, color: G.muted, display: "block", marginBottom: 4 }}>
+                          Capacidad calculada (este circuito)
+                        </label>
+                        <div style={{ padding: "7px 10px", borderRadius: 6, background: G.faint, border: `1px solid ${G.border}`, fontSize: 13, color: G.text, fontFamily: G.fontD, fontWeight: 700 }}>
+                          {tphEfectivo.toFixed(1)} tph
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {mostrarIndicador && (
+                    <div style={{ padding: "10px 14px", borderRadius: 6, background: cumple ? `${G.green}18` : "rgba(239,68,68,0.12)", border: `1px solid ${cumple ? G.green : G.red}`, display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 18 }}>{cumple ? "✓" : "✗"}</span>
+                      <span style={{ fontSize: 13, color: cumple ? G.green : G.red, fontWeight: 600 }}>
+                        {cumple
+                          ? `Cumple — capacidad igual o mayor (+${delta.toFixed(1)} tph, +${pctDelta.toFixed(1)}%)`
+                          : `No cumple — faltan ${Math.abs(delta).toFixed(1)} tph (${Math.abs(pctDelta).toFixed(1)}%) para igualar la referencia`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div
               style={{
