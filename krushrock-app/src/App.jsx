@@ -1200,14 +1200,22 @@ async function runSimulation(inp) {
   // Recomendaciones de equipo filtradas por capacidad (CSS lo calcula el backend)
   const is3d = actP.length >= 3 || needsT;
   const screenSrc = is3d ? EQ.screen.filter((e) => e.decks === 3) : EQ.screen.filter((e) => e.decks === 2);
+  const jawFit    = EQ.jaw.filter((e) => tph <= e.capR[1]).slice(0, 3);
+  const coneFit   = EQ.cone.filter((e) => tph <= e.capR[1]).slice(0, 3);
+  const screenFit = screenSrc.filter((e) => tph <= e.capR[1]).slice(0, 3);
+  const hsiFit    = EQ.hsi.filter((e) => tph <= e.capR[1]).slice(0, 3);
   const eqRec = {
-    jaw:    EQ.jaw.filter((e) => tph <= e.capR[1]).slice(0, 3).length
-              ? EQ.jaw.filter((e) => tph <= e.capR[1]).slice(0, 3) : EQ.jaw.slice(0, 2),
-    cone:   EQ.cone.slice(0, 3),
-    screen: screenSrc.filter((e) => tph <= e.capR[1]).slice(0, 3).length
-              ? screenSrc.filter((e) => tph <= e.capR[1]).slice(0, 3) : screenSrc.slice(0, 2),
-    hsi:    EQ.hsi.filter((e) => tph <= e.capR[1]).slice(0, 3).length
-              ? EQ.hsi.filter((e) => tph <= e.capR[1]).slice(0, 3) : EQ.hsi.slice(0, 2),
+    jaw:    jawFit.length    ? jawFit    : EQ.jaw.slice(0, 2),
+    cone:   coneFit.length   ? coneFit   : EQ.cone.slice(0, 3),
+    screen: screenFit.length ? screenFit : screenSrc.slice(0, 2),
+    hsi:    hsiFit.length    ? hsiFit    : EQ.hsi.slice(0, 2),
+    // true cuando ningún equipo del catálogo alcanza el tph pedido (fallback activo)
+    capacidadExcedida: {
+      jaw:    !jawFit.length    && EQ.jaw.length    > 0,
+      cone:   !coneFit.length   && EQ.cone.length   > 0,
+      screen: !screenFit.length && screenSrc.length > 0,
+      hsi:    !hsiFit.length    && EQ.hsi.length    > 0,
+    },
     is3d,
   };
 
@@ -6631,6 +6639,29 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
         {/* ── TAB EQUIPOS ── */}
         {tab === "equipos" && (
           <div style={{ display: "grid", gap: 14 }}>
+            {/* Advertencias de capacidad excedida — se muestran cuando el catálogo no tiene
+                ningún equipo que alcance el tph pedido y se activó el fallback */}
+            {res.eqRec?.capacidadExcedida && [
+              { key: "jaw",    label: "mandíbula" },
+              { key: "cone",   label: "cono" },
+              { key: "screen", label: "zaranda" },
+              { key: "hsi",    label: "HSI" },
+            ].filter(({ key }) => res.eqRec.capacidadExcedida[key]).map(({ key, label }) => (
+              <div
+                key={key}
+                style={{
+                  background: "rgba(245,158,11,0.1)",
+                  border: `1px solid ${G.accent}`,
+                  borderRadius: 8,
+                  padding: "12px 14px",
+                  fontSize: 12,
+                  color: G.accent,
+                  lineHeight: 1.6,
+                }}
+              >
+                ⚠️ Ningún <strong>{label}</strong> de tu catálogo alcanza el tonelaje solicitado ({res.inp.tph} tph). El equipo mostrado abajo está sub-dimensionado para esta capacidad — considera dividir en más de una unidad en paralelo, o revisar el tonelaje de alimentación.
+              </div>
+            ))}
             {evalResult && (
               <div
                 style={{
