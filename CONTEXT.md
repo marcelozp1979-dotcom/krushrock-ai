@@ -61,6 +61,23 @@ Falta: traducir resultados a lenguaje simple + explicar qué hacer ante un
 - Más equipos y marcas en catálogo
 - Conectar learning_engine.py (Fase 7) a un flujo real de feedback —
   hoy existe pero no está conectado a ningún endpoint ni dato real
+- **Estimación de granulometría por fotos** (post-MVP, idea de Marcelo
+  29/06/2026, validada como viable con ajustes): el cliente sube 2 fotos
+  para estimar F80 cuando no tiene datos. Técnica real, usada por
+  herramientas comerciales (WipFrag, Split-Online), pero con 2
+  correcciones obligatorias antes de construir:
+  1. La referencia de escala NO puede ser una piedra sostenida a brazo
+     extendido (no se conoce su tamaño real). Debe ser un objeto de
+     tamaño conocido (casco, pala, celular, billete) puesto en el suelo
+     junto a una piedra representativa, foto desde ángulo fijo.
+  2. Segunda foto a distancia fija en metros reales (no "pasos").
+  Tratar el resultado SIEMPRE como estimación gruesa (similar o
+  levemente mejor que el fallback actual "Usar valores promedio", no
+  como dato de curva real) — nunca alimentar el motor como si fuera
+  un dato preciso, para no comprometer la confiabilidad ya validada
+  (22 tests). Costo de la API de visión: bajo (<2 centavos USD por par
+  de fotos a resolución moderada), no es limitante.
+  NO empezar a construir esto hasta cerrar el MVP actual.
 
 ## Archivos clave
 - docs/escenarios_clientes.docx — 11 escenarios reales + arquitectura propuesta de 6 módulos
