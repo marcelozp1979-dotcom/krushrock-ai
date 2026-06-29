@@ -5,45 +5,58 @@ Simulador de plantas de chancado móvil con IA.
 Autor: experto en chancado, no en programación.
 Stack: Python/FastAPI (backend, Railway) + React/JSX (frontend, Vercel) + Supabase.
 
-## Estado al 28/06/2026
+## Estado al 29/06/2026
 ### ✓ COMPLETADO
 - Fase A: granulometry.py, equipment_models.py (curvas completas, balance de masas exacto)
 - Fase B: tests/test_validation_aggflow.py (5 tests contra datos reales AggFlow)
 - Fase C: simulation_engine.py reescrito — usa Stream/crusher()/screen() reales,
-  sin propagar P80 escalar. krushrock-ai.jsx (motor duplicado del frontend)
-  eliminado. Frontend conectado a la API como única fuente de verdad.
-- Limpieza de raíz: eliminados 9 archivos huérfanos (prototipos jsx sueltos,
-  scripts standalone, zip de backup). motor_curvas_prototipo.py ya no existe
-  (cumplió su rol de referencia, está documentado en DIAGNOSTICO_MOTOR_KRUSHROCK.md).
+  sin propagar P80 escalar. Frontend conectado a la API como única fuente de verdad.
+- Limpieza de raíz: 9 archivos huérfanos eliminados.
+- Decisión de producto: Tier de emisión (3/4) eliminado de todo el software.
+  No se usa ni para cálculo ni como criterio de selección — no hay evidencia
+  de que AggFlow ni otros simuladores de chancado lo usen como variable de
+  cálculo, y reintroducirlo como criterio de selección de equipo queda
+  descartado por decisión de Marcelo. NO reintroducir esto sin que él lo pida
+  explícitamente de nuevo.
 - 22/22 tests pasan (pytest tests/ -v).
+- Mapeo de 11 escenarios reales de clientes (docs/escenarios_clientes.docx)
+  contra el wizard actual — ver tabla abajo.
+
+### Cobertura real vs. escenarios de clientes (mapeado 29/06/2026)
+| Escenario | Estado |
+|---|---|
+| Selección de equipo por material+producto | Cubierto |
+| Tiempo/duración de obra (turnos, merma) | Cubierto |
+| CSS por etapa | Cubierto |
+| Malla/decks | Cubierto |
+| Planta multietapa | Cubierto (parcial: sin backup/redundancia) |
+| Inchancables/pebbles | No existe |
+| Modalidad comercial (arriendo/venta/llave en mano) | No existe — prioridad alta según el doc de arquitectura |
+| Logística (traslado, montaje, permisos) | No existe |
+| Mantenimiento/repuestos/GET | No existe |
+| Comparación vs. competencia (Sandvik/Metso/Kleemann) | No existe como módulo (esas marcas solo están en catálogo propio) |
 
 ### 🔴 PENDIENTE — Fase D (UX para cliente no-experto)
-El motor de cálculo está validado, pero la app expone jerga técnica
-(Wi, CSS, P80, carga circulante) sin ningún glosario ni explicación en
-lenguaje simple. El motor de alertas/recomendaciones (App.jsx, función de
-observaciones ~línea 1420) ya genera mensajes útiles, pero en el mismo
-lenguaje técnico — sirve a un experto, no al cliente final.
-Falta: traducir resultados a lenguaje simple, explicar qué significa un
-índice bajo y qué hacer, mapear los 11 escenarios reales de clientes
-(correos de Marcelo) contra las features actuales del wizard.
+La app expone jerga técnica (Wi, CSS, P80, carga circulante) sin glosario
+ni explicación en lenguaje simple. El motor de alertas (App.jsx ~línea 1420)
+ya genera recomendaciones, pero en lenguaje de experto.
+Falta: traducir resultados a lenguaje simple + explicar qué hacer ante un
+índice bajo, y construir los módulos ausentes de la tabla de arriba
+(prioridad: comercial > inchancables/logística/mantenimiento/competencia).
 
 ### 📋 FUTURO
-- Rediseño visual del wizard pensado para no-experto
+- Rediseño visual del wizard para no-experto
 - Más equipos y marcas en catálogo
 - Conectar learning_engine.py (Fase 7) a un flujo real de feedback —
   hoy existe pero no está conectado a ningún endpoint ni dato real
 
 ## Archivos clave
-- DIAGNOSTICO_MOTOR_KRUSHROCK.md — diagnóstico original del motor (histórico,
-  ya resuelto — ver sección Estado arriba)
+- docs/escenarios_clientes.docx — 11 escenarios reales + arquitectura propuesta de 6 módulos
+- DIAGNOSTICO_MOTOR_KRUSHROCK.md — diagnóstico original del motor (histórico, ya resuelto)
 - casos_validacion_aggflow.json — datos reales de validación
-- app/services/granulometry.py — clase Stream ✓
-- app/services/equipment_models.py — crusher() y screen() ✓
-- app/services/simulation_engine.py — motor activo, usa Stream/crusher/screen ✓
-- tests/test_validation_aggflow.py — 5 tests ✓
+- app/services/simulation_engine.py — motor activo
 
 ## Instrucción para Claude Code al iniciar
 Siempre ejecuta primero: pytest tests/ -v
 Si todos pasan, el motor sigue íntegro — continuar con la Fase D pendiente
-(UX no-experto) salvo que se indique otra cosa.
-Si alguno falla, corregirlo antes de seguir.
+salvo que se indique otra cosa.
