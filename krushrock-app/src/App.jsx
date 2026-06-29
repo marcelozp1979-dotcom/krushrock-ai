@@ -1810,6 +1810,17 @@ function B({ t }) {
   return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
+function Info({ text }) {
+  return (
+    <span
+      title={text}
+      style={{ marginLeft: 4, cursor: "help", color: G.muted, fontSize: "0.85em", userSelect: "none" }}
+    >
+      ⓘ
+    </span>
+  );
+}
+
 // ── DIAGRAMA ───────────────────────────────────────────────────────────────
 function Diagram({ r, unit }) {
   const {
@@ -6122,6 +6133,17 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
     ? Math.round(res.opex.total_usd_t * lemProdTon * tcUsdClp)
     : null;
 
+  // Textos de tooltips para términos técnicos — usados en pestañas Detalle y Diagrama
+  const TT = {
+    wi:   "Qué tan dura es la roca de chancar. Más alto = el chancador gasta más energía y rinde menos toneladas por hora.",
+    css:  "La abertura de salida del chancador. Más cerrado = piedra más fina pero más lento. Más abierto = piedra más gruesa pero más rápido.",
+    f80:  "El tamaño donde el 80% del material que ENTRA al chancador (la alimentación) es más chico que ese número. Describe qué tan grande viene la roca antes de chancarse.",
+    p80:  "El tamaño donde el 80% del material que SALE del chancador (el producto) es más chico que ese número. Describe qué tan fino quedó después de chancarse.",
+    cc:   "Porcentaje de material que no pasó la malla y vuelve a chancarse de nuevo. Si es muy alta, el circuito está sobrecargado.",
+    eff:  "Qué tan bien la malla separa lo fino de lo grueso. Si es baja, se mezcla material que no debería.",
+    ener: "Cuánta energía se necesita para chancar una tonelada. Sirve para estimar el gasto de combustible/electricidad.",
+  };
+
   const TABS = [
     { id: "equipos",      label: "Equipos" },
     { id: "resumen",      label: "Resumen" },
@@ -6555,6 +6577,26 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
         </div>
       )}
 
+      {/* Banner en lenguaje simple — visible en todas las pestañas */}
+      {(() => {
+        const ccNum = Number(cc);
+        const [ccMsg, ccColor] = ccNum <= 20
+          ? ["La configuración funciona bien: el material circula sin atascos importantes.", G.green]
+          : ccNum <= 30
+            ? ["Funciona, pero hay más material volviendo a chancarse de lo ideal — conviene ajustar la malla para mejorar el rendimiento.", G.accent]
+            : ["Ojo: una parte importante del material está volviendo a chancarse en vez de salir como producto. Esto baja la producción real — revisa la abertura de la malla o el tamaño del equipo.", G.red];
+        return (
+          <div style={{ padding: "12px 16px", background: G.card, borderBottom: `1px solid ${G.border}` }}>
+            <div style={{ fontSize: 14, color: G.text, fontWeight: 600, marginBottom: 5 }}>
+              Tu planta puede procesar <span style={{ color: G.accent }}>{res.inp.tph} toneladas por hora</span> de {res.rock.name}.
+            </div>
+            <div style={{ fontSize: 12, color: ccColor, lineHeight: 1.5 }}>
+              {ccMsg}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Tabs */}
       <div
         style={{
@@ -6967,7 +7009,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
               }}
             >
               <Kpi
-                label="ENERGÍA ESPECÍFICA"
+                label={<>ENERGÍA ESPECÍFICA <Info text={TT.ener}/></>}
                 value={res.final.ePerT}
                 unit="kWh/t"
                 sub={`Total: ${res.final.eTot} kWh · ${res.inp.tph} tph`}
@@ -6975,7 +7017,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                 icon="⚡"
               />
               <Kpi
-                label="CARGA CIRCULANTE"
+                label={<>CARGA CIRCULANTE <Info text={TT.cc}/></>}
                 value={res.screening.ccLoad}
                 unit="%"
                 sub={`${res.screening.over} tph retornadas`}
@@ -7148,18 +7190,18 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                   t: "MANDÍBULA (PRIMARIO)",
                   c: G.accent,
                   items: [
-                    ["CSS", sz(res.primary.css)],
-                    ["P80 salida", sz(res.primary.p80)],
-                    ["Energía", res.primary.energy + " kWh/t"],
+                    ["CSS", sz(res.primary.css), TT.css],
+                    ["P80 salida", sz(res.primary.p80), TT.p80],
+                    ["Energía", res.primary.energy + " kWh/t", TT.ener],
                   ],
                 },
                 {
                   t: "CONO (SECUNDARIO)",
                   c: G.purple,
                   items: [
-                    ["CSS", sz(res.secondary.css)],
-                    ["P80 salida", sz(res.secondary.p80)],
-                    ["Energía", res.secondary.energy + " kWh/t"],
+                    ["CSS", sz(res.secondary.css), TT.css],
+                    ["P80 salida", sz(res.secondary.p80), TT.p80],
+                    ["Energía", res.secondary.energy + " kWh/t", TT.ener],
                   ],
                 },
                 ...(res.needsT
@@ -7168,9 +7210,9 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                         t: "CONO / VSI (TERCIARIO)",
                         c: G.cyan,
                         items: [
-                          ["CSS", sz(res.tertiary.css)],
-                          ["P80 salida", sz(res.tertiary.p80)],
-                          ["Energía", res.tertiary.energy + " kWh/t"],
+                          ["CSS", sz(res.tertiary.css), TT.css],
+                          ["P80 salida", sz(res.tertiary.p80), TT.p80],
+                          ["Energía", res.tertiary.energy + " kWh/t", TT.ener],
                         ],
                       },
                     ]
@@ -7195,7 +7237,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                   >
                     ● {s.t}
                   </div>
-                  {s.items.map(([k, v]) => (
+                  {s.items.map(([k, v, tip]) => (
                     <div
                       key={k}
                       style={{
@@ -7205,7 +7247,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                         marginBottom: 6,
                       }}
                     >
-                      <span style={{ color: G.muted }}>{k}</span>
+                      <span style={{ color: G.muted }}>{k}{tip && <Info text={tip}/>}</span>
                       <span style={{ color: s.c }}>{v}</span>
                     </div>
                   ))}
@@ -7328,11 +7370,11 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                 title: "DATOS DE ENTRADA",
                 items: [
                   ["Tipo de roca", res.rock.name],
-                  ["Wi Bond", res.rock.wi + " kWh/t"],
+                  ["Wi Bond", res.rock.wi + " kWh/t", TT.wi],
                   ["Abrasividad", res.rock.ab],
                   ["Densidad", res.rock.den + " t/m³"],
                   ["Tonelaje", res.inp.tph + " tph"],
-                  ["F80 alimentación", sz(res.inp.f80)],
+                  ["F80 alimentación", sz(res.inp.f80), TT.f80],
                   ["Humedad", humTxt],
                   [
                     "Altitud",
@@ -7366,10 +7408,11 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                       0,
                     ) + " tph",
                   ],
-                  ["Carga circulante", res.screening.ccLoad + " %"],
+                  ["Carga circulante", res.screening.ccLoad + " %", TT.cc],
                   [
                     "Eficiencia seleccionadora (estimada)",
                     res.screening.eff + " %",
+                    TT.eff,
                   ],
                 ],
               },
@@ -7386,7 +7429,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                         ],
                       ]
                     : []),
-                  ["Energía específica total", res.final.ePerT + " kWh/t"],
+                  ["Energía específica total", res.final.ePerT + " kWh/t", TT.ener],
                   ["Energía total por hora", res.final.eTot + " kWh"],
                   [
                     "Factor de potencia altitud",
@@ -7399,14 +7442,14 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
               {
                 title: "CSS / P80 POR ETAPA",
                 items: [
-                  ["Mandíbula CSS", sz(res.primary.css)],
-                  ["Mandíbula P80 salida", sz(res.primary.p80)],
-                  ["Cono CSS", sz(res.secondary.css)],
-                  ["Cono P80 salida", sz(res.secondary.p80)],
+                  ["Mandíbula CSS", sz(res.primary.css), TT.css],
+                  ["Mandíbula P80 salida", sz(res.primary.p80), TT.p80],
+                  ["Cono CSS", sz(res.secondary.css), TT.css],
+                  ["Cono P80 salida", sz(res.secondary.p80), TT.p80],
                   ...(res.needsT
                     ? [
-                        ["Cono/VSI terciario CSS", sz(res.tertiary.css)],
-                        ["Cono/VSI P80 salida", sz(res.tertiary.p80)],
+                        ["Cono/VSI terciario CSS", sz(res.tertiary.css), TT.css],
+                        ["Cono/VSI P80 salida", sz(res.tertiary.p80), TT.p80],
                       ]
                     : []),
                 ],
@@ -7455,7 +7498,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                 }}
               >
                 <SectionTitle>{sec.title}</SectionTitle>
-                {sec.items.map(([k, v]) => (
+                {sec.items.map(([k, v, tip]) => (
                   <div
                     key={k}
                     style={{
@@ -7466,7 +7509,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                       gap: 8,
                     }}
                   >
-                    <span style={{ color: G.muted, flexShrink: 0 }}>{k}</span>
+                    <span style={{ color: G.muted, flexShrink: 0 }}>{k}{tip && <Info text={tip}/>}</span>
                     <span style={{ color: G.text, textAlign: "right" }}>
                       {v}
                     </span>
