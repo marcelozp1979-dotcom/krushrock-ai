@@ -2969,16 +2969,16 @@ function Onboarding({
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            padding: "32px 20px",
+            padding: "18px 20px",
           }}
         >
           <div style={{ maxWidth: 560, width: "100%" }} className="fi">
-            <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
               <div
                 style={{
                   fontFamily: G.fontD,
                   fontWeight: 800,
-                  fontSize: 42,
+                  fontSize: 32,
                   color: G.accent,
                   letterSpacing: "-0.02em",
                   marginBottom: 6,
@@ -2998,7 +2998,7 @@ function Onboarding({
               </div>
               <div
                 style={{
-                  fontSize: 13,
+                  fontSize: 12,
                   color: G.text,
                   lineHeight: 1.7,
                   maxWidth: 420,
@@ -3014,8 +3014,8 @@ function Onboarding({
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(3,1fr)",
-                gap: 10,
-                marginBottom: 28,
+                gap: 8,
+                marginBottom: 16,
               }}
             >
               {[
@@ -3056,7 +3056,7 @@ function Onboarding({
                     background: G.card,
                     border: `1px solid ${G.border}`,
                     borderRadius: 8,
-                    padding: "12px 14px",
+                    padding: "8px 12px",
                   }}
                 >
                   <div
@@ -3087,7 +3087,7 @@ function Onboarding({
               <button
                 onClick={() => setStarted(true)}
                 style={{
-                  padding: "14px 40px",
+                  padding: "10px 32px",
                   borderRadius: 8,
                   cursor: "pointer",
                   background: `linear-gradient(135deg,${G.accent},#d97706)`,
@@ -3101,7 +3101,7 @@ function Onboarding({
               >
                 Comenzar simulación →
               </button>
-              <div style={{ marginTop: 12, fontSize: 11, color: G.muted }}>
+              <div style={{ marginTop: 8, fontSize: 11, color: G.muted }}>
                 5 pasos · sin datos obligatorios · resultados instantáneos
               </div>
             </div>
