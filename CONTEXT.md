@@ -36,6 +36,18 @@ Stack: Python/FastAPI (backend, Railway) + React/JSX (frontend, Vercel) + Supaba
 | Mantenimiento/repuestos/GET | No existe |
 | Comparación vs. competencia (Sandvik/Metso/Kleemann) | No existe como módulo (esas marcas solo están en catálogo propio) |
 
+## 🎯 OBJETIVO ACTUAL: MVP vendible (decisión de Marcelo, 29/06/2026)
+Prioridad: terminar un MVP probable con cliente real ANTES de completar
+los 11 escenarios al 100%. Criterios del MVP, en este orden:
+1. Resultados confiables (✓ ya cumplido — motor validado, 22 tests)
+2. Fácil e intuitivo de operar para alguien que no sabe de chancado
+3. Apariencia pulida
+4. Útil — que resuelva problemas reales de cliente, no solo que calcule
+
+Backlog explícito para DESPUÉS del MVP (no tocar ahora salvo que Marcelo
+lo pida): mantenimiento/repuestos (3.10), logística completa (3.9),
+backup/redundancia (3.5), resto de pulido visual fino.
+
 ### 🔴 PENDIENTE — Fase D (UX para cliente no-experto)
 La app expone jerga técnica (Wi, CSS, P80, carga circulante) sin glosario
 ni explicación en lenguaje simple. El motor de alertas (App.jsx ~línea 1420)
