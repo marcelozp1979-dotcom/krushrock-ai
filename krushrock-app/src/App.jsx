@@ -1197,6 +1197,99 @@ async function runSimulation(inp) {
     circActual = manualEq?.screen3d ? "cerrado_doble" : hasScreen ? "cerrado" : "abierto";
   }
 
+  // ── Helpers de selección y capacidad de equipos ───────────────────────────
+
+  // Estima % pasante de la alimentación a un tamaño dado.
+  // Usa curvePoints si están disponibles; si no, modelo log-lineal con f80/f50.
+  const estimatePassingPct = (sizeMm) => {
+    const pts = (curvePoints || [])
+      .filter((p) => p.sizeMm > 0 && p.pct !== undefined && p.pct !== null)
+      .sort((a, b) => a.sizeMm - b.sizeMm);
+    if (pts.length >= 2) {
+      if (sizeMm <= pts[0].sizeMm) return pts[0].pct;
+      if (sizeMm >= pts[pts.length - 1].sizeMm) return pts[pts.length - 1].pct;
+      const i = pts.findIndex((p) => p.sizeMm >= sizeMm);
+      const lo = pts[i - 1], hi = pts[i];
+      const t = (Math.log(sizeMm) - Math.log(lo.sizeMm)) /
+                (Math.log(hi.sizeMm) - Math.log(lo.sizeMm));
+      return lo.pct + t * (hi.pct - lo.pct);
+    }
+    const x2 = Math.log(f80), y2 = 80;
+    const x1 = f50 > 0 ? Math.log(f50) : Math.log(f80 * 0.3);
+    const y1 = f50 > 0 ? 50 : 20;
+    const slope = (y2 - y1) / (x2 - x1);
+    return Math.max(0, Math.min(100, y2 + slope * (Math.log(Math.max(0.1, sizeMm)) - x2)));
+  };
+
+  // Para modo auto: intenta N unidades del equipo de mayor capacidad (N=2..4).
+  const tryParallel = (srcList) => {
+    if (!srcList.length) return null;
+    const best = srcList.reduce((m, e) => (e.capR?.[1] || 0) > (m.capR?.[1] || 0) ? e : m, srcList[0]);
+    const maxCap = best.capR?.[1] || 0;
+    if (!maxCap) return null;
+    for (let n = 2; n <= 4; n++) {
+      if (maxCap * n >= tph) return { n, eq: best };
+    }
+    return { n: null, eq: best }; // incluso 4× no alcanza
+  };
+
+  // Capacidad del equipo seleccionado manualmente para un tipo dado.
+  const getManualCap = (type) => {
+    if (circPath === "manual") {
+      let eq = null;
+      if (type === "jaw")    eq = jawEq;
+      if (type === "cone")   eq = coneEq;
+      if (type === "screen") {
+        const sm = manualEq?.screen3d || manualEq?.screen2d || manualEq?.screen1d || manualEq?.screen_hf;
+        eq = sm ? EQ.screen.find((e) => e.model === sm) ?? null : null;
+      }
+      if (type === "hsi") {
+        const hm = manualEq?.hsi;
+        eq = hm ? EQ.hsi.find((e) => e.model === hm) ?? null : null;
+      }
+      return eq?.capR?.[1] || null;
+    }
+    if (circPath === "available") {
+      const avail = inp.availEquip || [];
+      const item = avail.find((e) => {
+        if (type === "jaw")    return e.type === "jaw";
+        if (type === "cone")   return e.type === "cone" || e.type === "hsi";
+        if (type === "screen") return e.type?.startsWith("screen");
+        if (type === "hsi")    return e.type === "hsi";
+        return false;
+      });
+      if (!item) return null;
+      const pool = item.type?.startsWith("screen") ? EQ.screen : (EQ[item.type] || []);
+      return pool.find((e) => e.model === item.model)?.capR?.[1] || null;
+    }
+    return null;
+  };
+
+  // Construye el objeto de info de capacidad para una categoría.
+  // aberturaMm: tamaño de corte conocido para estimar contaminación (null si no disponible aún).
+  const buildCapInfo = (type, fitList, srcList, aberturaMm) => {
+    const isManual = circPath === "manual" || circPath === "available";
+    if (isManual) {
+      const maxCap = getManualCap(type);
+      if (!maxCap || tph <= maxCap) return { status: "ok" };
+      const overloadPct = Math.round((tph - maxCap) / maxCap * 100);
+      let contamPct = null;
+      if (aberturaMm > 0) {
+        const nearCutFrac = Math.max(0, estimatePassingPct(aberturaMm * 1.2) - estimatePassingPct(aberturaMm * 0.8)) / 100;
+        const overloadFrac = Math.min(1, (tph - maxCap) / tph);
+        contamPct = Math.round(Math.min(50, nearCutFrac * overloadFrac * 100));
+      }
+      return { status: "manual_sobre", maxCap, overloadPct, contamPct, aberturaMm };
+    }
+    // Modo automático
+    if (fitList.length > 0) return { status: "ok" };
+    if (!srcList.length)   return { status: "sin_catalogo" };
+    const par = tryParallel(srcList);
+    if (!par) return { status: "sin_catalogo" };
+    if (par.n !== null) return { status: "paralelo", n: par.n, eq: par.eq };
+    return { status: "excedido", maxCap: par.eq?.capR?.[1] || 0 };
+  };
+
   // Recomendaciones de equipo filtradas por capacidad (CSS lo calcula el backend)
   const is3d = actP.length >= 3 || needsT;
   const screenSrc = is3d ? EQ.screen.filter((e) => e.decks === 3) : EQ.screen.filter((e) => e.decks === 2);
@@ -1209,12 +1302,11 @@ async function runSimulation(inp) {
     cone:   coneFit.length   ? coneFit   : EQ.cone.slice(0, 3),
     screen: screenFit.length ? screenFit : screenSrc.slice(0, 2),
     hsi:    hsiFit.length    ? hsiFit    : EQ.hsi.slice(0, 2),
-    // true cuando ningún equipo del catálogo alcanza el tph pedido (fallback activo)
-    capacidadExcedida: {
-      jaw:    !jawFit.length    && EQ.jaw.length    > 0,
-      cone:   !coneFit.length   && EQ.cone.length   > 0,
-      screen: !screenFit.length && screenSrc.length > 0,
-      hsi:    !hsiFit.length    && EQ.hsi.length    > 0,
+    capacidadInfo: {
+      jaw:    buildCapInfo("jaw",    jawFit,    EQ.jaw,    roughJawCss),
+      cone:   buildCapInfo("cone",   coneFit,   EQ.cone,   null),
+      screen: buildCapInfo("screen", screenFit, screenSrc, meshMm),
+      hsi:    buildCapInfo("hsi",    hsiFit,    EQ.hsi,    null),
     },
     is3d,
   };
@@ -6639,29 +6731,46 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
         {/* ── TAB EQUIPOS ── */}
         {tab === "equipos" && (
           <div style={{ display: "grid", gap: 14 }}>
-            {/* Advertencias de capacidad excedida — se muestran cuando el catálogo no tiene
-                ningún equipo que alcance el tph pedido y se activó el fallback */}
-            {res.eqRec?.capacidadExcedida && [
+            {/* Advertencias de capacidad — auto: paralelo/excedido; manual: sobrecarga */}
+            {res.eqRec?.capacidadInfo && [
               { key: "jaw",    label: "mandíbula" },
               { key: "cone",   label: "cono" },
               { key: "screen", label: "zaranda" },
               { key: "hsi",    label: "HSI" },
-            ].filter(({ key }) => res.eqRec.capacidadExcedida[key]).map(({ key, label }) => (
-              <div
-                key={key}
-                style={{
-                  background: "rgba(245,158,11,0.1)",
-                  border: `1px solid ${G.accent}`,
-                  borderRadius: 8,
-                  padding: "12px 14px",
-                  fontSize: 12,
-                  color: G.accent,
-                  lineHeight: 1.6,
-                }}
-              >
-                ⚠️ Ningún <strong>{label}</strong> de tu catálogo alcanza el tonelaje solicitado ({res.inp.tph} tph). El equipo mostrado abajo está sub-dimensionado para esta capacidad — considera dividir en más de una unidad en paralelo, o revisar el tonelaje de alimentación.
-              </div>
-            ))}
+            ].filter(({ key }) => {
+              const ci = res.eqRec.capacidadInfo[key];
+              return ci && ci.status !== "ok" && ci.status !== "sin_catalogo";
+            }).map(({ key, label }) => {
+              const ci = res.eqRec.capacidadInfo[key];
+              const isError = ci.status === "excedido";
+              let msg;
+              if (ci.status === "paralelo") {
+                msg = `⚠️ Se requieren ${ci.n}× ${ci.eq?.brand || ""} ${ci.eq?.model || ""} en paralelo para cubrir ${res.inp.tph} tph.`;
+              } else if (ci.status === "excedido") {
+                msg = `⚠️ Ningún ${label} de catálogo (ni en paralelo) cubre ${res.inp.tph} tph. Máximo lograble con un equipo: ${ci.maxCap} tph. Reduce el tonelaje de alimentación o agrega equipos adicionales.`;
+              } else if (ci.status === "manual_sobre") {
+                const contamLine = ci.contamPct !== null
+                  ? ` Estimado: hasta ~${ci.contamPct}% del producto podría venir contaminado con material bajo el corte (estimación aproximada).`
+                  : "";
+                msg = `⚠️ Con tu equipo, el máximo sostenible es ${ci.maxCap} tph. Estás alimentando ${res.inp.tph} tph (${ci.overloadPct}% sobre su capacidad) — parte del material cercano a ${ci.aberturaMm ? ci.aberturaMm + "mm" : "la abertura de corte"} no va a alcanzar a pasar y va a contaminar tu producto.${contamLine}`;
+              }
+              return (
+                <div
+                  key={key}
+                  style={{
+                    background: isError ? "rgba(239,68,68,0.1)" : "rgba(245,158,11,0.1)",
+                    border: `1px solid ${isError ? G.red : G.accent}`,
+                    borderRadius: 8,
+                    padding: "12px 14px",
+                    fontSize: 12,
+                    color: isError ? G.red : G.accent,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {msg}
+                </div>
+              );
+            })}
             {evalResult && (
               <div
                 style={{
