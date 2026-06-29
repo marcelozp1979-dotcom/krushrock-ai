@@ -5918,6 +5918,30 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
     });
     return init;
   });
+  // ── MÓDULO COMERCIAL ──────────────────────────────────────────────────────
+  const [arrOpen, setArrOpen] = useState(true);
+  const [arrUnit, setArrUnit] = useState("hora");
+  const [arrTarifa, setArrTarifa] = useState("");
+  const [arrCantidad, setArrCantidad] = useState("");
+  const [arrMin, setArrMin] = useState("");
+  const [arrIncl, setArrIncl] = useState({
+    combustible:   { active: false, valor: "" },
+    operador:      { active: false, valor: "" },
+    movilizacion:  { active: false, valor: "" },
+    mantenimiento: { active: false, valor: "" },
+  });
+  const [ventaOpen, setVentaOpen] = useState(true);
+  const [ventaPrecios, setVentaPrecios] = useState({});
+  const [ventaCond, setVentaCond] = useState("");
+  const [lemOpen, setLemOpen] = useState(true);
+  const [lemUnit, setLemUnit] = useState("$/ton");
+  const [lemTarifa, setLemTarifa] = useState("");
+  const [lemIncl, setLemIncl] = useState({
+    combustible:   { active: false, valor: "" },
+    operador:      { active: false, valor: "" },
+    movilizacion:  { active: false, valor: "" },
+    mantenimiento: { active: false, valor: "" },
+  });
   const EQ = eqCatalog || EQ_LOCAL;
   const analysis = buildAnalysis(res);
   const score = Number(res.final.score),
@@ -6019,14 +6043,49 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
         )
       : 0;
 
+  // ── Cálculos módulo comercial (usan horasHorizonte, horizMes, etc.) ────────
+  const INCL_LABELS = [
+    { key: "combustible",   label: "Combustible" },
+    { key: "operador",      label: "Operador" },
+    { key: "movilizacion",  label: "Movilización" },
+    { key: "mantenimiento", label: "Mantenimiento" },
+  ];
+  const arrCantSugerida =
+    arrUnit === "hora"  ? Math.round(horasHorizonte) :
+    arrUnit === "turno" ? Math.round(horizMes * (diasSemana * 4.33) * turnosDia) :
+    horizMes;
+  const sumIncl = (incl) =>
+    Object.values(incl).reduce((s, i) => s + (i.active ? (Number(i.valor) || 0) : 0), 0);
+  const arrBase     = (Number(arrTarifa) || 0) * (Number(arrCantidad) || 0);
+  const arrMinVal   = Number(arrMin) || 0;
+  const arrMinAplica = arrMinVal > 0 && arrMinVal > arrBase;
+  const arrTotal    = Math.max(arrBase, arrMinVal) + sumIncl(arrIncl);
+  const circEqs = [
+    { id: "jaw",      label: "Chancador primario (mandíbula)",  eq: (res.eqRec?.jaw    || [])[0] },
+    { id: "cone",     label: "Chancador secundario (cono)",     eq: (res.eqRec?.cone   || [])[0] },
+    ...(res.needsT ? [{ id: "tertiary", label: "Cono/VSI terciario", eq: (res.eqRec?.cone || [])[0] }] : []),
+    { id: "screen",   label: "Seleccionadora",                  eq: (res.eqRec?.screen || [])[0] },
+  ];
+  const ventaTotal  = circEqs.reduce((s, e) => s + (Number(ventaPrecios[e.id]) || 0), 0);
+  const rockDensity = res.rock?.density || 2.7;
+  const lemProdTon  = Math.round(tonHorizonte);
+  const lemProdM3   = Math.round(tonHorizonte / rockDensity);
+  const lemProd     = lemUnit === "$/ton" ? lemProdTon : lemProdM3;
+  const lemTotal    = (Number(lemTarifa) || 0) * lemProd + sumIncl(lemIncl);
+  // Referencia interna: OPEX del motor para comparar margen — NO mostrar al cliente en reporte exportable
+  const opexRefTotal = res.opex?.total_usd_t
+    ? Math.round(res.opex.total_usd_t * lemProdTon)
+    : null;
+
   const TABS = [
-    { id: "equipos", label: "Equipos" },
-    { id: "resumen", label: "Resumen" },
-    { id: "diagrama", label: "Diagrama" },
-    { id: "productos", label: "Productos" },
-    { id: "detalle", label: "Detalle" },
-    { id: "produccion", label: "Operación" },
+    { id: "equipos",      label: "Equipos" },
+    { id: "resumen",      label: "Resumen" },
+    { id: "diagrama",     label: "Diagrama" },
+    { id: "productos",    label: "Productos" },
+    { id: "detalle",      label: "Detalle" },
+    { id: "produccion",   label: "Operación" },
     { id: "proyecciones", label: "Proyecciones" },
+    { id: "comercial",    label: "Comercial" },
   ];
 
   const showHSI = res.inp.circPath === "manual" && res.inp.manualEq?.hsi;
@@ -8986,6 +9045,212 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                   })()}
               </>
             )}
+          </div>
+        )}
+
+        {/* ── TAB COMERCIAL ─────────────────────────────────────────────────── */}
+        {tab === "comercial" && (
+          <div style={{ display: "grid", gap: 14 }}>
+            <div style={{ padding: "10px 14px", background: G.faint, borderRadius: 8, fontSize: 12, color: G.muted, borderLeft: `3px solid ${G.accent}` }}>
+              Define las condiciones de la propuesta. Las tres modalidades se calculan en paralelo — no hay que elegir una sola.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
+
+              {/* ── ARRIENDO ── */}
+              <div style={{ background: G.card, border: `1px solid ${G.border}`, borderRadius: 10, overflow: "hidden" }}>
+                <button onClick={() => setArrOpen(v => !v)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: G.faint, padding: "13px 16px", border: "none", cursor: "pointer" }}>
+                  <span style={{ fontFamily: G.fontD, fontWeight: 700, fontSize: 13, color: G.accent }}>ARRIENDO</span>
+                  <span style={{ color: G.muted, fontSize: 11 }}>{arrOpen ? "▲" : "▼"}</span>
+                </button>
+                {arrOpen && (
+                  <div style={{ padding: 16, display: "grid", gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: G.muted, marginBottom: 6 }}>Unidad</div>
+                      <div style={{ display: "flex", gap: 5 }}>
+                        {["hora","turno","mes"].map(u => (
+                          <button key={u} onClick={() => setArrUnit(u)} style={{ flex:1, padding:"7px 4px", borderRadius:6, cursor:"pointer", border:`1px solid ${arrUnit===u?G.accent:G.border}`, background: arrUnit===u?`${G.accentDim}33`:G.faint, color: arrUnit===u?G.accent:G.muted, fontSize:12, fontFamily:G.font }}>
+                            {u}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: G.muted, marginBottom: 4 }}>Tarifa $ / {arrUnit}</div>
+                      <input type="number" min={0} step={1000} value={arrTarifa} onChange={e => setArrTarifa(e.target.value)} placeholder="ej. 25.000" style={{ width: "100%" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: G.muted, marginBottom: 4 }}>Cantidad ({arrUnit}s)</div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <input type="number" min={0} value={arrCantidad} onChange={e => setArrCantidad(e.target.value)} placeholder={String(arrCantSugerida)} style={{ flex: 1 }} />
+                        <button onClick={() => setArrCantidad(String(arrCantSugerida))} style={{ padding:"6px 10px", borderRadius:6, border:`1px solid ${G.border}`, background:G.faint, color:G.muted, cursor:"pointer", fontSize:11, fontFamily:G.font, whiteSpace:"nowrap" }}>
+                          ← {arrCantSugerida}
+                        </button>
+                      </div>
+                      <div style={{ fontSize: 10, color: G.muted, marginTop: 3 }}>
+                        Sugerido: {horizMes} mes{horizMes>1?"es":""} · {turnosDia} turnos/día · {horasTurno}h
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: G.muted, marginBottom: 4 }}>Mínimo garantizado $ — opcional</div>
+                      <input type="number" min={0} value={arrMin} onChange={e => setArrMin(e.target.value)} placeholder="sin mínimo" style={{ width: "100%" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: G.muted, marginBottom: 8 }}>Inclusiones adicionales</div>
+                      {INCL_LABELS.map(({key, label}) => (
+                        <div key={key} style={{ display:"flex", gap:8, alignItems:"center", marginBottom:7 }}>
+                          <input type="checkbox" checked={arrIncl[key].active} onChange={e => setArrIncl(prev => ({...prev, [key]: {...prev[key], active: e.target.checked}}))} style={{ cursor:"pointer" }} />
+                          <span style={{ fontSize:12, color: arrIncl[key].active?G.text:G.muted, flex:1 }}>{label}</span>
+                          {arrIncl[key].active && (
+                            <input type="number" min={0} value={arrIncl[key].valor} onChange={e => setArrIncl(prev => ({...prev, [key]: {...prev[key], valor: e.target.value}}))} placeholder="$" style={{ width:90 }} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ borderTop: `1px solid ${G.border}`, paddingTop: 12, display: "grid", gap: 4 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between" }}>
+                        <span style={{ fontSize:12, color:G.muted }}>Subtotal</span>
+                        <span style={{ fontSize:12, color:G.text }}>${arrBase.toLocaleString("es-CL")}</span>
+                      </div>
+                      {arrMinAplica && (
+                        <div style={{ display:"flex", justifyContent:"space-between" }}>
+                          <span style={{ fontSize:11, color:G.accent }}>Mínimo garantizado aplicado</span>
+                          <span style={{ fontSize:11, color:G.accent }}>${arrMinVal.toLocaleString("es-CL")}</span>
+                        </div>
+                      )}
+                      {sumIncl(arrIncl) > 0 && (
+                        <div style={{ display:"flex", justifyContent:"space-between" }}>
+                          <span style={{ fontSize:11, color:G.muted }}>+ Inclusiones</span>
+                          <span style={{ fontSize:11, color:G.text }}>${sumIncl(arrIncl).toLocaleString("es-CL")}</span>
+                        </div>
+                      )}
+                      <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
+                        <span style={{ fontSize:13, color:G.text, fontWeight:600 }}>TOTAL</span>
+                        <span style={{ fontSize:18, color:G.green, fontWeight:700 }}>${arrTotal.toLocaleString("es-CL")}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── VENTA ── */}
+              <div style={{ background: G.card, border: `1px solid ${G.border}`, borderRadius: 10, overflow: "hidden" }}>
+                <button onClick={() => setVentaOpen(v => !v)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: G.faint, padding: "13px 16px", border: "none", cursor: "pointer" }}>
+                  <span style={{ fontFamily: G.fontD, fontWeight: 700, fontSize: 13, color: G.blue }}>VENTA</span>
+                  <span style={{ color: G.muted, fontSize: 11 }}>{ventaOpen ? "▲" : "▼"}</span>
+                </button>
+                {ventaOpen && (
+                  <div style={{ padding: 16, display: "grid", gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: G.muted, marginBottom: 8 }}>Precio por equipo del circuito recomendado</div>
+                      {circEqs.map(e => (
+                        <div key={e.id} style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, color: G.muted, marginBottom: 3 }}>
+                            {e.label}{e.eq ? ` — ${e.eq.brand} ${e.eq.model}` : ""}
+                          </div>
+                          <input type="number" min={0} step={1000000} value={ventaPrecios[e.id] ?? ""} onChange={ev => setVentaPrecios(prev => ({...prev, [e.id]: ev.target.value}))} placeholder="$ precio" style={{ width: "100%" }} />
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: G.muted, marginBottom: 4 }}>Condiciones de financiamiento / garantía</div>
+                      <textarea value={ventaCond} onChange={e => setVentaCond(e.target.value)} placeholder="ej. 30% anticipo, saldo en 6 cuotas. Garantía 12 meses piezas." rows={3} style={{ width:"100%", background:G.faint, color:G.text, border:`1px solid ${G.border}`, borderRadius:6, padding:"8px 10px", fontFamily:G.font, fontSize:12, resize:"vertical", boxSizing:"border-box" }} />
+                    </div>
+                    <div style={{ borderTop: `1px solid ${G.border}`, paddingTop: 12 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between" }}>
+                        <span style={{ fontSize:13, color:G.text, fontWeight:600 }}>TOTAL</span>
+                        <span style={{ fontSize:18, color:G.blue, fontWeight:700 }}>${ventaTotal.toLocaleString("es-CL")}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── LLAVE EN MANO ── */}
+              <div style={{ background: G.card, border: `1px solid ${G.border}`, borderRadius: 10, overflow: "hidden" }}>
+                <button onClick={() => setLemOpen(v => !v)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: G.faint, padding: "13px 16px", border: "none", cursor: "pointer" }}>
+                  <span style={{ fontFamily: G.fontD, fontWeight: 700, fontSize: 13, color: G.purple }}>LLAVE EN MANO</span>
+                  <span style={{ color: G.muted, fontSize: 11 }}>{lemOpen ? "▲" : "▼"}</span>
+                </button>
+                {lemOpen && (
+                  <div style={{ padding: 16, display: "grid", gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: G.muted, marginBottom: 6 }}>Unidad de tarifa</div>
+                      <div style={{ display: "flex", gap: 5 }}>
+                        {["$/ton","$/m³"].map(u => (
+                          <button key={u} onClick={() => setLemUnit(u)} style={{ flex:1, padding:"7px 4px", borderRadius:6, cursor:"pointer", border:`1px solid ${lemUnit===u?G.purple:G.border}`, background: lemUnit===u?`${G.purple}22`:G.faint, color: lemUnit===u?G.purple:G.muted, fontSize:12, fontFamily:G.font }}>
+                            {u}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: G.muted, marginBottom: 4 }}>Tarifa ({lemUnit})</div>
+                      <input type="number" min={0} step={0.1} value={lemTarifa} onChange={e => setLemTarifa(e.target.value)} placeholder="ej. 4.50" style={{ width: "100%" }} />
+                    </div>
+                    <div style={{ background: G.faint, borderRadius: 6, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 11, color: G.muted, marginBottom: 4 }}>Producción estimada del proyecto</div>
+                      <div style={{ fontSize: 14, color: G.text, fontWeight: 600 }}>
+                        {lemUnit === "$/ton"
+                          ? `${lemProdTon.toLocaleString("es-CL")} ton`
+                          : `${lemProdM3.toLocaleString("es-CL")} m³`}
+                      </div>
+                      <div style={{ fontSize: 10, color: G.muted, marginTop: 3 }}>
+                        {lemUnit === "$/ton"
+                          ? `${tphEfectivo.toFixed(0)} tph ef. × ${Math.round(horasHorizonte).toLocaleString()} h (${horizMes} mes${horizMes>1?"es":""})`
+                          : `${lemProdTon.toLocaleString("es-CL")} ton ÷ ${rockDensity} t/m³`}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: G.muted, marginBottom: 8 }}>Inclusiones adicionales</div>
+                      {INCL_LABELS.map(({key, label}) => (
+                        <div key={key} style={{ display:"flex", gap:8, alignItems:"center", marginBottom:7 }}>
+                          <input type="checkbox" checked={lemIncl[key].active} onChange={e => setLemIncl(prev => ({...prev, [key]: {...prev[key], active: e.target.checked}}))} style={{ cursor:"pointer" }} />
+                          <span style={{ fontSize:12, color: lemIncl[key].active?G.text:G.muted, flex:1 }}>{label}</span>
+                          {lemIncl[key].active && (
+                            <input type="number" min={0} value={lemIncl[key].valor} onChange={e => setLemIncl(prev => ({...prev, [key]: {...prev[key], valor: e.target.value}}))} placeholder="$" style={{ width:90 }} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ borderTop: `1px solid ${G.border}`, paddingTop: 12, display: "grid", gap: 4 }}>
+                      {lemTarifa && (
+                        <div style={{ display:"flex", justifyContent:"space-between" }}>
+                          <span style={{ fontSize:11, color:G.muted }}>
+                            {lemTarifa} {lemUnit} × {lemProd.toLocaleString("es-CL")} {lemUnit==="$/ton"?"ton":"m³"}
+                          </span>
+                        </div>
+                      )}
+                      {sumIncl(lemIncl) > 0 && (
+                        <div style={{ display:"flex", justifyContent:"space-between" }}>
+                          <span style={{ fontSize:11, color:G.muted }}>+ Inclusiones</span>
+                          <span style={{ fontSize:11, color:G.text }}>${sumIncl(lemIncl).toLocaleString("es-CL")}</span>
+                        </div>
+                      )}
+                      <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
+                        <span style={{ fontSize:13, color:G.text, fontWeight:600 }}>TOTAL</span>
+                        <span style={{ fontSize:18, color:G.purple, fontWeight:700 }}>${lemTotal.toLocaleString("es-CL")}</span>
+                      </div>
+                      {/* Referencia interna para Marcelo — NO incluir en reporte exportable al cliente */}
+                      {opexRefTotal !== null && (
+                        <div style={{ marginTop: 8, padding: "8px 10px", background: G.faint, borderRadius: 6, borderLeft: `3px solid ${G.border}` }}>
+                          <div style={{ fontSize: 10, color: G.muted }}>
+                            (referencia interna) OPEX motor:{" "}
+                            <strong style={{ color: G.text }}>${opexRefTotal.toLocaleString("es-CL")}</strong>
+                            {" "}· {res.opex.total_usd_t} USD/t × {lemProdTon.toLocaleString("es-CL")} ton
+                          </div>
+                          {lemTotal > 0 && opexRefTotal > 0 && (
+                            <div style={{ fontSize: 10, color: lemTotal > opexRefTotal ? G.green : G.red, marginTop: 3 }}>
+                              Margen bruto estimado: ${(lemTotal - opexRefTotal).toLocaleString("es-CL")}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
         )}
       </div>
