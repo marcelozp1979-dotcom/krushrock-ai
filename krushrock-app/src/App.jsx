@@ -5942,6 +5942,8 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
     movilizacion:  { active: false, valor: "" },
     mantenimiento: { active: false, valor: "" },
   });
+  // Tipo de cambio USD→CLP para convertir OPEX del motor (que sale en USD/t) a CLP
+  const [tcUsdClp, setTcUsdClp] = useState(950);
   const EQ = eqCatalog || EQ_LOCAL;
   const analysis = buildAnalysis(res);
   const score = Number(res.final.score),
@@ -6063,7 +6065,9 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
   const circEqs = [
     { id: "jaw",      label: "Chancador primario (mandíbula)",  eq: (res.eqRec?.jaw    || [])[0] },
     { id: "cone",     label: "Chancador secundario (cono)",     eq: (res.eqRec?.cone   || [])[0] },
-    ...(res.needsT ? [{ id: "tertiary", label: "Cono/VSI terciario", eq: (res.eqRec?.cone || [])[0] }] : []),
+    // Para el terciario no existe eqRec separado — se muestra como ítem a definir,
+    // con nota explícita para que no parezca duplicado del secundario
+    ...(res.needsT ? [{ id: "tertiary", label: "Cono/VSI terciario — equipo a definir (no el mismo que el secundario)", eq: null }] : []),
     { id: "screen",   label: "Seleccionadora",                  eq: (res.eqRec?.screen || [])[0] },
   ];
   const ventaTotal  = circEqs.reduce((s, e) => s + (Number(ventaPrecios[e.id]) || 0), 0);
@@ -6072,9 +6076,10 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
   const lemProdM3   = Math.round(tonHorizonte / rockDensity);
   const lemProd     = lemUnit === "$/ton" ? lemProdTon : lemProdM3;
   const lemTotal    = (Number(lemTarifa) || 0) * lemProd + sumIncl(lemIncl);
-  // Referencia interna: OPEX del motor para comparar margen — NO mostrar al cliente en reporte exportable
+  // Referencia interna: OPEX del motor en USD/t × TC → CLP — NO mostrar al cliente en reporte exportable
+  // res.opex.total_usd_t viene en USD/t del motor Python; lemTarifa es en CLP → necesita conversión
   const opexRefTotal = res.opex?.total_usd_t
-    ? Math.round(res.opex.total_usd_t * lemProdTon)
+    ? Math.round(res.opex.total_usd_t * lemProdTon * tcUsdClp)
     : null;
 
   const TABS = [
@@ -9230,13 +9235,20 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                         <span style={{ fontSize:13, color:G.text, fontWeight:600 }}>TOTAL</span>
                         <span style={{ fontSize:18, color:G.purple, fontWeight:700 }}>${lemTotal.toLocaleString("es-CL")}</span>
                       </div>
+                      {/* Tipo de cambio para conversión OPEX USD→CLP — referencia interna */}
+                      {res.opex?.total_usd_t && (
+                        <div style={{ display:"flex", gap:8, alignItems:"center", marginTop:6 }}>
+                          <span style={{ fontSize:10, color:G.muted, whiteSpace:"nowrap" }}>TC USD/CLP</span>
+                          <input type="number" min={1} step={10} value={tcUsdClp} onChange={e => setTcUsdClp(Number(e.target.value) || 950)} style={{ width:80, fontSize:11 }} />
+                        </div>
+                      )}
                       {/* Referencia interna para Marcelo — NO incluir en reporte exportable al cliente */}
                       {opexRefTotal !== null && (
-                        <div style={{ marginTop: 8, padding: "8px 10px", background: G.faint, borderRadius: 6, borderLeft: `3px solid ${G.border}` }}>
+                        <div style={{ marginTop: 6, padding: "8px 10px", background: G.faint, borderRadius: 6, borderLeft: `3px solid ${G.border}` }}>
                           <div style={{ fontSize: 10, color: G.muted }}>
                             (referencia interna) OPEX motor:{" "}
                             <strong style={{ color: G.text }}>${opexRefTotal.toLocaleString("es-CL")}</strong>
-                            {" "}· {res.opex.total_usd_t} USD/t × {lemProdTon.toLocaleString("es-CL")} ton
+                            {" "}· {res.opex.total_usd_t} USD/t × {lemProdTon.toLocaleString("es-CL")} ton × {tcUsdClp} TC
                           </div>
                           {lemTotal > 0 && opexRefTotal > 0 && (
                             <div style={{ fontSize: 10, color: lemTotal > opexRefTotal ? G.green : G.red, marginTop: 3 }}>
