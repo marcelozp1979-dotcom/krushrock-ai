@@ -2148,6 +2148,7 @@ function Onboarding({
   const [manConeCSS, setManConeCSS] = useState(init.manConeCSS || null);
   const [sugPerfil, setSugPerfil] = useState(init.sugPerfil || null);
   const [plazoMeses, setPlazoMeses] = useState(init.plazoMeses || 1);
+  const [riesgoInchancable, setRiesgoInchancable] = useState(init.riesgoInchancable || false);
   const [started, setStarted] = useState(
     Boolean(initialInp || initialStep > 0),
   );
@@ -2704,6 +2705,7 @@ function Onboarding({
       meshDecks: { 1: 0, 2: 0, 3: 0 },
       screenDecks: recDecks,
       plazoMeses,
+      riesgoInchancable,
       circuit: circPath === "ai" ? "ai" : "cerrado",
     });
   };
@@ -3687,6 +3689,38 @@ function Onboarding({
                       next();
                     }}
                   />
+                </div>
+              )}
+
+              {/* Riesgo inchancables — visible en todas las subcategorías del paso Tipo de roca */}
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start", background: G.card, border: `1px solid ${G.border}`, borderRadius: 8, padding: "10px 14px", marginTop: 8 }}>
+                <input
+                  type="checkbox"
+                  id="riesgoInch"
+                  checked={riesgoInchancable}
+                  onChange={e => setRiesgoInchancable(e.target.checked)}
+                  style={{ marginTop: 2, cursor: "pointer", flexShrink: 0 }}
+                />
+                <label htmlFor="riesgoInch" style={{ fontSize: 12, color: G.text, cursor: "pointer", lineHeight: 1.5 }}>
+                  La alimentación viene de un circuito SAG/pebbles o puede traer objetos metálicos (chatarra, fragmentos de bolas de molienda)
+                </label>
+              </div>
+              {riesgoInchancable && (
+                <div style={{ background: "rgba(245,158,11,0.1)", border: `1px solid ${G.accent}`, borderRadius: 8, padding: "12px 14px" }}>
+                  <div style={{ fontSize: 13, color: G.accent, fontWeight: 600, marginBottom: 8 }}>
+                    ⚠ Riesgo de inchancables/metal en la alimentación. Mecanismos de protección recomendados:
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 5 }}>
+                    <li style={{ fontSize: 12, color: G.text }}>
+                      <strong>Parrilla</strong> — separación mecánica de objetos sobredimensionados antes del chancador primario.
+                    </li>
+                    <li style={{ fontSize: 12, color: G.text }}>
+                      <strong>Separador magnético / detector de metales</strong> — remueve fragmentos de bolas de molienda y chatarra antes de que entren al circuito.
+                    </li>
+                    <li style={{ fontSize: 12, color: G.text }}>
+                      <strong>Descarga lateral (bypass)</strong> — desvía el material no triturable fuera de línea para manejo separado.
+                    </li>
+                  </ul>
                 </div>
               )}
 
@@ -5929,6 +5963,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
     operador:      { active: false, valor: "" },
     movilizacion:  { active: false, valor: "" },
     mantenimiento: { active: false, valor: "" },
+    inchancable:   { active: false, valor: "" },
   });
   const [ventaOpen, setVentaOpen] = useState(true);
   const [ventaPrecios, setVentaPrecios] = useState({});
@@ -5941,6 +5976,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
     operador:      { active: false, valor: "" },
     movilizacion:  { active: false, valor: "" },
     mantenimiento: { active: false, valor: "" },
+    inchancable:   { active: false, valor: "" },
   });
   // Tipo de cambio USD→CLP para convertir OPEX del motor (que sale en USD/t) a CLP
   const [tcUsdClp, setTcUsdClp] = useState(950);
@@ -9101,7 +9137,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                     </div>
                     <div>
                       <div style={{ fontSize: 11, color: G.muted, marginBottom: 8 }}>Inclusiones adicionales</div>
-                      {INCL_LABELS.map(({key, label}) => (
+                      {[...INCL_LABELS, ...(res.inp.riesgoInchancable ? [{ key: "inchancable", label: "Sistema de protección contra inchancables (detector de metal + separador magnético)" }] : [])].map(({key, label}) => (
                         <div key={key} style={{ display:"flex", gap:8, alignItems:"center", marginBottom:7 }}>
                           <input type="checkbox" checked={arrIncl[key].active} onChange={e => setArrIncl(prev => ({...prev, [key]: {...prev[key], active: e.target.checked}}))} style={{ cursor:"pointer" }} />
                           <span style={{ fontSize:12, color: arrIncl[key].active?G.text:G.muted, flex:1 }}>{label}</span>
@@ -9207,7 +9243,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
                     </div>
                     <div>
                       <div style={{ fontSize: 11, color: G.muted, marginBottom: 8 }}>Inclusiones adicionales</div>
-                      {INCL_LABELS.map(({key, label}) => (
+                      {[...INCL_LABELS, ...(res.inp.riesgoInchancable ? [{ key: "inchancable", label: "Sistema de protección contra inchancables (detector de metal + separador magnético)" }] : [])].map(({key, label}) => (
                         <div key={key} style={{ display:"flex", gap:8, alignItems:"center", marginBottom:7 }}>
                           <input type="checkbox" checked={lemIncl[key].active} onChange={e => setLemIncl(prev => ({...prev, [key]: {...prev[key], active: e.target.checked}}))} style={{ cursor:"pointer" }} />
                           <span style={{ fontSize:12, color: lemIncl[key].active?G.text:G.muted, flex:1 }}>{label}</span>
