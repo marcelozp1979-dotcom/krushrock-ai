@@ -6735,7 +6735,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
             {res.eqRec?.capacidadInfo && [
               { key: "jaw",    label: "mandíbula" },
               { key: "cone",   label: "cono" },
-              { key: "screen", label: "zaranda" },
+              { key: "screen", label: "seleccionadora" },
               { key: "hsi",    label: "HSI" },
             ].filter(({ key }) => {
               const ci = res.eqRec.capacidadInfo[key];

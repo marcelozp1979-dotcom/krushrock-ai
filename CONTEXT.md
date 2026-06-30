@@ -1,5 +1,9 @@
 # KrushRock — Contexto del Proyecto
 
+## Convenciones de terminología
+Usar siempre "seleccionadora", nunca "zaranda", en cualquier texto
+visible al usuario o documentación del proyecto.
+
 ## Qué es
 Simulador de plantas de chancado móvil con IA.
 Autor: experto en chancado, no en programación.
