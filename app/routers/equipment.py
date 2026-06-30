@@ -66,21 +66,21 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
         {"brand": "Astec",         "model": "GT4250",         "type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 250, "cap_max_tph": 450, "feed_max_mm": 1100, "decks": None, "extra_specs": {}, "notes": "Orugas"},
     ],
     "screen": [
-        {"brand": "Terex Finlay",  "model": "683",             "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 100, "cap_max_tph": 250, "feed_max_mm": None, "decks": 2, "extra_specs": {}, "notes": "2 deck — versátil, orugas"},
-        {"brand": "Terex Finlay",  "model": "684 2-deck",      "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 120, "cap_max_tph": 280, "feed_max_mm": None, "decks": 2, "extra_specs": {}, "notes": "2 deck — alta producción"},
-        {"brand": "Terex Finlay",  "model": "684 3-deck",      "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 300, "feed_max_mm": None, "decks": 3, "extra_specs": {}, "notes": "3 deck — alta clasificación"},
-        {"brand": "Terex Finlay",  "model": "694+",            "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 350, "feed_max_mm": None, "decks": 3, "extra_specs": {}, "notes": "3 deck — orugas, 3 fracciones"},
-        {"brand": "Terex Finlay",  "model": "696 3-deck",      "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 180, "cap_max_tph": 400, "feed_max_mm": None, "decks": 3, "extra_specs": {}, "notes": "3 deck — gran capacidad"},
-        {"brand": "Powerscreen",   "model": "Warrior 1800",    "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 100, "cap_max_tph": 280, "feed_max_mm": None, "decks": 2, "extra_specs": {}, "notes": "2 deck"},
-        {"brand": "Powerscreen",   "model": "Chieftain 1700",  "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 120, "cap_max_tph": 300, "feed_max_mm": None, "decks": 2, "extra_specs": {}, "notes": "2 deck — fácil cambio de mallas"},
-        {"brand": "Powerscreen",   "model": "Chieftain 2100X", "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 380, "feed_max_mm": None, "decks": 3, "extra_specs": {}, "notes": "3 deck — alta capacidad"},
-        {"brand": "Kleemann",      "model": "MS 703i",         "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 100, "cap_max_tph": 250, "feed_max_mm": None, "decks": 2, "extra_specs": {}, "notes": "2 deck — eléctrico, compacto"},
-        {"brand": "Kleemann",      "model": "MS 953i EVO",     "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 350, "feed_max_mm": None, "decks": 3, "extra_specs": {}, "notes": "3 deck — diesel-eléctrico"},
-        {"brand": "Sandvik",       "model": "QA330",           "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 120, "cap_max_tph": 280, "feed_max_mm": None, "decks": 2, "extra_specs": {}, "notes": "2 deck"},
-        {"brand": "Sandvik",       "model": "QA335",           "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 300, "feed_max_mm": None, "decks": 3, "extra_specs": {}, "notes": "3 deck — plantas áridos"},
-        {"brand": "Metso Outotec", "model": "ST2.4",           "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 100, "cap_max_tph": 250, "feed_max_mm": None, "decks": 2, "extra_specs": {}, "notes": "2 deck"},
-        {"brand": "Metso Outotec", "model": "ST3.5",           "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 350, "feed_max_mm": None, "decks": 3, "extra_specs": {}, "notes": "3 deck"},
-        {"brand": "Astec",         "model": "M6x20-3D",        "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 300, "feed_max_mm": None, "decks": 3, "extra_specs": {}, "notes": "3 deck"},
+        {"brand": "Terex Finlay",  "model": "683",             "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 100, "cap_max_tph": 250, "feed_max_mm": None, "decks": 2, "area_m2": 10.1, "extra_specs": {}, "notes": "2 deck — versátil, orugas"},
+        {"brand": "Terex Finlay",  "model": "684 2-deck",      "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 120, "cap_max_tph": 280, "feed_max_mm": None, "decks": 2, "area_m2": 14.6, "extra_specs": {}, "notes": "2 deck — alta producción"},
+        {"brand": "Terex Finlay",  "model": "684 3-deck",      "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 300, "feed_max_mm": None, "decks": 3, "area_m2": 21.9, "extra_specs": {}, "notes": "3 deck — alta clasificación"},
+        {"brand": "Terex Finlay",  "model": "694+",            "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 350, "feed_max_mm": None, "decks": 3, "area_m2": 28.0, "extra_specs": {}, "notes": "3 deck — orugas, 3 fracciones"},
+        {"brand": "Terex Finlay",  "model": "696 3-deck",      "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 180, "cap_max_tph": 400, "feed_max_mm": None, "decks": 3, "area_m2": 31.1, "extra_specs": {}, "notes": "3 deck — gran capacidad"},
+        {"brand": "Powerscreen",   "model": "Warrior 1800",    "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 100, "cap_max_tph": 480, "feed_max_mm": None, "decks": 2, "area_m2": 14.6, "extra_specs": {}, "notes": "2 deck"},
+        {"brand": "Powerscreen",   "model": "Chieftain 1700",  "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 120, "cap_max_tph": 400, "feed_max_mm": None, "decks": 2, "area_m2": 14.4, "extra_specs": {}, "notes": "2 deck — fácil cambio de mallas"},
+        {"brand": "Powerscreen",   "model": "Chieftain 2100X", "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 480, "feed_max_mm": None, "decks": 3, "area_m2": 28.4, "extra_specs": {}, "notes": "3 deck — alta capacidad"},
+        {"brand": "Kleemann",      "model": "MS 703i",         "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 100, "cap_max_tph": 309, "feed_max_mm": None, "decks": 3, "area_m2": 21.0, "extra_specs": {}, "notes": "3 deck — eléctrico, compacto"},
+        {"brand": "Kleemann",      "model": "MS 953i EVO",     "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 441, "feed_max_mm": None, "decks": 3, "area_m2": 28.5, "extra_specs": {}, "notes": "3 deck — diesel-eléctrico"},
+        {"brand": "Sandvik",       "model": "QA331",           "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 120, "cap_max_tph": 280, "feed_max_mm": None, "decks": 2, "area_m2": 13.0, "extra_specs": {}, "notes": "2 deck — sucesor de QA330 (descontinuado)"},
+        {"brand": "Sandvik",       "model": "QA335",           "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 320, "feed_max_mm": None, "decks": 2, "area_m2": 24.0, "extra_specs": {}, "notes": "3 deck — plantas áridos — Doublescreen, 2 cajas de 2 decks en serie"},
+        {"brand": "Metso Outotec", "model": "ST2.4",           "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 100, "cap_max_tph": 250, "feed_max_mm": None, "decks": 2, "area_m2": 10.8, "extra_specs": {}, "notes": "2 deck"},
+        {"brand": "Metso Outotec", "model": "ST3.5",           "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 350, "feed_max_mm": None, "decks": 2, "area_m2": 11.0, "extra_specs": {}, "notes": "3 deck — capacidad por verificar, sin fuente oficial de marketing confirmada"},
+        {"brand": "Astec",         "model": "M6x20-3D",        "type": "screen", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 300, "feed_max_mm": None, "decks": 3, "area_m2": None, "extra_specs": {}, "notes": "3 deck"},
     ],
     "screen_1d": [
         {"brand": "Terex Finlay",  "model": "Rinser 873", "type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 80, "cap_max_tph": 200, "feed_max_mm": None, "decks": 1, "extra_specs": {}, "notes": "1 deck lavado/descascarado"},
@@ -116,6 +116,8 @@ def _to_frontend(item: Dict[str, Any]) -> Dict[str, Any]:
         result["feedMm"] = item["feed_max_mm"]
     if item.get("decks") is not None:
         result["decks"] = item["decks"]
+    if item.get("area_m2") is not None:
+        result["area_m2"] = item["area_m2"]
     if specs.get("palanca"):
         result["palanca"] = specs["palanca"]
     if specs.get("rpm"):
