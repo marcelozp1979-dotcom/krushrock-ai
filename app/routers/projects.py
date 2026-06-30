@@ -121,6 +121,6 @@ async def get_project_simulations(
         raise HTTPException(status_code=404, detail="Proyecto no encontrado")
 
     result = sb.table("simulations").select(
-        "id, name, eff_score, final_p80, circ_load, tph, circuit_type, created_at"
+        "id, name, final_p80, circ_load, tph, circuit_type, created_at"
     ).eq("project_id", project_id).order("created_at", desc=True).limit(limit).execute()
     return result.data

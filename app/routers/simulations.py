@@ -147,7 +147,6 @@ async def run_simulation(
             "hours_per_year": req.hours_per_year,
             "nodes_json": nodes_raw,
             "result_json": result,
-            "eff_score":  result["eff_score"],
             "final_p80":  result["final_p80_mm"],
             "circ_load":  result["circ_load_pct"],
             "opex_total_usd_t": result["opex"]["total_usd_t"],
@@ -230,7 +229,7 @@ async def compare_simulations(req: CompareRequest, user=Depends(get_current_user
     return {
         "scenario_a": {"name": req.scenario_a.name, "result": res_a},
         "scenario_b": {"name": req.scenario_b.name, "result": res_b},
-        "winner_technical": "A" if res_a["eff_score"] >= res_b["eff_score"] else "B",
+        "winner_technical": "A" if res_a["production_factor"] >= res_b["production_factor"] else "B",
         "winner_opex":      "A" if res_a["opex"]["total_usd_t"] <= res_b["opex"]["total_usd_t"] else "B",
         "delta_opex_usd_t": round(abs(res_a["opex"]["total_usd_t"] - res_b["opex"]["total_usd_t"]), 3),
         "ai_analysis": ai_analysis,
@@ -250,7 +249,7 @@ ESCENARIO A — {sc_a.name}:
 Equipos: {eq_a}
 Roca: {res_a['rock']['name']} (Wi={res_a['rock']['wi']}, ab={res_a['rock']['ab']})
 {sc_a.tph} tph | F80={sc_a.f80}mm | P80={sc_a.p80_target}mm | Hum={sc_a.humidity}/3
-Score: {res_a['eff_score']}/100 | P80final: {res_a['final_p80_mm']}mm | CC: {res_a['circ_load_pct']}%
+Ajuste producto: {res_a['product_fit_pct'] if res_a['product_fit_pct'] is not None else 'N/A'}% | P80final: {res_a['final_p80_mm']}mm | CC: {res_a['circ_load_pct']}% | Factor producción: {round(res_a['production_factor']*100,1)}%
 OPEX: {res_a['opex']['total_usd_t']} USD/t | EBITDA: {res_a['opex']['ebitda_yr_k']}k USD/año ({res_a['opex']['ebitda_pct']}%)
 Capex: {res_a['opex']['capex_m_usd']} M USD | Payback: {res_a['opex']['payback_years']} años
 Bottlenecks: {', '.join(res_a['bottlenecks']) or 'ninguno'}
@@ -259,7 +258,7 @@ ESCENARIO B — {sc_b.name}:
 Equipos: {eq_b}
 Roca: {res_b['rock']['name']} (Wi={res_b['rock']['wi']}, ab={res_b['rock']['ab']})
 {sc_b.tph} tph | F80={sc_b.f80}mm | P80={sc_b.p80_target}mm | Hum={sc_b.humidity}/3
-Score: {res_b['eff_score']}/100 | P80final: {res_b['final_p80_mm']}mm | CC: {res_b['circ_load_pct']}%
+Ajuste producto: {res_b['product_fit_pct'] if res_b['product_fit_pct'] is not None else 'N/A'}% | P80final: {res_b['final_p80_mm']}mm | CC: {res_b['circ_load_pct']}% | Factor producción: {round(res_b['production_factor']*100,1)}%
 OPEX: {res_b['opex']['total_usd_t']} USD/t | EBITDA: {res_b['opex']['ebitda_yr_k']}k USD/año ({res_b['opex']['ebitda_pct']}%)
 Capex: {res_b['opex']['capex_m_usd']} M USD | Payback: {res_b['opex']['payback_years']} años
 Bottlenecks: {', '.join(res_b['bottlenecks']) or 'ninguno'}
@@ -290,7 +289,7 @@ async def list_simulations(
 ):
     sb = get_supabase()
     q = sb.table("simulations").select(
-        "id, name, tph, rock_type, circuit_type, eff_score, "
+        "id, name, tph, rock_type, circuit_type, "
         "final_p80, circ_load, opex_total_usd_t, project_id, created_at"
     ).eq("user_id", user["id"])
     if project_id:

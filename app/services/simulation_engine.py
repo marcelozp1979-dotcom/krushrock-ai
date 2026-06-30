@@ -383,14 +383,12 @@ def simulate(
 
     total_prod_tph = sum(p["tph_out"] for p in products_out)
 
-    # ── 6. SCORE Y BOTTLENECKS ────────────────────────────────────────────────
+    # ── 6. MÉTRICAS SEPARADAS (sin score combinado) ───────────────────────────
     last_screen_res = node_results.get(screen_node_id, {}) if screen_node_id else {}
     circ_load_pct = last_screen_res.get("circ_load_pct", 0.0)
-    p80_gap = abs(final_p80 - p80_target) / max(p80_target, 0.1)
     production_factor = total_prod_tph / max(tph, 1.0) if products_out else 1.0
-    eff_score = max(0.0, min(100.0,
-        (100.0 - circ_load_pct * 0.7 - p80_gap * 60.0 - rock["ab"] * 15.0) * production_factor
-    ))
+    # % tonelaje del producto final que cae dentro de CUALQUIERA de los rangos definidos
+    product_fit_pct = round(sum(p["yld_pct"] for p in products_out), 1) if products_out else None
 
     bottlenecks = [
         node.get("equipment", {}).get("model", node.get("type", "?"))
@@ -410,7 +408,7 @@ def simulate(
         "production_factor":   round(production_factor, 3),
         "final_p80_mm":        round(final_p80, 1),
         "circ_load_pct":       round(circ_load_pct, 1),
-        "eff_score":           round(eff_score, 1),
+        "product_fit_pct":     product_fit_pct,
         "bottlenecks":         bottlenecks,
         "rock":                rock,
         "tph":                 tph,
