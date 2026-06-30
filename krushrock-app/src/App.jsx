@@ -755,7 +755,7 @@ const EQ_LOCAL = {
       decks: 2,
       area_m2: 24.0,
       capR: [150, 320],
-      notes: "3 deck — plantas áridos — Doublescreen, 2 cajas de 2 decks en serie",
+      notes: "plantas áridos — Doublescreen, 2 cajas de 2 decks en serie",
     },
     {
       brand: "Metso Outotec",
@@ -771,7 +771,7 @@ const EQ_LOCAL = {
       decks: 2,
       area_m2: 11.0,
       capR: [150, 350],
-      notes: "3 deck — capacidad por verificar, sin fuente oficial de marketing confirmada",
+      notes: "capacidad por verificar, sin fuente oficial de marketing confirmada",
     },
     {
       brand: "Astec",

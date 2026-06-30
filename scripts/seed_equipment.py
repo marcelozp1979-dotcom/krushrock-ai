@@ -101,9 +101,9 @@ EQ_SEED = {
         {"brand": "Kleemann",      "model": "MS 703i",         "decks": 3, "area_m2": 21.0, "capR": [100, 309], "notes": "3 deck — eléctrico, compacto"},
         {"brand": "Kleemann",      "model": "MS 953i EVO",     "decks": 3, "area_m2": 28.5, "capR": [150, 441], "notes": "3 deck — diesel-eléctrico"},
         {"brand": "Sandvik",       "model": "QA331",           "decks": 2, "area_m2": 13.0, "capR": [120, 280], "notes": "2 deck — sucesor de QA330 (descontinuado)"},
-        {"brand": "Sandvik",       "model": "QA335",           "decks": 2, "area_m2": 24.0, "capR": [150, 320], "notes": "3 deck — plantas áridos — Doublescreen, 2 cajas de 2 decks en serie"},
+        {"brand": "Sandvik",       "model": "QA335",           "decks": 2, "area_m2": 24.0, "capR": [150, 320], "notes": "plantas áridos — Doublescreen, 2 cajas de 2 decks en serie"},
         {"brand": "Metso Outotec", "model": "ST2.4",           "decks": 2, "area_m2": 10.8, "capR": [100, 250], "notes": "2 deck"},
-        {"brand": "Metso Outotec", "model": "ST3.5",           "decks": 2, "area_m2": 11.0, "capR": [150, 350], "notes": "3 deck — capacidad por verificar, sin fuente oficial de marketing confirmada"},
+        {"brand": "Metso Outotec", "model": "ST3.5",           "decks": 2, "area_m2": 11.0, "capR": [150, 350], "notes": "capacidad por verificar, sin fuente oficial de marketing confirmada"},
         {"brand": "Astec",         "model": "M6x20-3D",        "decks": 3, "area_m2": None, "capR": [150, 300], "notes": "3 deck"},
     ],
     "screen_1d": [
