@@ -1461,7 +1461,7 @@ async function runSimulation(inp) {
     finalP80     = apiResult.final_p80_mm   ?? secondaryP80;
     ePerTVal     = apiResult.total_energy_kwh_t ?? 0;
     eTotKwVal    = ePerTVal * Number(tph);
-    scoreVal     = apiResult.eff_score ?? 0;
+    scoreVal     = apiResult.product_fit_pct ?? null;
 
     products_display = actP.map((p) => {
       const ap = apiResult.product_yields?.find((x) => String(x.id) === String(p.id));
@@ -1497,7 +1497,7 @@ async function runSimulation(inp) {
       p80:   (finalP80  ?? 0).toFixed(1),
       ePerT: (ePerTVal  ?? 0).toFixed(2),
       eTot:  (eTotKwVal ?? 0).toFixed(0),
-      score: (scoreVal  ?? 0).toFixed(0),
+      productFitPct: scoreVal !== null ? Number(scoreVal).toFixed(1) : null,
     },
     products: products_display,
     bottlenecks: bottlenecks_display,
@@ -1507,8 +1507,7 @@ async function runSimulation(inp) {
 
 // ── ANÁLISIS POR REGLAS ────────────────────────────────────────────────────
 function buildAnalysis(r) {
-  const score = Number(r.final.score),
-    cc = Number(r.screening.ccLoad);
+  const cc = Number(r.screening.ccLoad);
   const p80f = Number(r.final.p80),
     gap = (Math.abs(p80f - r.p80T) / Math.max(r.p80T, 1)) * 100;
   const humN =
@@ -1518,11 +1517,11 @@ function buildAnalysis(r) {
   const altM = r.altM;
 
   const diag =
-    score >= 78
-      ? `Circuito con rendimiento **óptimo** (índice ${score}/100). Diseño que cumple P80 objetivo con carga circulante aceptable.`
-      : score >= 58
-        ? `Circuito **funcional** (índice ${score}/100). Hay margen de optimización en CSS y configuración de clasificación.`
-        : `Circuito con **limitaciones técnicas** (índice ${score}/100). Se requieren ajustes antes de seleccionar equipos definitivos.`;
+    cc <= 20 && gap <= 10
+      ? "Circuito con rendimiento **óptimo**. Carga circulante dentro del rango recomendado y P80 ajustado al objetivo."
+      : cc <= 30 && gap <= 20
+        ? "Circuito **funcional**. Hay margen de optimización en CSS y configuración de clasificación."
+        : "Circuito con **limitaciones técnicas**. Se requieren ajustes antes de seleccionar equipos definitivos.";
 
   const obs = [];
   if (!r.feedOk)
@@ -1593,7 +1592,7 @@ function buildAnalysis(r) {
       ? "Variante sugerida: scalper antes del primario para reducir carga circulante."
       : r.needsT
         ? "Variante sugerida: cono/VSI terciario mejora cubicidad del producto fino."
-        : score >= 75
+        : gap <= 10
           ? "Configuración técnicamente adecuada para los requerimientos indicados."
           : "Revisar CSS de etapas para acercarse al P80 objetivo.";
 
@@ -6112,11 +6111,7 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
   const [tcUsdClp, setTcUsdClp] = useState(950);
   const EQ = eqCatalog || EQ_LOCAL;
   const analysis = buildAnalysis(res);
-  const score = Number(res.final.score),
-    cc = Number(res.screening.ccLoad);
-  const effColor = score >= 75 ? G.green : score >= 55 ? G.accent : G.red;
-  const effLabel =
-    score >= 75 ? "ÓPTIMO" : score >= 55 ? "MEJORABLE" : "CRÍTICO";
+  const cc = Number(res.screening.ccLoad);
   const ul = unitLabel(unit);
   const sz = (mm) => fromMm(Number(mm), unit) + ul;
   const humTxt =
@@ -6465,9 +6460,6 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
               {u === "in" ? '"' : u}
             </button>
           ))}
-          <Badge color={score >= 75 ? "green" : score >= 55 ? "amber" : "red"}>
-            {effLabel}
-          </Badge>
           {savedConfirm ? (
             <span style={{ color: G.green, fontSize: 11 }}>✓ Guardada</span>
           ) : (
@@ -6604,69 +6596,85 @@ function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_
         </div>
       )}
 
-      {/* Score banner */}
+      {/* Indicadores de circuito */}
       <div
         style={{
           background: G.surface,
           borderBottom: `1px solid ${G.border}`,
           padding: "12px 20px",
-          display: "flex",
-          alignItems: "center",
-          gap: 20,
         }}
       >
-        <div>
-          <div style={{ fontSize: 9, color: G.muted, letterSpacing: "0.1em" }}>
-            ÍNDICE DE EFICIENCIA DEL CIRCUITO
-          </div>
-          <div
-            style={{
-              fontFamily: G.fontD,
-              fontSize: 42,
-              fontWeight: 800,
-              color: effColor,
-              lineHeight: 1,
-            }}
-          >
-            {score}
-            <span style={{ fontSize: 16 }}>/100</span>
-          </div>
-          <div style={{ fontSize: 10, color: G.muted, marginTop: 2 }}>
-            cumplimiento P80 · carga circulante · dureza
-          </div>
+        <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 10 }}>
+          {/* Carga circulante */}
+          {(() => {
+            const [ccLbl, ccClr] = cc <= 20
+              ? ["Normal", G.green]
+              : cc <= 30
+                ? ["Elevada", G.accent]
+                : ["Alta", G.red];
+            return (
+              <div style={{ minWidth: 130 }}>
+                <div style={{ fontSize: 9, color: G.muted, letterSpacing: "0.1em", marginBottom: 2 }}>
+                  CARGA CIRCULANTE
+                </div>
+                <div style={{ fontFamily: G.fontD, fontSize: 30, fontWeight: 700, color: ccClr, lineHeight: 1 }}>
+                  {cc}%
+                </div>
+                <div style={{ fontSize: 10, color: ccClr, marginTop: 2 }}>{ccLbl}</div>
+              </div>
+            );
+          })()}
+          {/* Material aprovechado */}
+          {res.final.productFitPct !== null && (() => {
+            const pf = Number(res.final.productFitPct);
+            const pfClr = pf >= 70 ? G.green : pf >= 50 ? G.accent : G.red;
+            return (
+              <div style={{ minWidth: 160 }}>
+                <div style={{ fontSize: 9, color: G.muted, letterSpacing: "0.1em", marginBottom: 2 }}>
+                  MATERIAL APROVECHADO
+                </div>
+                <div style={{ fontFamily: G.fontD, fontSize: 30, fontWeight: 700, color: pfClr, lineHeight: 1 }}>
+                  {res.final.productFitPct}%
+                </div>
+                <div style={{ fontSize: 10, color: G.muted, marginTop: 2 }}>del flujo final dentro de rangos</div>
+              </div>
+            );
+          })()}
+          {/* Cumplimiento P80 — solo si hay exactamente 1 producto activo */}
+          {(res.inp.products || []).filter((p) => p.active).length === 1 && (() => {
+            const p80f = Number(res.final.p80);
+            const p80tgt = res.p80T;
+            const gapPct = Math.abs(p80f - p80tgt) / Math.max(p80tgt, 1) * 100;
+            const [p80Lbl, p80Clr] = gapPct <= 10
+              ? ["Cumple", G.green]
+              : gapPct <= 25
+                ? ["Cercano al objetivo", G.accent]
+                : ["Ajustar CSS", G.red];
+            return (
+              <div style={{ minWidth: 160 }}>
+                <div style={{ fontSize: 9, color: G.muted, letterSpacing: "0.1em", marginBottom: 2 }}>
+                  CUMPLIMIENTO P80
+                </div>
+                <div style={{ fontFamily: G.fontD, fontSize: 30, fontWeight: 700, color: p80Clr, lineHeight: 1 }}>
+                  {p80f}mm
+                </div>
+                <div style={{ fontSize: 10, color: G.muted, marginTop: 2 }}>objetivo: {p80tgt}mm · {p80Lbl}</div>
+              </div>
+            );
+          })()}
         </div>
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              height: 8,
-              background: G.border,
-              borderRadius: 4,
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                height: "100%",
-                width: `${score}%`,
-                background: effColor,
-                borderRadius: 4,
-                transition: "width 1s ease",
-              }}
-            />
-          </div>
-          <div style={{ marginTop: 8, fontSize: 12, color: G.muted }}>
-            {res.bottlenecks.length > 0
-              ? `⚠ ${res.bottlenecks[0]}`
-              : "✓ Sin bottlenecks detectados"}
-          </div>
-          <div style={{ marginTop: 4, fontSize: 11, color: res.errColor }}>
-            Error estimado: <strong>±{res.errPct}%</strong>
-            {res.inp.curveType === "f80only" || res.inp.curveType === "omit"
-              ? " — ingresar curva granulométrica reduce el error"
-              : res.inp.curveType === "partial"
-                ? " — curva parcial (F80+F50)"
-                : ` — curva con ${(res.inp.curvePoints || []).filter((p) => p.sizeMm > 0).length} puntos`}
-          </div>
+        <div style={{ fontSize: 12, color: G.muted }}>
+          {res.bottlenecks.length > 0
+            ? `⚠ ${res.bottlenecks[0]}`
+            : "✓ Sin bottlenecks detectados"}
+        </div>
+        <div style={{ marginTop: 4, fontSize: 11, color: res.errColor }}>
+          Error estimado: <strong>±{res.errPct}%</strong>
+          {res.inp.curveType === "f80only" || res.inp.curveType === "omit"
+            ? " — ingresar curva granulométrica reduce el error"
+            : res.inp.curveType === "partial"
+              ? " — curva parcial (F80+F50)"
+              : ` — curva con ${(res.inp.curvePoints || []).filter((p) => p.sizeMm > 0).length} puntos`}
         </div>
       </div>
       {res.alerts?.length > 0 && (
@@ -9623,7 +9631,7 @@ export default function App() {
       // resumen para mostrar en historial
       rockName: res.rock.name,
       tph: res.inp.tph,
-      score: Number(res.final.score),
+      productFitPct: res.final.productFitPct,
       errPct: res.errPct,
       p80: res.final.p80,
       p80T: res.p80T,
