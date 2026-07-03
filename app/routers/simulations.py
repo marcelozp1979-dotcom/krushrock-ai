@@ -291,60 +291,81 @@ async def recommend_circuit(req: RecommendRequest):
         raise HTTPException(status_code=500, detail=detail)
 
 
+def _build_compare_table(req: CompareConfigsRequest) -> Dict[str, Any]:
+    """
+    Lógica compartida por /compare-configs y /compare-simple.
+
+    Corre el motor sobre las dos configuraciones de planta y construye
+    la tabla comparativa de 6 indicadores. Lanza ValueError si algún
+    equipo no existe en el catálogo.
+    """
+    products_raw = [
+        {"name": p.name, "min_mm": p.min_mm, "max_mm": p.max_mm}
+        for p in req.faena.products
+    ]
+
+    def _run(plant: PlantConfig) -> Dict[str, Any]:
+        return run_config(
+            equipos=[
+                {"etapa": e.etapa, "marca": e.marca, "modelo": e.modelo}
+                for e in plant.equipos
+            ],
+            f80_mm=req.faena.f80_mm,
+            products=products_raw,
+            tonelaje_mes=req.faena.tonelaje_mes,
+            duracion_meses=req.faena.duracion_meses,
+            rock_type=req.faena.rock_type,
+            n_units=plant.n_units,
+            circuit=plant.circuit,
+            tarifa_arriendo_usd_mes=plant.tarifa_arriendo_usd_mes,
+        )
+
+    res_u = _run(req.config_usuario)
+    res_s = _run(req.config_sugerida)
+
+    def _row(indicador: str, unidad: str, key: str) -> Dict:
+        return {
+            "indicador": indicador,
+            "usuario":  res_u[key],
+            "sugerida": res_s[key],
+            "unidad":   unidad,
+        }
+
+    return {"tabla": [
+        _row("tph_efectivo",         "tph",      "tph_efectivo"),
+        _row("material_aprovechado", "%",        "product_fit_pct"),
+        _row("carga_circulante",     "%",        "circ_load_pct"),
+        _row("n_equipos_total",      "unidades", "n_equipos_total"),
+        _row("costo_arriendo_mes",   "USD/mes",  "costo_arriendo_mes_usd"),
+        _row("cumple_plazo",         "bool",     "cumple_plazo"),
+    ]}
+
+
 @router.post("/compare-configs")
 async def compare_configs(req: CompareConfigsRequest):
     """
     Endpoint público — compara dos configuraciones de planta sobre la misma faena
     y devuelve una tabla comparativa con indicadores clave (sin análisis IA).
-
-    Nota: el endpoint autenticado /compare (con análisis IA) sigue disponible
-    para comparaciones entre SimulationRequests completos ya configurados.
     """
     try:
-        products_raw = [
-            {"name": p.name, "min_mm": p.min_mm, "max_mm": p.max_mm}
-            for p in req.faena.products
-        ]
+        return _build_compare_table(req)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        import traceback
+        detail = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"
+        raise HTTPException(status_code=500, detail=detail)
 
-        def _run(plant: PlantConfig) -> Dict[str, Any]:
-            equipos_raw = [
-                {"etapa": e.etapa, "marca": e.marca, "modelo": e.modelo}
-                for e in plant.equipos
-            ]
-            return run_config(
-                equipos=equipos_raw,
-                f80_mm=req.faena.f80_mm,
-                products=products_raw,
-                tonelaje_mes=req.faena.tonelaje_mes,
-                duracion_meses=req.faena.duracion_meses,
-                rock_type=req.faena.rock_type,
-                n_units=plant.n_units,
-                circuit=plant.circuit,
-                tarifa_arriendo_usd_mes=plant.tarifa_arriendo_usd_mes,
-            )
 
-        res_u = _run(req.config_usuario)
-        res_s = _run(req.config_sugerida)
-
-        def _row(indicador: str, unidad: str, key: str) -> Dict:
-            return {
-                "indicador": indicador,
-                "usuario":  res_u[key],
-                "sugerida": res_s[key],
-                "unidad":   unidad,
-            }
-
-        tabla = [
-            _row("tph_efectivo",          "tph",      "tph_efectivo"),
-            _row("material_aprovechado",  "%",        "product_fit_pct"),
-            _row("carga_circulante",      "%",        "circ_load_pct"),
-            _row("n_equipos_total",       "unidades", "n_equipos_total"),
-            _row("costo_arriendo_mes",    "USD/mes",  "costo_arriendo_mes_usd"),
-            _row("cumple_plazo",          "bool",     "cumple_plazo"),
-        ]
-
-        return {"tabla": tabla}
-
+@router.post("/compare-simple")
+async def compare_simple(req: CompareConfigsRequest):
+    """
+    Endpoint público — idéntico a /compare-configs en entrada y salida.
+    Creado explícitamente para el flujo de modo simple del frontend.
+    Comparte toda la lógica de cálculo vía _build_compare_table().
+    """
+    try:
+        return _build_compare_table(req)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:

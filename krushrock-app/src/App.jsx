@@ -9754,7 +9754,7 @@ function SimpleMode({ eqCatalog, onBack }) {
       return { name: p.label, min_mm: p.min_mm, max_mm: p.max_mm };
     });
     try {
-      const resp = await fetch(`${API_BASE}/simulations/compare-configs`, {
+      const resp = await fetch(`${API_BASE}/simulations/compare-simple`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
