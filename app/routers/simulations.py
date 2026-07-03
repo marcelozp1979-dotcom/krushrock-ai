@@ -13,6 +13,7 @@ from app.core.supabase import get_supabase
 from app.core.config import settings
 from app.routers.auth import get_current_user
 from app.services.simulation_engine import simulate, ROCK_DB
+from app.services.recommender import recommend
 
 router = APIRouter()
 
@@ -81,6 +82,35 @@ class SimulationRequest(BaseModel):
 class CompareRequest(BaseModel):
     scenario_a: SimulationRequest
     scenario_b: SimulationRequest
+
+
+class ProductInput(BaseModel):
+    name: Optional[str] = ""
+    min_mm: float = 0.0
+    max_mm: float
+
+
+class RecommendRequest(BaseModel):
+    rock_type: str
+    f80_mm: float
+    products: List[ProductInput]
+    tonelaje_mes: float
+    duracion_meses: int = 1
+    inchancables: bool = False
+
+    @field_validator("f80_mm")
+    @classmethod
+    def f80_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("f80_mm debe ser mayor que 0")
+        return v
+
+    @field_validator("tonelaje_mes")
+    @classmethod
+    def tonelaje_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("tonelaje_mes debe ser mayor que 0")
+        return v
 
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -199,6 +229,32 @@ async def calculate_simulation(req: SimulationRequest):
             products=products_raw,
         )
         return {"result": result}
+    except Exception as exc:
+        import traceback
+        detail = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"
+        raise HTTPException(status_code=500, detail=detail)
+
+
+@router.post("/recommend")
+async def recommend_circuit(req: RecommendRequest):
+    """
+    Endpoint público — recomienda las 2 mejores configuraciones de circuito
+    para el material y producto indicados, sin requerir autenticación.
+    """
+    try:
+        products_raw = [
+            {"name": p.name, "min_mm": p.min_mm, "max_mm": p.max_mm}
+            for p in req.products
+        ]
+        results = recommend(
+            rock_type=req.rock_type,
+            f80_mm=req.f80_mm,
+            products=products_raw,
+            tonelaje_mes=req.tonelaje_mes,
+            duracion_meses=req.duracion_meses,
+            inchancables=req.inchancables,
+        )
+        return {"recommendations": results}
     except Exception as exc:
         import traceback
         detail = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"
