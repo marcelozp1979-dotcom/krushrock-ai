@@ -347,3 +347,146 @@ def recommend(
                 break
 
     return top2[:2]
+
+
+# ── HELPERS PARA COMPARACIÓN DE CONFIGS ──────────────────────────────────────
+
+def _find_equipment(etapa: str, marca: str, modelo: str) -> Optional[Dict]:
+    """
+    Busca un equipo en el catálogo _FALLBACK por tipo/marca/modelo.
+    Retorna None si no se encuentra.
+    """
+    catalog = _FALLBACK.get(etapa, [])
+    for eq in catalog:
+        if (eq.get("brand", "").lower() == marca.lower() and
+                eq.get("model", "").lower() == modelo.lower()):
+            return eq
+    return None
+
+
+def build_nodes_from_config(
+    equipos: List[Dict],
+    f80_mm: float,
+    products: List[Dict],
+) -> List[Dict]:
+    """
+    Construye la lista de nodos para simulate() a partir de una config de equipos.
+
+    equipos: [{etapa, marca, modelo}]
+    Retorna lista de nodos o lanza ValueError si algún equipo no existe en catálogo.
+    """
+    if products:
+        finest_max = min(float(p.get("max_mm", 9999)) for p in products)
+        p80_target = finest_max * 0.85
+    else:
+        finest_max = max(f80_mm * 0.3, 10.0)
+        p80_target = finest_max * 0.85
+
+    has_secondary = any(
+        e.get("etapa") in ("cone", "hsi", "vsi", "impactor")
+        for e in equipos
+    )
+    jaw_target_p80 = max(p80_target * 3.0, f80_mm * 0.35) if has_secondary else p80_target
+
+    nodes: List[Dict] = []
+    for equipo in equipos:
+        etapa = equipo.get("etapa", "").lower()
+        marca = equipo.get("marca", "")
+        modelo = equipo.get("modelo", "")
+
+        eq = _find_equipment(etapa, marca, modelo)
+        if eq is None:
+            raise ValueError(
+                f"Equipo no encontrado en catálogo: {etapa} / {marca} / {modelo}"
+            )
+
+        if etapa in ("jaw", "scalper"):
+            nodes.append(_make_jaw_node(eq, jaw_target_p80))
+        elif etapa in ("cone", "hsi", "vsi", "impactor"):
+            nodes.append(_make_cone_node(eq, p80_target))
+        elif etapa == "screen":
+            nodes.append(_make_screen_node(eq, finest_max))
+        else:
+            raise ValueError(f"Tipo de etapa no soportado: {etapa}")
+
+    return nodes
+
+
+def run_config(
+    equipos: List[Dict],
+    f80_mm: float,
+    products: List[Dict],
+    tonelaje_mes: float,
+    duracion_meses: int,
+    rock_type: str,
+    n_units: int,
+    circuit: str,
+    tarifa_arriendo_usd_mes: Optional[float] = None,
+) -> Dict:
+    """
+    Corre el motor sobre una configuración de planta y devuelve sus métricas.
+
+    Retorna un dict con:
+      tph_efectivo, product_fit_pct, circ_load_pct,
+      n_equipos_total, costo_arriendo_mes_usd, cumple_plazo
+    O lanza ValueError/RuntimeError si la config es inválida.
+    """
+    tph_required = tonelaje_mes / HOURS_PER_MONTH
+    valid_rock = rock_type if rock_type in ROCK_DB else "desconocida"
+
+    if products:
+        finest_max = min(float(p.get("max_mm", 9999)) for p in products)
+        p80_target = finest_max * 0.85
+    else:
+        finest_max = max(f80_mm * 0.3, 10.0)
+        p80_target = finest_max * 0.85
+
+    nodes = build_nodes_from_config(equipos, f80_mm, products)
+
+    products_for_sim: Optional[List[Dict]] = (
+        [
+            {
+                "id": i,
+                "label": p.get("name", f"producto_{i}"),
+                "min_mm": float(p.get("min_mm", 0)),
+                "max_mm": float(p.get("max_mm", 9999)),
+            }
+            for i, p in enumerate(products)
+        ]
+        if products
+        else None
+    )
+
+    sim = simulate(
+        nodes=nodes,
+        tph=tph_required,
+        f80=f80_mm,
+        p80_target=p80_target,
+        rock_type=valid_rock,
+        humidity=0,
+        circuit=circuit,
+        hours_per_year=6000,
+        products=products_for_sim,
+    )
+
+    pf = sim.get("product_fit_pct") or 0.0
+    cc = sim.get("circ_load_pct", 0.0)
+    tph_eff_per_unit = sim.get("total_product_tph") or round(tph_required * float(pf) / 100.0, 1)
+    tph_eff_total = round(tph_eff_per_unit * n_units, 1)
+
+    costo_mes: Optional[float] = (
+        round(tarifa_arriendo_usd_mes * n_units, 2)
+        if tarifa_arriendo_usd_mes is not None
+        else None
+    )
+
+    cumple = tph_eff_total * HOURS_PER_MONTH * duracion_meses >= tonelaje_mes * duracion_meses
+
+    return {
+        "tph_efectivo": tph_eff_total,
+        "product_fit_pct": round(float(pf), 1),
+        "circ_load_pct": round(float(cc), 1),
+        "n_equipos_total": n_units * len(equipos),
+        "costo_arriendo_mes_usd": costo_mes,
+        "cumple_plazo": cumple,
+    }
