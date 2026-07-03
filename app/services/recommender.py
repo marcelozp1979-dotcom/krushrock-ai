@@ -7,8 +7,7 @@ retorna las 2 mejores opciones rankeadas.
 
 No modifica simulation_engine.py ni granulometry.py.
 """
-from typing import List, Dict, Any, Optional
-import math
+from typing import List, Dict, Optional
 
 from app.services.simulation_engine import simulate, ROCK_DB
 from app.routers.equipment import _FALLBACK
