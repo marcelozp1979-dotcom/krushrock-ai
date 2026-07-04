@@ -15,6 +15,9 @@ from app.routers.equipment import _FALLBACK
 # Horas de operación estándar por mes (6000 h/año ÷ 12)
 HOURS_PER_MONTH: float = 500.0
 
+# Factor de capacidad efectiva (80 % de la nominal del catálogo)
+capR: float = 0.80
+
 # Umbrales para filtrar configuraciones por producto más fino
 _JAW_ONLY_MIN_MM: float = 50.0     # mandíbula sola solo viable si finest_max >= 50mm
 _JAW_SCREEN_MIN_MM: float = 20.0   # mandíbula + seleccionadora para finest_max >= 20mm
@@ -234,13 +237,15 @@ def recommend(
                 "nodes": [_make_jaw_node(jaw, p80_target)],
                 "circuit": "open",
                 "n_units": n,
+                "cap_bottleneck_tph": jaw["cap_max_tph"],
             })
 
     # B: mandíbula + seleccionadora
     if finest_max >= _JAW_SCREEN_MIN_MM and top_screens:
         for jaw in top_jaws:
             for scr in top_screens:
-                n = _parallel_n(_bottleneck_cap([jaw, scr]), tph_required)
+                bn = _bottleneck_cap([jaw, scr])
+                n = _parallel_n(bn, tph_required)
                 if n == 0:
                     continue
                 candidates.append({
@@ -251,6 +256,7 @@ def recommend(
                     ],
                     "circuit": "closed",
                     "n_units": n,
+                    "cap_bottleneck_tph": bn,
                 })
 
     # C: mandíbula + cono + seleccionadora
@@ -258,7 +264,8 @@ def recommend(
         for jaw in top_jaws:
             for cone in top_cones:
                 for scr in top_screens:
-                    n = _parallel_n(_bottleneck_cap([jaw, cone, scr]), tph_required)
+                    bn = _bottleneck_cap([jaw, cone, scr])
+                    n = _parallel_n(bn, tph_required)
                     if n == 0:
                         continue
                     candidates.append({
@@ -270,6 +277,7 @@ def recommend(
                         ],
                         "circuit": "closed",
                         "n_units": n,
+                        "cap_bottleneck_tph": bn,
                     })
 
     if not candidates:
@@ -280,10 +288,12 @@ def recommend(
     results: List[Dict] = []
 
     for cand in candidates:
+        # Capacidad real por unidad = cuello de botella nominal × capR
+        cap_per_unit = cand["cap_bottleneck_tph"] * capR
         try:
             sim = simulate(
                 nodes=cand["nodes"],
-                tph=tph_required,
+                tph=cap_per_unit,
                 f80=f80_mm,
                 p80_target=p80_target,
                 rock_type=valid_rock,
@@ -297,8 +307,14 @@ def recommend(
 
         pf = sim.get("product_fit_pct") or 0.0
         cc = sim.get("circ_load_pct", 0.0)
-        # tph_efectivo = tonelaje real en rangos del producto; fallback a tph proporcional
-        tph_eff = sim.get("total_product_tph") or round(tph_required * pf / 100.0, 1)
+        # tph_efectivo total = producto por unidad × n_units
+        tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * pf / 100.0, 1)
+        tph_eff_total = round(tph_eff_per_unit * cand["n_units"], 1)
+
+        cumple = (
+            tph_eff_total * HOURS_PER_MONTH * duracion_meses
+            >= tonelaje_mes * duracion_meses
+        )
 
         results.append({
             "config": cand["label"],
@@ -311,10 +327,10 @@ def recommend(
                 for node in cand["nodes"]
             ],
             "n_units": cand["n_units"],
-            "tph_efectivo": tph_eff,
+            "tph_efectivo": tph_eff_total,
             "product_fit_pct": round(float(pf), 1),
             "circ_load_pct": round(float(cc), 1),
-            "cumple_plazo": True,
+            "cumple_plazo": cumple,
             "inchancables_recomendado": inchancables,
         })
 
@@ -443,6 +459,14 @@ def run_config(
 
     nodes = build_nodes_from_config(equipos, f80_mm, products)
 
+    # Capacidad real por unidad = cuello de botella del catálogo × capR
+    equipos_catalog = [
+        _find_equipment(e.get("etapa", ""), e.get("marca", ""), e.get("modelo", ""))
+        for e in equipos
+    ]
+    bottleneck = _bottleneck_cap([eq for eq in equipos_catalog if eq])
+    cap_per_unit = (bottleneck * capR) if bottleneck > 0 else tph_required
+
     products_for_sim: Optional[List[Dict]] = (
         [
             {
@@ -459,7 +483,7 @@ def run_config(
 
     sim = simulate(
         nodes=nodes,
-        tph=tph_required,
+        tph=cap_per_unit,
         f80=f80_mm,
         p80_target=p80_target,
         rock_type=valid_rock,
@@ -471,7 +495,8 @@ def run_config(
 
     pf = sim.get("product_fit_pct") or 0.0
     cc = sim.get("circ_load_pct", 0.0)
-    tph_eff_per_unit = sim.get("total_product_tph") or round(tph_required * float(pf) / 100.0, 1)
+    # total_product_tph de simulate() es por unidad; multiplicamos por n_units
+    tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * float(pf) / 100.0, 1)
     tph_eff_total = round(tph_eff_per_unit * n_units, 1)
 
     costo_mes: Optional[float] = (
