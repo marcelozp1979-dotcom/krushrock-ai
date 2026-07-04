@@ -251,7 +251,10 @@ def simulate(
     streams: Dict[str, Any] = {"feed": _serialize_stream(feed_stream)}
 
     # ── 2. ORDENAR NODOS POR FLUJO ────────────────────────────────────────────
-    flow_order = ["scalper", "jaw", "screen", "cone", "impactor", "hsi", "vsi"]
+    # Chancadores primarios → secundarios/terciarios → seleccionadora al final.
+    # Así jaw+cono+seleccionadora simula: jaw → cono → seleccionadora (la
+    # seleccionadora clasifica la descarga del cono, no la del jaw).
+    flow_order = ["scalper", "jaw", "cone", "impactor", "hsi", "vsi", "screen"]
     sorted_nodes = sorted(
         nodes,
         key=lambda n: flow_order.index(n.get("type", "jaw"))

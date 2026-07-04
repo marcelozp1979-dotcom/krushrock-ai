@@ -305,10 +305,12 @@ def recommend(
         except Exception:
             continue  # candidato inviable — saltar
 
-        pf = sim.get("product_fit_pct") or 0.0
+        # production_factor = total_prod_tph / feed_tph = fracción real que se convierte en producto
+        production_factor = sim.get("production_factor", 0.0)
+        pf = round(production_factor * 100.0, 1)
         cc = sim.get("circ_load_pct", 0.0)
         # tph_efectivo total = producto por unidad × n_units
-        tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * pf / 100.0, 1)
+        tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * production_factor, 1)
         tph_eff_total = round(tph_eff_per_unit * cand["n_units"], 1)
 
         cumple = (
@@ -493,10 +495,12 @@ def run_config(
         products=products_for_sim,
     )
 
-    pf = sim.get("product_fit_pct") or 0.0
+    # production_factor = total_prod_tph / feed_tph = fracción real que se convierte en producto
+    production_factor = sim.get("production_factor", 0.0)
+    pf = round(production_factor * 100.0, 1)
     cc = sim.get("circ_load_pct", 0.0)
     # total_product_tph de simulate() es por unidad; multiplicamos por n_units
-    tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * float(pf) / 100.0, 1)
+    tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * production_factor, 1)
     tph_eff_total = round(tph_eff_per_unit * n_units, 1)
 
     costo_mes: Optional[float] = (
