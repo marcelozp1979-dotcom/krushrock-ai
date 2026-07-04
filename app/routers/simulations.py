@@ -99,6 +99,12 @@ class PlantConfig(BaseModel):
     tarifa_arriendo_usd_mes: Optional[float] = None  # null → no hay tarifa conocida
 
 
+class ProductInput(BaseModel):
+    name: Optional[str] = ""
+    min_mm: float = 0.0
+    max_mm: float
+
+
 class FaenaData(BaseModel):
     rock_type: str
     f80_mm: float
@@ -112,12 +118,6 @@ class CompareConfigsRequest(BaseModel):
     config_usuario: PlantConfig
     config_sugerida: PlantConfig
     faena: FaenaData
-
-
-class ProductInput(BaseModel):
-    name: Optional[str] = ""
-    min_mm: float = 0.0
-    max_mm: float
 
 
 class RecommendRequest(BaseModel):
