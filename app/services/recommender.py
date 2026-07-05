@@ -311,12 +311,15 @@ def recommend(
         cc = sim.get("circ_load_pct", 0.0)
         # tph_efectivo total = producto por unidad × n_units
         tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * production_factor, 1)
-        tph_eff_total = round(tph_eff_per_unit * cand["n_units"], 1)
+        tph_util = round(tph_eff_per_unit * cand["n_units"], 1)
+        descarte_pct = round(100.0 - pf, 1)
 
-        cumple = (
-            tph_eff_total * HOURS_PER_MONTH * duracion_meses
-            >= tonelaje_mes * duracion_meses
+        # meses_requeridos = tonelaje total a producir / capacidad mensual real
+        meses_req = round(
+            (tonelaje_mes * duracion_meses) / max(tph_util * HOURS_PER_MONTH, 0.1),
+            1,
         )
+        cumple = meses_req <= duracion_meses
 
         results.append({
             "config": cand["label"],
@@ -329,9 +332,12 @@ def recommend(
                 for node in cand["nodes"]
             ],
             "n_units": cand["n_units"],
-            "tph_efectivo": tph_eff_total,
-            "product_fit_pct": round(float(pf), 1),
+            "tph_efectivo": tph_util,
+            "tph_util": tph_util,
+            "product_fit_pct": pf,
+            "descarte_pct": descarte_pct,
             "circ_load_pct": round(float(cc), 1),
+            "meses_requeridos": meses_req,
             "cumple_plazo": cumple,
             "inchancables_recomendado": inchancables,
         })
@@ -339,32 +345,17 @@ def recommend(
     if not results:
         return []
 
-    # ── Rankear: 1. menos equipos, 2. mayor product_fit_pct, 3. menor CC ──────
-    results.sort(key=lambda r: (
-        len(r["equipos"]),
-        -r["product_fit_pct"],
-        r["circ_load_pct"],
-    ))
+    # ── Opción principal: mayor product_fit_pct ───────────────────────────────
+    results.sort(key=lambda r: -r["product_fit_pct"])
+    best = results[0]
 
-    # Devolver los 2 mejores de config distinta cuando sea posible
-    top2: List[Dict] = []
-    seen_configs: set = set()
-    for r in results:
-        if r["config"] not in seen_configs:
-            top2.append(r)
-            seen_configs.add(r["config"])
-        if len(top2) >= 2:
-            break
+    # ── Alternativa: menor número de equipos, config distinta de la principal ─
+    alt_pool = [r for r in results if r["config"] != best["config"]]
+    alt_pool.sort(key=lambda r: (len(r["equipos"]), -r["product_fit_pct"]))
+    alt = alt_pool[0] if alt_pool else None
 
-    # Si no hay 2 configs distintas, completar con los mejores restantes
-    if len(top2) < 2:
-        for r in results:
-            if r not in top2:
-                top2.append(r)
-            if len(top2) >= 2:
-                break
-
-    return top2[:2]
+    top2 = [best] + ([alt] if alt else [])
+    return top2
 
 
 # ── HELPERS PARA COMPARACIÓN DE CONFIGS ──────────────────────────────────────
@@ -501,7 +492,15 @@ def run_config(
     cc = sim.get("circ_load_pct", 0.0)
     # total_product_tph de simulate() es por unidad; multiplicamos por n_units
     tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * production_factor, 1)
-    tph_eff_total = round(tph_eff_per_unit * n_units, 1)
+    tph_util = round(tph_eff_per_unit * n_units, 1)
+    descarte_pct = round(100.0 - pf, 1)
+
+    # meses_requeridos = tonelaje total a producir / capacidad mensual real
+    meses_req = round(
+        (tonelaje_mes * duracion_meses) / max(tph_util * HOURS_PER_MONTH, 0.1),
+        1,
+    )
+    cumple = meses_req <= duracion_meses
 
     costo_mes: Optional[float] = (
         round(tarifa_arriendo_usd_mes * n_units, 2)
@@ -509,13 +508,14 @@ def run_config(
         else None
     )
 
-    cumple = tph_eff_total * HOURS_PER_MONTH * duracion_meses >= tonelaje_mes * duracion_meses
-
     return {
-        "tph_efectivo": tph_eff_total,
-        "product_fit_pct": round(float(pf), 1),
+        "tph_efectivo": tph_util,
+        "tph_util": tph_util,
+        "product_fit_pct": pf,
+        "descarte_pct": descarte_pct,
         "circ_load_pct": round(float(cc), 1),
         "n_equipos_total": n_units * len(equipos),
         "costo_arriendo_mes_usd": costo_mes,
+        "meses_requeridos": meses_req,
         "cumple_plazo": cumple,
     }

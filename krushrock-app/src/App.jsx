@@ -9939,15 +9939,15 @@ function SimpleMode({ eqCatalog, onBack }) {
                   {recs.map((rec, idx) => {
                     const pf = Number(rec.product_fit_pct);
                     const pfClr = pf >= 70 ? G.green : pf >= 45 ? G.accent : G.red;
-                    const pfLbl = pf >= 70 ? "Muy bueno" : pf >= 45 ? "Aceptable" : "Revisar";
+                    const descartePct = rec.descarte_pct ?? (100 - pf);
+                    const mesesReq = rec.meses_requeridos ?? 0;
+                    const cardTitle = idx === 0 ? "★ MAYOR APROVECHAMIENTO" : "ALTERNATIVA CON MENOS EQUIPOS";
                     return (
                       <div key={idx} style={{ background: G.card,
                         border: `1px solid ${idx === 0 ? G.accent : G.border}`,
                         borderRadius: 12, padding: 24, display: "grid", gap: 16 }}>
-                        {idx === 0 && (
-                          <div style={{ fontSize: 11, color: G.accent,
-                            fontWeight: 700, letterSpacing: "0.1em" }}>★ MEJOR OPCIÓN</div>
-                        )}
+                        <div style={{ fontSize: 11, color: idx === 0 ? G.accent : G.muted,
+                          fontWeight: 700, letterSpacing: "0.1em" }}>{cardTitle}</div>
                         <div style={{ fontFamily: G.fontD, fontSize: 17,
                           fontWeight: 700, color: G.text }}>
                           {CFG_LABELS[rec.config] || rec.config}
@@ -9970,27 +9970,40 @@ function SimpleMode({ eqCatalog, onBack }) {
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 28 }}>
                           <div>
                             <div style={{ fontSize: 9, color: G.muted,
-                              letterSpacing: "0.1em", marginBottom: 2 }}>PRODUCCIÓN ESTIMADA</div>
+                              letterSpacing: "0.1em", marginBottom: 2 }}>PRODUCCIÓN ÚTIL</div>
                             <div style={{ fontFamily: G.fontD, fontSize: 26,
-                              fontWeight: 700, color: G.text, lineHeight: 1 }}>{rec.tph_efectivo} tph</div>
+                              fontWeight: 700, color: G.text, lineHeight: 1 }}>{rec.tph_util ?? rec.tph_efectivo} tph</div>
                           </div>
                           <div>
                             <div style={{ fontSize: 9, color: G.muted,
                               letterSpacing: "0.1em", marginBottom: 2 }}>MATERIAL EN RANGO</div>
                             <div style={{ fontFamily: G.fontD, fontSize: 26,
                               fontWeight: 700, color: pfClr, lineHeight: 1 }}>{rec.product_fit_pct}%</div>
-                            <div style={{ fontSize: 11, color: pfClr, marginTop: 2 }}>{pfLbl}</div>
                           </div>
                           <div>
                             <div style={{ fontSize: 9, color: G.muted,
-                              letterSpacing: "0.1em", marginBottom: 2 }}>PLAZO</div>
-                            <div style={{ fontFamily: G.fontD, fontSize: 22,
-                              fontWeight: 700, lineHeight: 1,
-                              color: rec.cumple_plazo ? G.green : G.red }}>
-                              {rec.cumple_plazo ? "✓ Cumple" : "✗ No cumple"}
+                              letterSpacing: "0.1em", marginBottom: 2 }}>DESCARTADO</div>
+                            <div style={{ fontFamily: G.fontD, fontSize: 26,
+                              fontWeight: 700, color: descartePct > 35 ? G.red : G.muted, lineHeight: 1 }}>
+                              {descartePct}%
                             </div>
                           </div>
                         </div>
+                        <div style={{ fontSize: 13, fontWeight: 600,
+                          color: rec.cumple_plazo ? G.green : G.accent,
+                          background: rec.cumple_plazo ? undefined : G.faint,
+                          borderRadius: rec.cumple_plazo ? undefined : 6,
+                          padding: rec.cumple_plazo ? undefined : "8px 12px" }}>
+                          {rec.cumple_plazo
+                            ? `✓ Termina en el plazo (${mesesReq} meses)`
+                            : `⚠ Terminaría en ${mesesReq} meses`}
+                        </div>
+                        {idx === 1 && descartePct > 35 && (
+                          <div style={{ fontSize: 12, color: G.muted,
+                            background: G.faint, borderRadius: 6, padding: "8px 12px" }}>
+                            Esta opción descarta {descartePct}% del material: menos equipos, pero más material perdido
+                          </div>
+                        )}
                         {rec.inchancables_recomendado && (
                           <div style={{ fontSize: 12, color: G.accent,
                             background: G.faint, borderRadius: 6, padding: "8px 12px" }}>
