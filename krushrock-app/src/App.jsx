@@ -9679,6 +9679,17 @@ function SimpleMode({ eqCatalog, onBack }) {
   const [meses, setMeses]           = useState(3);
   const [inchancables, setInchancables] = useState(false);
 
+  // ── Ingreso de tamaño de material (3 niveles) ─────────────────────────────
+  const [feedLevel, setFeedLevel]   = useState(1);   // 1=max_mm, 2=f80, 3=curva
+  const [feedMaxMm, setFeedMaxMm]   = useState(500); // Nivel 1: tamaño máximo
+  const [feedF80, setFeedF80]       = useState("");  // Nivel 2: F80 directo
+  const [feedCurveRows, setFeedCurveRows] = useState([
+    { sizeMm: "", passingPct: "" },
+    { sizeMm: "", passingPct: "" },
+    { sizeMm: "", passingPct: "" },
+    { sizeMm: "", passingPct: "" },
+  ]);
+
   const [recLoading, setRecLoading] = useState(false);
   const [recError, setRecError]     = useState(null);
   const [recs, setRecs]             = useState(null);
@@ -9696,8 +9707,23 @@ function SimpleMode({ eqCatalog, onBack }) {
   const toggleProd = (id) =>
     setSelProds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
 
+  const buildFeedPayload = () => {
+    if (feedLevel === 3) {
+      const pts = feedCurveRows
+        .filter(r => r.sizeMm !== "" && r.passingPct !== "")
+        .map(r => ({ size_mm: Number(r.sizeMm), passing_pct: Number(r.passingPct) }));
+      return { feed_curve: pts };
+    }
+    const f80 = feedLevel === 2 ? Number(feedF80) : Math.round(Number(feedMaxMm) * 0.8);
+    return { f80_mm: f80 };
+  };
+
   const handleRecommend = async () => {
     if (!selProds.length) { setRecError("Selecciona al menos un producto."); return; }
+    if (feedLevel === 2 && !feedF80) { setRecError("Ingresa el valor de F80."); return; }
+    if (feedLevel === 3 && feedCurveRows.filter(r => r.sizeMm && r.passingPct).length < 2) {
+      setRecError("Ingresa al menos 2 puntos de la curva granulométrica."); return;
+    }
     setRecLoading(true); setRecError(null); setRecs(null); setShowCmp(false); setCmpResult(null);
     try {
       const products = selProds.map(id => {
@@ -9707,7 +9733,7 @@ function SimpleMode({ eqCatalog, onBack }) {
       const resp = await fetch(`${API_BASE}/simulations/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rock_type: rockKey, f80_mm: 400, products,
+        body: JSON.stringify({ rock_type: rockKey, ...buildFeedPayload(), products,
           tonelaje_mes: Number(tonelaje), duracion_meses: Number(meses), inchancables }),
       });
       if (!resp.ok) {
@@ -9770,7 +9796,7 @@ function SimpleMode({ eqCatalog, onBack }) {
             n_units: sugerida.n_units,
             tarifa_arriendo_usd_mes: null,
           },
-          faena: { rock_type: rockKey, f80_mm: 400, products,
+          faena: { rock_type: rockKey, ...buildFeedPayload(), products,
             tonelaje_mes: Number(tonelaje), duracion_meses: Number(meses), inchancables },
         }),
       });
@@ -9851,8 +9877,92 @@ function SimpleMode({ eqCatalog, onBack }) {
             </select>
           </div>
 
+          {/* ── NIVEL 1/2/3: tamaño de roca de entrada ── */}
           <div style={{ marginBottom: 22 }}>
-            <label style={lbl}>2. ¿Qué material necesitas producir? (puedes marcar varios)</label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+              <label style={lbl}>2. Tamaño de la roca que entra</label>
+              <div style={{ display: "flex", gap: 12 }}>
+                <button onClick={() => setFeedLevel(2)} style={{ background: "none", border: "none",
+                  color: feedLevel === 2 ? G.accent : G.muted, fontSize: 12, cursor: "pointer",
+                  textDecoration: feedLevel === 2 ? "underline" : "none", padding: 0 }}>
+                  Tengo el F80
+                </button>
+                <button onClick={() => setFeedLevel(3)} style={{ background: "none", border: "none",
+                  color: feedLevel === 3 ? G.accent : G.muted, fontSize: 12, cursor: "pointer",
+                  textDecoration: feedLevel === 3 ? "underline" : "none", padding: 0 }}>
+                  Tengo la curva granulométrica
+                </button>
+                {feedLevel !== 1 && (
+                  <button onClick={() => setFeedLevel(1)} style={{ background: "none", border: "none",
+                    color: G.muted, fontSize: 12, cursor: "pointer", padding: 0 }}>
+                    ← Volver
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {feedLevel === 1 && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <input type="number" value={feedMaxMm} min={50} max={2000} step={10}
+                    onChange={e => setFeedMaxMm(e.target.value)}
+                    style={{ ...inp, maxWidth: 140 }} />
+                  <span style={{ color: G.muted, fontSize: 13 }}>mm (tamaño máximo)</span>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[800, 500, 300, 150].map(v => (
+                    <button key={v} onClick={() => setFeedMaxMm(v)}
+                      style={{ padding: "6px 14px", background: Number(feedMaxMm) === v ? G.accent : G.card,
+                        border: `1px solid ${Number(feedMaxMm) === v ? G.accent : G.border}`,
+                        borderRadius: 6, color: Number(feedMaxMm) === v ? "#000" : G.text,
+                        fontSize: 13, cursor: "pointer" }}>
+                      {v} mm
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: G.muted, marginTop: 6 }}>
+                  F80 estimado: {Math.round(Number(feedMaxMm) * 0.8)} mm
+                </div>
+              </>
+            )}
+
+            {feedLevel === 2 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input type="number" value={feedF80} min={10} max={2000}
+                  onChange={e => setFeedF80(e.target.value)}
+                  placeholder="ej. 350"
+                  style={{ ...inp, maxWidth: 140 }} />
+                <span style={{ color: G.muted, fontSize: 13 }}>mm (F80)</span>
+              </div>
+            )}
+
+            {feedLevel === 3 && (
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "flex", gap: 12 }}>
+                  <span style={{ fontSize: 12, color: G.muted, flex: 1 }}>Tamaño (mm)</span>
+                  <span style={{ fontSize: 12, color: G.muted, flex: 1 }}>% que pasa</span>
+                </div>
+                {feedCurveRows.map((row, i) => (
+                  <div key={i} style={{ display: "flex", gap: 12 }}>
+                    <input type="number" value={row.sizeMm} min={0}
+                      onChange={e => setFeedCurveRows(prev => prev.map((r, j) => j !== i ? r : { ...r, sizeMm: e.target.value }))}
+                      placeholder="mm"
+                      style={{ ...inp, flex: 1, maxWidth: 120 }} />
+                    <input type="number" value={row.passingPct} min={0} max={100}
+                      onChange={e => setFeedCurveRows(prev => prev.map((r, j) => j !== i ? r : { ...r, passingPct: e.target.value }))}
+                      placeholder="0–100"
+                      style={{ ...inp, flex: 1, maxWidth: 120 }} />
+                  </div>
+                ))}
+                <div style={{ fontSize: 11, color: G.muted }}>
+                  Los % deben crecer con el tamaño (ej. 25% pasa 50 mm → 80% pasa 200 mm)
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: 22 }}>
+            <label style={lbl}>3. ¿Qué material necesitas producir? (puedes marcar varios)</label>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {SIMPLE_PRODUCTS.map(p => (
                 <label key={p.id}
@@ -9871,7 +9981,7 @@ function SimpleMode({ eqCatalog, onBack }) {
 
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 22 }}>
             <div style={{ flex: 1, minWidth: 180 }}>
-              <label style={lbl}>3. ¿Cuántas toneladas por mes necesitas?</label>
+              <label style={lbl}>4. ¿Cuántas toneladas por mes necesitas?</label>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input type="number" value={tonelaje} min={100} max={500000} step={1000}
                   onChange={e => setTonelaje(e.target.value)} style={{ ...inp, maxWidth: 180 }} />
@@ -9879,7 +9989,7 @@ function SimpleMode({ eqCatalog, onBack }) {
               </div>
             </div>
             <div style={{ flex: 0, minWidth: 140 }}>
-              <label style={lbl}>4. ¿Cuántos meses dura la obra?</label>
+              <label style={lbl}>5. ¿Cuántos meses dura la obra?</label>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input type="number" value={meses} min={1} max={60}
                   onChange={e => setMeses(e.target.value)} style={{ ...inp, maxWidth: 100 }} />

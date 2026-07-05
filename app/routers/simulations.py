@@ -3,7 +3,7 @@ KrushRock — Router de Simulaciones
 Ejecutar, guardar, recuperar, comparar simulaciones
 """
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import uuid
@@ -84,6 +84,40 @@ class CompareRequest(BaseModel):
     scenario_b: SimulationRequest
 
 
+# ── CURVA GRANULOMÉTRICA DE ALIMENTACIÓN ──────────────────────────────────────
+
+class FeedCurvePoint(BaseModel):
+    size_mm: float
+    passing_pct: float
+
+
+def _validate_feed_curve(points: List[FeedCurvePoint]) -> None:
+    """Valida que los % pasantes sean monótonamente crecientes con el tamaño."""
+    sorted_pts = sorted(points, key=lambda p: p.size_mm)
+    for i in range(1, len(sorted_pts)):
+        prev, curr = sorted_pts[i - 1], sorted_pts[i]
+        if curr.passing_pct < prev.passing_pct:
+            raise ValueError(
+                f"Curva inválida: el % pasante en {curr.size_mm} mm "
+                f"({curr.passing_pct}%) es menor que en {prev.size_mm} mm "
+                f"({prev.passing_pct}%). Los % pasantes deben crecer con el tamaño."
+            )
+
+
+def _f80_from_curve(points: List[FeedCurvePoint]) -> float:
+    """Interpola el F80 desde una curva granulométrica (% pasante = 80)."""
+    sorted_pts = sorted(points, key=lambda p: p.size_mm)
+    for i in range(len(sorted_pts) - 1):
+        p1, p2 = sorted_pts[i], sorted_pts[i + 1]
+        if p1.passing_pct <= 80.0 <= p2.passing_pct:
+            frac = (80.0 - p1.passing_pct) / max(p2.passing_pct - p1.passing_pct, 1e-9)
+            return round(p1.size_mm + frac * (p2.size_mm - p1.size_mm), 1)
+    # Fuera del rango: extrapolar por el extremo más cercano
+    if sorted_pts[0].passing_pct >= 80.0:
+        return sorted_pts[0].size_mm
+    return sorted_pts[-1].size_mm
+
+
 # ── SCHEMAS PARA /compare-configs ─────────────────────────────────────────────
 
 class EquipoConfig(BaseModel):
@@ -107,11 +141,20 @@ class ProductInput(BaseModel):
 
 class FaenaData(BaseModel):
     rock_type: str
-    f80_mm: float
+    f80_mm: Optional[float] = None
+    feed_curve: Optional[List[FeedCurvePoint]] = None
     products: List[ProductInput]
     tonelaje_mes: float
     duracion_meses: int = 1
     inchancables: bool = False
+
+    @model_validator(mode="after")
+    def check_feed_input(self) -> "FaenaData":
+        if self.f80_mm is None and not self.feed_curve:
+            raise ValueError("Debe proporcionar f80_mm o feed_curve")
+        if self.feed_curve:
+            _validate_feed_curve(self.feed_curve)
+        return self
 
 
 class CompareConfigsRequest(BaseModel):
@@ -122,18 +165,22 @@ class CompareConfigsRequest(BaseModel):
 
 class RecommendRequest(BaseModel):
     rock_type: str
-    f80_mm: float
+    f80_mm: Optional[float] = None
+    feed_curve: Optional[List[FeedCurvePoint]] = None
     products: List[ProductInput]
     tonelaje_mes: float
     duracion_meses: int = 1
     inchancables: bool = False
 
-    @field_validator("f80_mm")
-    @classmethod
-    def f80_positive(cls, v: float) -> float:
-        if v <= 0:
+    @model_validator(mode="after")
+    def check_feed_input(self) -> "RecommendRequest":
+        if self.f80_mm is None and not self.feed_curve:
+            raise ValueError("Debe proporcionar f80_mm o feed_curve")
+        if self.f80_mm is not None and self.f80_mm <= 0:
             raise ValueError("f80_mm debe ser mayor que 0")
-        return v
+        if self.feed_curve:
+            _validate_feed_curve(self.feed_curve)
+        return self
 
     @field_validator("tonelaje_mes")
     @classmethod
@@ -272,17 +319,23 @@ async def recommend_circuit(req: RecommendRequest):
     para el material y producto indicados, sin requerir autenticación.
     """
     try:
+        f80 = req.f80_mm if req.f80_mm is not None else _f80_from_curve(req.feed_curve)
+        feed_curve_dict = (
+            {str(p.size_mm): p.passing_pct for p in req.feed_curve}
+            if req.feed_curve else None
+        )
         products_raw = [
             {"name": p.name, "min_mm": p.min_mm, "max_mm": p.max_mm}
             for p in req.products
         ]
         results = recommend(
             rock_type=req.rock_type,
-            f80_mm=req.f80_mm,
+            f80_mm=f80,
             products=products_raw,
             tonelaje_mes=req.tonelaje_mes,
             duracion_meses=req.duracion_meses,
             inchancables=req.inchancables,
+            feed_curve_dict=feed_curve_dict,
         )
         return {"recommendations": results}
     except Exception as exc:
@@ -299,6 +352,11 @@ def _build_compare_table(req: CompareConfigsRequest) -> Dict[str, Any]:
     la tabla comparativa de 6 indicadores. Lanza ValueError si algún
     equipo no existe en el catálogo.
     """
+    f80 = req.faena.f80_mm if req.faena.f80_mm is not None else _f80_from_curve(req.faena.feed_curve)
+    feed_curve_dict = (
+        {str(p.size_mm): p.passing_pct for p in req.faena.feed_curve}
+        if req.faena.feed_curve else None
+    )
     products_raw = [
         {"name": p.name, "min_mm": p.min_mm, "max_mm": p.max_mm}
         for p in req.faena.products
@@ -310,7 +368,7 @@ def _build_compare_table(req: CompareConfigsRequest) -> Dict[str, Any]:
                 {"etapa": e.etapa, "marca": e.marca, "modelo": e.modelo}
                 for e in plant.equipos
             ],
-            f80_mm=req.faena.f80_mm,
+            f80_mm=f80,
             products=products_raw,
             tonelaje_mes=req.faena.tonelaje_mes,
             duracion_meses=req.faena.duracion_meses,
@@ -318,6 +376,7 @@ def _build_compare_table(req: CompareConfigsRequest) -> Dict[str, Any]:
             n_units=plant.n_units,
             circuit=plant.circuit,
             tarifa_arriendo_usd_mes=plant.tarifa_arriendo_usd_mes,
+            feed_curve_dict=feed_curve_dict,
         )
 
     res_u = _run(req.config_usuario)

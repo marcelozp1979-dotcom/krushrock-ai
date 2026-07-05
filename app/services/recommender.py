@@ -160,6 +160,7 @@ def recommend(
     tonelaje_mes: float,
     duracion_meses: int,
     inchancables: bool,
+    feed_curve_dict: Optional[Dict] = None,
 ) -> List[Dict]:
     """
     Genera las 2 mejores configuraciones de equipo para un proyecto de chancado.
@@ -301,6 +302,7 @@ def recommend(
                 circuit=cand["circuit"],
                 hours_per_year=6000,
                 products=products_for_sim,
+                feed_curve_dict=feed_curve_dict,
             )
         except Exception:
             continue  # candidato inviable — saltar
@@ -431,6 +433,7 @@ def run_config(
     n_units: int,
     circuit: str,
     tarifa_arriendo_usd_mes: Optional[float] = None,
+    feed_curve_dict: Optional[Dict] = None,
 ) -> Dict:
     """
     Corre el motor sobre una configuración de planta y devuelve sus métricas.
@@ -484,6 +487,7 @@ def run_config(
         circuit=circuit,
         hours_per_year=6000,
         products=products_for_sim,
+        feed_curve_dict=feed_curve_dict,
     )
 
     # production_factor = total_prod_tph / feed_tph = fracción real que se convierte en producto
