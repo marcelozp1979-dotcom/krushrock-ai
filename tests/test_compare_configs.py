@@ -31,7 +31,7 @@ _FAENA = dict(
 
 
 def test_run_config_campos_y_tipos():
-    """run_config retorna los 6 campos con tipos correctos cuando no hay tarifa."""
+    """run_config retorna todos los campos esperados con tipos correctos."""
     result = run_config(
         equipos=_EQUIPO_JAW,
         circuit="open",
@@ -39,16 +39,26 @@ def test_run_config_campos_y_tipos():
         tarifa_arriendo_usd_mes=None,
         **_FAENA,
     )
-    campos = {"tph_efectivo", "product_fit_pct", "circ_load_pct",
-              "n_equipos_total", "costo_arriendo_mes_usd", "cumple_plazo"}
-    assert campos == result.keys(), f"Campos inesperados: {result.keys() - campos}"
+    campos = {
+        "tph_efectivo", "tph_util", "product_fit_pct", "descarte_pct",
+        "circ_load_pct", "n_equipos_total", "costo_arriendo_mes_usd",
+        "meses_requeridos", "cumple_plazo",
+    }
+    assert campos == result.keys(), (
+        f"Campos inesperados: {result.keys() - campos} | "
+        f"Campos faltantes: {campos - result.keys()}"
+    )
 
     assert isinstance(result["tph_efectivo"], float)
+    assert isinstance(result["tph_util"], float)
     assert isinstance(result["product_fit_pct"], float)
+    assert isinstance(result["descarte_pct"], float)
     assert isinstance(result["circ_load_pct"], float)
     assert result["n_equipos_total"] == 1       # 1 equipo × 1 unidad
     assert result["costo_arriendo_mes_usd"] is None
+    assert isinstance(result["meses_requeridos"], float)
     assert isinstance(result["cumple_plazo"], bool)
+    assert round(result["product_fit_pct"] + result["descarte_pct"], 1) == 100.0
 
 
 def test_n_units_duplica_tph():
