@@ -52,7 +52,7 @@ def test_recommend_con_feed_curve_valida():
     El F80 interpolado desde la curva debe estar en el rango esperado (~357 mm).
     """
     payload = {**_FAENA_BASE, "feed_curve": _CURVA_VALIDA}
-    resp = client.post("/simulations/recommend", json=payload)
+    resp = client.post("/api/v1/simulations/recommend", json=payload)
     assert resp.status_code == 200, f"Status {resp.status_code}: {resp.text[:300]}"
     data = resp.json()
     assert "recommendations" in data
@@ -64,7 +64,7 @@ def test_recommend_con_feed_curve_invalida_devuelve_422():
     Curva con % pasante no creciente → 422 con mensaje explicando el error.
     """
     payload = {**_FAENA_BASE, "feed_curve": _CURVA_INVALIDA}
-    resp = client.post("/simulations/recommend", json=payload)
+    resp = client.post("/api/v1/simulations/recommend", json=payload)
     assert resp.status_code == 422, f"Se esperaba 422, se obtuvo {resp.status_code}: {resp.text[:300]}"
     detail = resp.json().get("detail", "")
     detail_str = str(detail)
@@ -82,13 +82,13 @@ def test_recommend_sin_f80_ni_curve_devuelve_422():
         "tonelaje_mes": 10000,
         "duracion_meses": 3,
     }
-    resp = client.post("/simulations/recommend", json=payload)
+    resp = client.post("/api/v1/simulations/recommend", json=payload)
     assert resp.status_code == 422
 
 
 def test_recommend_con_f80_mm_sigue_funcionando():
     """El flujo original con f80_mm no se rompe."""
     payload = {**_FAENA_BASE, "f80_mm": 400}
-    resp = client.post("/simulations/recommend", json=payload)
+    resp = client.post("/api/v1/simulations/recommend", json=payload)
     assert resp.status_code == 200
     assert "recommendations" in resp.json()
