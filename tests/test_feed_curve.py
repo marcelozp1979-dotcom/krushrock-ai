@@ -33,12 +33,11 @@ _CURVA_INVALIDA = [
     {"size_mm": 400, "passing_pct": 95},
 ]
 
-_PRODUCTS = [{"name": "grava", "min_mm": 0, "max_mm": 75}]
+_PRODUCTS = [{"name": "grava", "min_mm": 0, "max_mm": 75, "volumen_ton": 30000}]
 
 _FAENA_BASE = {
     "rock_type": "granito",
     "products": _PRODUCTS,
-    "tonelaje_mes": 10000,
     "duracion_meses": 3,
     "inchancables": False,
 }
@@ -79,7 +78,6 @@ def test_recommend_sin_f80_ni_curve_devuelve_422():
     payload = {
         "rock_type": "granito",
         "products": _PRODUCTS,
-        "tonelaje_mes": 10000,
         "duracion_meses": 3,
     }
     resp = client.post("/api/v1/simulations/recommend", json=payload)

@@ -9674,8 +9674,9 @@ function SimpleMode({ eqCatalog, onBack }) {
   const EQ = eqCatalog || EQ_LOCAL;
 
   const [rockKey, setRockKey]       = useState("granito");
-  const [selProds, setSelProds]     = useState(["base"]);
-  const [tonelaje, setTonelaje]     = useState(10000);
+  const [products, setProducts]     = useState([
+    { id: 1, name: "", minMm: "", maxMm: "", volumenTon: "" },
+  ]);
   const [meses, setMeses]           = useState(3);
   const [inchancables, setInchancables] = useState(false);
 
@@ -9704,8 +9705,26 @@ function SimpleMode({ eqCatalog, onBack }) {
   const [cmpError, setCmpError]     = useState(null);
   const [cmpResult, setCmpResult]   = useState(null);
 
-  const toggleProd = (id) =>
-    setSelProds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  const addProduct = () => {
+    if (products.length >= 5) return;
+    setProducts(p => [...p, { id: Date.now(), name: "", minMm: "", maxMm: "", volumenTon: "" }]);
+  };
+
+  const removeProduct = (id) => setProducts(p => p.filter(r => r.id !== id));
+
+  const updateProduct = (id, field, val) =>
+    setProducts(p => p.map(r => r.id !== id ? r : { ...r, [field]: val }));
+
+  const buildProductsPayload = () =>
+    products.map(p => ({
+      name: p.name || "",
+      min_mm: Number(p.minMm) || 0,
+      max_mm: Number(p.maxMm),
+      volumen_ton: Number(p.volumenTon) || 0,
+    }));
+
+  const hasValidProducts = products.length >= 1 &&
+    products.every(p => p.maxMm !== "" && p.volumenTon !== "");
 
   const buildFeedPayload = () => {
     if (feedLevel === 3) {
@@ -9719,22 +9738,19 @@ function SimpleMode({ eqCatalog, onBack }) {
   };
 
   const handleRecommend = async () => {
-    if (!selProds.length) { setRecError("Selecciona al menos un producto."); return; }
+    if (!products.length) { setRecError("Agrega al menos un producto."); return; }
+    if (!hasValidProducts) { setRecError("Cada producto necesita tamaño máximo y volumen requerido."); return; }
     if (feedLevel === 2 && !feedF80) { setRecError("Ingresa el valor de F80."); return; }
     if (feedLevel === 3 && feedCurveRows.filter(r => r.sizeMm && r.passingPct).length < 2) {
       setRecError("Ingresa al menos 2 puntos de la curva granulométrica."); return;
     }
     setRecLoading(true); setRecError(null); setRecs(null); setShowCmp(false); setCmpResult(null);
     try {
-      const products = selProds.map(id => {
-        const p = SIMPLE_PRODUCTS.find(x => x.id === id);
-        return { name: p.label, min_mm: p.min_mm, max_mm: p.max_mm };
-      });
       const resp = await fetch(`${API_BASE}/simulations/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rock_type: rockKey, ...buildFeedPayload(), products,
-          tonelaje_mes: Number(tonelaje), duracion_meses: Number(meses), inchancables }),
+        body: JSON.stringify({ rock_type: rockKey, ...buildFeedPayload(),
+          products: buildProductsPayload(), duracion_meses: Number(meses), inchancables }),
       });
       if (!resp.ok) {
         const t = await resp.text();
@@ -9775,10 +9791,6 @@ function SimpleMode({ eqCatalog, onBack }) {
     setCmpLoading(true); setCmpError(null); setCmpResult(null);
     const sugerida = recs[Math.min(cmpSugIdx, recs.length - 1)];
     const sugeridaCircuit = sugerida.config === "jaw_only" ? "open" : "closed";
-    const products = selProds.map(id => {
-      const p = SIMPLE_PRODUCTS.find(x => x.id === id);
-      return { name: p.label, min_mm: p.min_mm, max_mm: p.max_mm };
-    });
     try {
       const resp = await fetch(`${API_BASE}/simulations/compare-simple`, {
         method: "POST",
@@ -9796,8 +9808,8 @@ function SimpleMode({ eqCatalog, onBack }) {
             n_units: sugerida.n_units,
             tarifa_arriendo_usd_mes: null,
           },
-          faena: { rock_type: rockKey, ...buildFeedPayload(), products,
-            tonelaje_mes: Number(tonelaje), duracion_meses: Number(meses), inchancables },
+          faena: { rock_type: rockKey, ...buildFeedPayload(),
+            products: buildProductsPayload(), duracion_meses: Number(meses), inchancables },
         }),
       });
       if (!resp.ok) {
@@ -9962,34 +9974,56 @@ function SimpleMode({ eqCatalog, onBack }) {
           </div>
 
           <div style={{ marginBottom: 22 }}>
-            <label style={lbl}>3. ¿Qué material necesitas producir? (puedes marcar varios)</label>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {SIMPLE_PRODUCTS.map(p => (
-                <label key={p.id}
-                  style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
-                    background: selProds.includes(p.id) ? G.faint : "transparent",
-                    border: `1px solid ${selProds.includes(p.id) ? G.accent : G.border}`,
-                    borderRadius: 8, padding: "10px 14px", transition: "border-color .15s" }}>
-                  <input type="checkbox" checked={selProds.includes(p.id)}
-                    onChange={() => toggleProd(p.id)}
-                    style={{ accentColor: G.accent, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} />
-                  <span style={{ color: G.text, fontSize: 14 }}>{p.label}</span>
-                </label>
+            <label style={lbl}>3. ¿Qué material necesitas producir?</label>
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 90px 90px 130px 28px",
+                gap: 6, marginBottom: 2 }}>
+                <span style={{ fontSize: 11, color: G.muted }}>Nombre (opcional)</span>
+                <span style={{ fontSize: 11, color: G.muted }}>Mín (mm)</span>
+                <span style={{ fontSize: 11, color: G.muted }}>Máx (mm)*</span>
+                <span style={{ fontSize: 11, color: G.muted }}>Volumen total (t)*</span>
+                <span />
+              </div>
+              {products.map(p => (
+                <div key={p.id} style={{ display: "grid",
+                  gridTemplateColumns: "2fr 90px 90px 130px 28px", gap: 6, alignItems: "center" }}>
+                  <input type="text" value={p.name} placeholder="ej. Grava"
+                    onChange={e => updateProduct(p.id, "name", e.target.value)}
+                    style={{ ...inp, padding: "8px 10px" }} />
+                  <input type="number" value={p.minMm} min={0} placeholder="0"
+                    onChange={e => updateProduct(p.id, "minMm", e.target.value)}
+                    style={{ ...inp, padding: "8px 10px" }} />
+                  <input type="number" value={p.maxMm} min={1} placeholder="mm"
+                    onChange={e => updateProduct(p.id, "maxMm", e.target.value)}
+                    style={{ ...inp, padding: "8px 10px",
+                      borderColor: p.maxMm === "" ? G.border : G.accent }} />
+                  <input type="number" value={p.volumenTon} min={1} placeholder="ton"
+                    onChange={e => updateProduct(p.id, "volumenTon", e.target.value)}
+                    style={{ ...inp, padding: "8px 10px",
+                      borderColor: p.volumenTon === "" ? G.border : G.accent }} />
+                  {products.length > 1 ? (
+                    <button onClick={() => removeProduct(p.id)}
+                      style={{ background: "none", border: "none", color: G.red,
+                        cursor: "pointer", fontSize: 18, padding: 0, lineHeight: 1 }}>×</button>
+                  ) : <span />}
+                </div>
               ))}
+              {products.length < 5 && (
+                <button onClick={addProduct}
+                  style={{ fontSize: 13, color: G.accent, background: "none", border: "none",
+                    cursor: "pointer", padding: "4px 0", textAlign: "left" }}>
+                  + Agregar producto
+                </button>
+              )}
+              <div style={{ fontSize: 11, color: G.muted }}>
+                * Tamaño máximo y volumen total requeridos por cada producto
+              </div>
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 22 }}>
-            <div style={{ flex: 1, minWidth: 180 }}>
-              <label style={lbl}>4. ¿Cuántas toneladas por mes necesitas?</label>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input type="number" value={tonelaje} min={100} max={500000} step={1000}
-                  onChange={e => setTonelaje(e.target.value)} style={{ ...inp, maxWidth: 180 }} />
-                <span style={{ color: G.muted, fontSize: 13, whiteSpace: "nowrap" }}>t / mes</span>
-              </div>
-            </div>
-            <div style={{ flex: 0, minWidth: 140 }}>
-              <label style={lbl}>5. ¿Cuántos meses dura la obra?</label>
+            <div style={{ flex: 0, minWidth: 180 }}>
+              <label style={lbl}>4. ¿Cuántos meses dura la obra?</label>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input type="number" value={meses} min={1} max={60}
                   onChange={e => setMeses(e.target.value)} style={{ ...inp, maxWidth: 100 }} />
@@ -10023,10 +10057,12 @@ function SimpleMode({ eqCatalog, onBack }) {
             </div>
           )}
 
-          <button onClick={handleRecommend} disabled={recLoading || !selProds.length}
+          <button onClick={handleRecommend} disabled={recLoading || !hasValidProducts}
             style={{ width: "100%", padding: "14px 20px", fontFamily: G.fontD, fontSize: 15,
-              fontWeight: 700, border: "none", borderRadius: 8, cursor: selProds.length ? "pointer" : "not-allowed",
-              background: selProds.length ? G.accent : G.border, color: selProds.length ? "#000" : G.muted }}>
+              fontWeight: 700, border: "none", borderRadius: 8,
+              cursor: hasValidProducts ? "pointer" : "not-allowed",
+              background: hasValidProducts ? G.accent : G.border,
+              color: hasValidProducts ? "#000" : G.muted }}>
             {recLoading ? "Calculando recomendación…" : "¿Qué equipo necesito? →"}
           </button>
         </div>
@@ -10052,6 +10088,11 @@ function SimpleMode({ eqCatalog, onBack }) {
                     const descartePct = rec.descarte_pct ?? (100 - pf);
                     const mesesReq = rec.meses_requeridos ?? 0;
                     const cardTitle = idx === 0 ? "★ MAYOR APROVECHAMIENTO" : "ALTERNATIVA CON MENOS EQUIPOS";
+                    const detail = rec.products_detail || [];
+                    const slowestProd = detail.length
+                      ? detail.reduce((a, b) =>
+                          ((b.meses ?? Infinity) > (a.meses ?? Infinity)) ? b : a, detail[0])
+                      : null;
                     return (
                       <div key={idx} style={{ background: G.card,
                         border: `1px solid ${idx === 0 ? G.accent : G.border}`,
@@ -10099,14 +10140,60 @@ function SimpleMode({ eqCatalog, onBack }) {
                             </div>
                           </div>
                         </div>
+                        {detail.length > 0 && (
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse",
+                              fontSize: 12, color: G.text }}>
+                              <thead>
+                                <tr style={{ borderBottom: `1px solid ${G.border}` }}>
+                                  <th style={{ textAlign: "left", padding: "4px 8px",
+                                    color: G.muted, fontWeight: 600 }}>Producto</th>
+                                  <th style={{ textAlign: "right", padding: "4px 8px",
+                                    color: G.muted, fontWeight: 600 }}>Producción</th>
+                                  <th style={{ textAlign: "right", padding: "4px 8px",
+                                    color: G.muted, fontWeight: 600 }}>Vol. req.</th>
+                                  <th style={{ textAlign: "right", padding: "4px 8px",
+                                    color: G.muted, fontWeight: 600 }}>Meses</th>
+                                  <th style={{ textAlign: "center", padding: "4px 8px",
+                                    color: G.muted, fontWeight: 600 }}>Plazo</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {detail.map((d, di) => (
+                                  <tr key={di} style={{ borderBottom: `1px solid ${G.border}20` }}>
+                                    <td style={{ padding: "5px 8px" }}>
+                                      {d.name || `${d.min_mm}–${d.max_mm} mm`}
+                                    </td>
+                                    <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                                      {d.inalcanzable ? "—" : `${d.tph_out} tph`}
+                                    </td>
+                                    <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                                      {d.volumen_ton ? d.volumen_ton.toLocaleString("es-CL") + " t" : "—"}
+                                    </td>
+                                    <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                                      {d.inalcanzable ? "∞" : d.meses ?? "—"}
+                                    </td>
+                                    <td style={{ padding: "5px 8px", textAlign: "center",
+                                      color: d.inalcanzable ? G.red : d.cumple ? G.green : G.accent }}>
+                                      {d.inalcanzable ? "✗ imposible" : d.cumple ? "✓" : "✗"}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                         <div style={{ fontSize: 13, fontWeight: 600,
                           color: rec.cumple_plazo ? G.green : G.accent,
                           background: rec.cumple_plazo ? undefined : G.faint,
                           borderRadius: rec.cumple_plazo ? undefined : 6,
                           padding: rec.cumple_plazo ? undefined : "8px 12px" }}>
-                          {rec.cumple_plazo
-                            ? `✓ Termina en el plazo (${mesesReq} meses)`
-                            : `⚠ Terminaría en ${mesesReq} meses`}
+                          {rec.meses_requeridos === null
+                            ? "✗ Hay productos que esta configuración no puede producir"
+                            : rec.cumple_plazo
+                              ? `✓ Plazo total: ${mesesReq} meses${slowestProd && detail.length > 1 ? ` (lo define ${slowestProd.name || `${slowestProd.min_mm}–${slowestProd.max_mm}mm`})` : ""}`
+                              : `⚠ Plazo total: ${mesesReq} meses${slowestProd && detail.length > 1 ? ` (lo define ${slowestProd.name || `${slowestProd.min_mm}–${slowestProd.max_mm}mm`})` : ""}`
+                          }
                         </div>
                         {idx === 1 && descartePct > 35 && (
                           <div style={{ fontSize: 12, color: G.muted,

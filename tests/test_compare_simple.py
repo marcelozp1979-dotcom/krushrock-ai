@@ -22,8 +22,7 @@ client = TestClient(app)
 FAENA = {
     "rock_type": "granito",
     "f80_mm": 400.0,
-    "products": [{"name": "grava", "min_mm": 0.0, "max_mm": 75.0}],
-    "tonelaje_mes": 5_000.0,
+    "products": [{"name": "grava", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 15_000.0}],
     "duracion_meses": 3,
     "inchancables": False,
 }

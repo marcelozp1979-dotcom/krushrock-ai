@@ -27,8 +27,7 @@ def test_recommend_returns_results():
     results = recommend(
         rock_type="granito",
         f80_mm=400.0,
-        products=[{"name": "grava", "min_mm": 0.0, "max_mm": 75.0}],
-        tonelaje_mes=5_000.0,
+        products=[{"name": "grava", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 15_000.0}],
         duracion_meses=3,
         inchancables=False,
     )
@@ -49,16 +48,14 @@ def test_coarse_fewer_stages_than_fine():
     coarse = recommend(
         rock_type="granito",
         f80_mm=400.0,
-        products=[{"name": "grava gruesa", "min_mm": 0.0, "max_mm": 75.0}],
-        tonelaje_mes=5_000.0,
+        products=[{"name": "grava gruesa", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 15_000.0}],
         duracion_meses=3,
         inchancables=False,
     )
     fine = recommend(
         rock_type="granito",
         f80_mm=400.0,
-        products=[{"name": "arena", "min_mm": 0.0, "max_mm": 19.0}],
-        tonelaje_mes=5_000.0,
+        products=[{"name": "arena", "min_mm": 0.0, "max_mm": 19.0, "volumen_ton": 15_000.0}],
         duracion_meses=3,
         inchancables=False,
     )
@@ -88,8 +85,7 @@ def test_high_tph_requires_parallel_units():
     results = recommend(
         rock_type="caliza",
         f80_mm=400.0,
-        products=[{"name": "base", "min_mm": 0.0, "max_mm": 75.0}],
-        tonelaje_mes=150_000.0,
+        products=[{"name": "base", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 900_000.0}],
         duracion_meses=6,
         inchancables=False,
     )
@@ -105,8 +101,7 @@ def test_inchancables_flag_preserved():
     results = recommend(
         rock_type="granito",
         f80_mm=400.0,
-        products=[{"name": "grava", "min_mm": 0.0, "max_mm": 75.0}],
-        tonelaje_mes=5_000.0,
+        products=[{"name": "grava", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 10_000.0}],
         duracion_meses=2,
         inchancables=True,
     )

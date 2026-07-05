@@ -151,13 +151,71 @@ def _make_screen_node(eq: Dict, aperture_mm: float) -> Dict:
     }
 
 
+# ── DETALLE POR PRODUCTO ──────────────────────────────────────────────────────
+
+def _per_product_detail(
+    products: List[Dict],
+    product_yields: List[Dict],
+    n_units: int,
+    duracion_meses: int,
+) -> tuple:
+    """
+    Calcula producción y plazo por cada producto a partir del balance de masa.
+    Retorna (detail_list, meses_requeridos, cumple_plazo).
+    """
+    detail = []
+    for i, prod in enumerate(products):
+        yld = product_yields[i] if i < len(product_yields) else {}
+        volumen = float(prod.get("volumen_ton") or 0)
+        tph_unit = float(yld.get("tph_out", 0))
+        tph_total = round(tph_unit * n_units, 1)
+
+        if tph_total <= 0:
+            detail.append({
+                "name": prod.get("name", ""),
+                "min_mm": prod.get("min_mm", 0),
+                "max_mm": prod.get("max_mm", 9999),
+                "volumen_ton": volumen,
+                "tph_out": 0.0,
+                "meses": None,
+                "cumple": False,
+                "inalcanzable": True,
+            })
+        else:
+            meses = round(volumen / (tph_total * HOURS_PER_MONTH), 1) if volumen > 0 else 0.0
+            detail.append({
+                "name": prod.get("name", ""),
+                "min_mm": prod.get("min_mm", 0),
+                "max_mm": prod.get("max_mm", 9999),
+                "volumen_ton": volumen,
+                "tph_out": tph_total,
+                "meses": meses,
+                "cumple": meses <= duracion_meses,
+                "inalcanzable": False,
+            })
+
+    has_inalcanzable = any(d["inalcanzable"] for d in detail)
+    meses_vals = [d["meses"] for d in detail if d["meses"] is not None]
+
+    if has_inalcanzable:
+        meses_req: Optional[float] = None
+        cumple = False
+    elif meses_vals:
+        meses_req = round(max(meses_vals), 1)
+        cumple = meses_req <= duracion_meses
+    else:
+        meses_req = 0.0
+        cumple = True
+
+    return detail, meses_req, cumple
+
+
 # ── FUNCIÓN PRINCIPAL ─────────────────────────────────────────────────────────
 
 def recommend(
     rock_type: str,
     f80_mm: float,
     products: List[Dict],
-    tonelaje_mes: float,
     duracion_meses: int,
     inchancables: bool,
     feed_curve_dict: Optional[Dict] = None,
@@ -169,8 +227,7 @@ def recommend(
     ----------
     rock_type      : clave en ROCK_DB ("granito", "caliza", etc.)
     f80_mm         : F80 de alimentación en mm
-    products       : lista de {name, min_mm, max_mm} por fracción objetivo
-    tonelaje_mes   : toneladas requeridas por mes
+    products       : lista de {name, min_mm, max_mm, volumen_ton} por fracción objetivo
     duracion_meses : duración total del proyecto en meses
     inchancables   : hay riesgo de metal / material inchancable en la alimentación
 
@@ -178,9 +235,11 @@ def recommend(
     -------
     Lista de hasta 2 dicts con:
       config, equipos, n_units, tph_efectivo,
-      product_fit_pct, circ_load_pct, cumple_plazo, inchancables_recomendado
+      product_fit_pct, circ_load_pct, cumple_plazo, inchancables_recomendado,
+      products_detail
     """
-    tph_required = tonelaje_mes / HOURS_PER_MONTH
+    total_volumen = sum(float(p.get("volumen_ton") or 0) for p in products)
+    tph_required = total_volumen / max(duracion_meses, 1) / HOURS_PER_MONTH
 
     # P80 objetivo: max_mm del producto más fino × 0.85 (criterio conservador)
     if products:
@@ -316,12 +375,11 @@ def recommend(
         tph_util = round(tph_eff_per_unit * cand["n_units"], 1)
         descarte_pct = round(100.0 - pf, 1)
 
-        # meses_requeridos = tonelaje total a producir / capacidad mensual real
-        meses_req = round(
-            (tonelaje_mes * duracion_meses) / max(tph_util * HOURS_PER_MONTH, 0.1),
-            1,
+        # plazo y detalle por producto usando balance de masa
+        product_yields = sim.get("product_yields") or []
+        prods_detail, meses_req, cumple = _per_product_detail(
+            products, product_yields, cand["n_units"], duracion_meses
         )
-        cumple = meses_req <= duracion_meses
 
         results.append({
             "config": cand["label"],
@@ -342,6 +400,7 @@ def recommend(
             "meses_requeridos": meses_req,
             "cumple_plazo": cumple,
             "inchancables_recomendado": inchancables,
+            "products_detail": prods_detail,
         })
 
     if not results:
@@ -427,7 +486,6 @@ def run_config(
     equipos: List[Dict],
     f80_mm: float,
     products: List[Dict],
-    tonelaje_mes: float,
     duracion_meses: int,
     rock_type: str,
     n_units: int,
@@ -440,10 +498,11 @@ def run_config(
 
     Retorna un dict con:
       tph_efectivo, product_fit_pct, circ_load_pct,
-      n_equipos_total, costo_arriendo_mes_usd, cumple_plazo
+      n_equipos_total, costo_arriendo_mes_usd, cumple_plazo, products_detail
     O lanza ValueError/RuntimeError si la config es inválida.
     """
-    tph_required = tonelaje_mes / HOURS_PER_MONTH
+    total_volumen = sum(float(p.get("volumen_ton") or 0) for p in products)
+    tph_required = total_volumen / max(duracion_meses, 1) / HOURS_PER_MONTH
     valid_rock = rock_type if rock_type in ROCK_DB else "desconocida"
 
     if products:
@@ -499,12 +558,11 @@ def run_config(
     tph_util = round(tph_eff_per_unit * n_units, 1)
     descarte_pct = round(100.0 - pf, 1)
 
-    # meses_requeridos = tonelaje total a producir / capacidad mensual real
-    meses_req = round(
-        (tonelaje_mes * duracion_meses) / max(tph_util * HOURS_PER_MONTH, 0.1),
-        1,
+    # plazo y detalle por producto usando balance de masa
+    product_yields = sim.get("product_yields") or []
+    prods_detail, meses_req, cumple = _per_product_detail(
+        products, product_yields, n_units, duracion_meses
     )
-    cumple = meses_req <= duracion_meses
 
     costo_mes: Optional[float] = (
         round(tarifa_arriendo_usd_mes * n_units, 2)
@@ -522,4 +580,5 @@ def run_config(
         "costo_arriendo_mes_usd": costo_mes,
         "meses_requeridos": meses_req,
         "cumple_plazo": cumple,
+        "products_detail": prods_detail,
     }

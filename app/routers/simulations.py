@@ -137,6 +137,7 @@ class ProductInput(BaseModel):
     name: Optional[str] = ""
     min_mm: float = 0.0
     max_mm: float
+    volumen_ton: Optional[float] = None  # tonelaje total requerido para este producto
 
 
 class FaenaData(BaseModel):
@@ -144,7 +145,6 @@ class FaenaData(BaseModel):
     f80_mm: Optional[float] = None
     feed_curve: Optional[List[FeedCurvePoint]] = None
     products: List[ProductInput]
-    tonelaje_mes: float
     duracion_meses: int = 1
     inchancables: bool = False
 
@@ -168,7 +168,6 @@ class RecommendRequest(BaseModel):
     f80_mm: Optional[float] = None
     feed_curve: Optional[List[FeedCurvePoint]] = None
     products: List[ProductInput]
-    tonelaje_mes: float
     duracion_meses: int = 1
     inchancables: bool = False
 
@@ -181,13 +180,6 @@ class RecommendRequest(BaseModel):
         if self.feed_curve:
             _validate_feed_curve(self.feed_curve)
         return self
-
-    @field_validator("tonelaje_mes")
-    @classmethod
-    def tonelaje_positive(cls, v: float) -> float:
-        if v <= 0:
-            raise ValueError("tonelaje_mes debe ser mayor que 0")
-        return v
 
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -325,14 +317,14 @@ async def recommend_circuit(req: RecommendRequest):
             if req.feed_curve else None
         )
         products_raw = [
-            {"name": p.name, "min_mm": p.min_mm, "max_mm": p.max_mm}
+            {"name": p.name, "min_mm": p.min_mm, "max_mm": p.max_mm,
+             "volumen_ton": p.volumen_ton}
             for p in req.products
         ]
         results = recommend(
             rock_type=req.rock_type,
             f80_mm=f80,
             products=products_raw,
-            tonelaje_mes=req.tonelaje_mes,
             duracion_meses=req.duracion_meses,
             inchancables=req.inchancables,
             feed_curve_dict=feed_curve_dict,
@@ -358,7 +350,8 @@ def _build_compare_table(req: CompareConfigsRequest) -> Dict[str, Any]:
         if req.faena.feed_curve else None
     )
     products_raw = [
-        {"name": p.name, "min_mm": p.min_mm, "max_mm": p.max_mm}
+        {"name": p.name, "min_mm": p.min_mm, "max_mm": p.max_mm,
+         "volumen_ton": p.volumen_ton}
         for p in req.faena.products
     ]
 
@@ -370,7 +363,6 @@ def _build_compare_table(req: CompareConfigsRequest) -> Dict[str, Any]:
             ],
             f80_mm=f80,
             products=products_raw,
-            tonelaje_mes=req.faena.tonelaje_mes,
             duracion_meses=req.faena.duracion_meses,
             rock_type=req.faena.rock_type,
             n_units=plant.n_units,

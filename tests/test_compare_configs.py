@@ -23,8 +23,7 @@ _EQUIPO_MULTI = [
 ]
 _FAENA = dict(
     f80_mm=400.0,
-    products=[{"name": "grava", "min_mm": 0.0, "max_mm": 75.0}],
-    tonelaje_mes=5_000.0,
+    products=[{"name": "grava", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 15_000.0}],
     duracion_meses=3,
     rock_type="granito",
 )
@@ -42,7 +41,7 @@ def test_run_config_campos_y_tipos():
     campos = {
         "tph_efectivo", "tph_util", "product_fit_pct", "descarte_pct",
         "circ_load_pct", "n_equipos_total", "costo_arriendo_mes_usd",
-        "meses_requeridos", "cumple_plazo",
+        "meses_requeridos", "cumple_plazo", "products_detail",
     }
     assert campos == result.keys(), (
         f"Campos inesperados: {result.keys() - campos} | "
@@ -124,8 +123,7 @@ def test_endpoint_compare_configs_tabla_completa():
         "faena": {
             "rock_type": "granito",
             "f80_mm": 400.0,
-            "products": [{"name": "grava", "min_mm": 0.0, "max_mm": 75.0}],
-            "tonelaje_mes": 5_000.0,
+            "products": [{"name": "grava", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 15_000.0}],
             "duracion_meses": 3,
             "inchancables": False,
         },
