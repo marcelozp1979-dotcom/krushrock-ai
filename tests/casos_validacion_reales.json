@@ -1,0 +1,23 @@
+{
+  "casos": [
+    {
+      "nombre": "ROM Botadero Argentina - AggFlow real",
+      "material": "ROM Botadero Argentina",
+      "densidad_ton_m3": 1.7,
+      "f80_mm": 233.22,
+      "equipos": ["Terex Finlay J-1175", "Terex Finlay 883+"],
+      "css_mm": 75,
+      "producto_objetivo": {"min_mm": 0, "max_mm": 100, "volumen_ton": 110000},
+      "plazo_meses": 3,
+      "horas_dia": 6,
+      "dias_mes": 30,
+      "esperado": {
+        "tph_util": 226,
+        "product_fit_pct": 90.4,
+        "meses_requeridos": 2.7,
+        "cumple_plazo": true
+      },
+      "descarte": {"rango": "-127+100", "tph": 24, "tratamiento": "no recircula"}
+    }
+  ]
+}
