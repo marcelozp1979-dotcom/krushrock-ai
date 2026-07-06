@@ -549,9 +549,12 @@ def run_config(
         feed_curve_dict=feed_curve_dict,
     )
 
-    # production_factor = total_prod_tph / feed_tph = fracción real que se convierte en producto
+    # product_fit_pct: rendimiento granulométrico (fracción de la salida del chancador
+    # que cae en los rangos del producto, antes de pérdidas por eficiencia de clasificación).
+    # Coincide con la definición de AggFlow. Si no hay seleccionadora, se usa production_factor.
     production_factor = sim.get("production_factor", 0.0)
-    pf = round(production_factor * 100.0, 1)
+    gran_yield = sim.get("granulometric_yield")
+    pf = round(gran_yield if gran_yield is not None else production_factor * 100.0, 1)
     cc = sim.get("circ_load_pct", 0.0)
     # total_product_tph de simulate() es por unidad; multiplicamos por n_units
     tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * production_factor, 1)

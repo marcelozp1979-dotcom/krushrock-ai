@@ -270,6 +270,7 @@ def simulate(
     screen_undersize: Optional[Stream] = None
     screen_oversize: Optional[Stream] = None
     screen_node_id: Optional[str] = None
+    pre_screen_stream: Optional[Stream] = None  # corriente antes de la seleccionadora
     is_open_circuit = (circuit in ("open", "abierto")) or \
                       not any(n.get("type") == "screen" for n in sorted_nodes)
 
@@ -321,6 +322,7 @@ def simulate(
             current_stream = out_stream
 
         elif node_type == "screen":
+            pre_screen_stream = current_stream  # guardar salida del chancador antes de clasificar
             aperture, efficiency = _get_screen_params(node, p80_target, humidity)
             fines, coarse = screen(current_stream, aperture, efficiency)
 
@@ -386,6 +388,20 @@ def simulate(
 
     total_prod_tph = sum(p["tph_out"] for p in products_out)
 
+    # Rendimiento granulométrico: fracción de la salida del chancador (antes de la
+    # seleccionadora) que cae en los rangos de producto — coincide con la métrica
+    # "product fit" de AggFlow (sin penalizar por eficiencia de clasificación).
+    granulometric_yield: Optional[float] = None
+    if pre_screen_stream is not None and products:
+        gran_sum = 0.0
+        for prod in products:
+            p_min = float(prod.get("min_mm") or prod.get("minMm") or 0)
+            p_max = float(prod.get("max_mm") or prod.get("maxMm") or 9999)
+            hi = pre_screen_stream.passing(p_max) if p_max < 9999 else 100.0
+            lo = pre_screen_stream.passing(p_min) if p_min > 0 else 0.0
+            gran_sum += max(0.0, hi - lo)
+        granulometric_yield = round(min(100.0, gran_sum), 1)
+
     # ── 6. MÉTRICAS SEPARADAS (sin score combinado) ───────────────────────────
     last_screen_res = node_results.get(screen_node_id, {}) if screen_node_id else {}
     circ_load_pct = last_screen_res.get("circ_load_pct", 0.0)
@@ -417,6 +433,7 @@ def simulate(
         "tph":                 tph,
         "p80_target_mm":       p80_target,
         "total_energy_kwh_t":  round(total_energy_kwh_t, 3),
+        "granulometric_yield": granulometric_yield,
         "opex":                opex,
     }
 
