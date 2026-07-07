@@ -108,7 +108,7 @@ def test_caso_real(caso):
         f80_mm=float(caso["f80_mm"]),
         products=products,
         duracion_meses=int(duracion),
-        rock_type="granito",
+        rock_type=caso.get("rock_type", "granito"),
         n_units=1,
         circuit="closed",
         horas_dia=float(caso["horas_dia"]),

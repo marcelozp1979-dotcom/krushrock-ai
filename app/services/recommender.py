@@ -18,6 +18,20 @@ HOURS_PER_MONTH: float = 500.0
 # Factor de capacidad efectiva (80 % de la nominal del catálogo)
 capR: float = 0.80
 
+# Wi de referencia: roca media genérica del catálogo de fabricantes
+_WI_REF: float = 13.0
+
+
+def _wi_capacity_factor(rock_type: str) -> float:
+    """
+    Factor de capacidad basado en el Work Index de Bond.
+    Rocas blandas (Wi bajo) producen más TPH en el mismo equipo.
+    Rango acotado [0.80, 1.20] para evitar extrapolaciones fuera del catálogo.
+    """
+    wi = ROCK_DB.get(rock_type, ROCK_DB["desconocida"])["wi"]
+    factor = (_WI_REF / wi) ** 0.5
+    return max(0.80, min(1.20, factor))
+
 # Umbrales para filtrar configuraciones por producto más fino
 _JAW_ONLY_MIN_MM: float = 50.0     # mandíbula sola solo viable si finest_max >= 50mm
 _JAW_SCREEN_MIN_MM: float = 20.0   # mandíbula + seleccionadora para finest_max >= 20mm
@@ -315,7 +329,7 @@ def recommend(
                 candidates.append({
                     "label": "jaw_screen",
                     "nodes": [
-                        _make_jaw_node(jaw, jaw_target_p80),
+                        _make_jaw_node(jaw, p80_target),
                         _make_screen_node(scr, aperture_mm),
                     ],
                     "circuit": "closed",
@@ -351,9 +365,10 @@ def recommend(
     valid_rock = rock_type if rock_type in ROCK_DB else "desconocida"
     results: List[Dict] = []
 
+    wi_factor = _wi_capacity_factor(valid_rock)
     for cand in candidates:
-        # Capacidad real por unidad = cuello de botella nominal × capR
-        cap_per_unit = cand["cap_bottleneck_tph"] * capR
+        # Capacidad real por unidad = cuello de botella nominal × capR × factor Wi
+        cap_per_unit = cand["cap_bottleneck_tph"] * capR * wi_factor
         try:
             sim = simulate(
                 nodes=cand["nodes"],
@@ -527,7 +542,8 @@ def run_config(
         for e in equipos
     ]
     bottleneck = _bottleneck_cap([eq for eq in equipos_catalog if eq])
-    cap_per_unit = (bottleneck * capR) if bottleneck > 0 else tph_required
+    wi_factor = _wi_capacity_factor(valid_rock)
+    cap_per_unit = (bottleneck * capR * wi_factor) if bottleneck > 0 else tph_required
 
     products_for_sim: Optional[List[Dict]] = (
         [

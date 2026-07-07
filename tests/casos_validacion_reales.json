@@ -3,6 +3,7 @@
     {
       "nombre": "ROM Botadero Argentina - AggFlow real",
       "material": "ROM Botadero Argentina",
+      "rock_type": "caliza",
       "densidad_ton_m3": 1.7,
       "f80_mm": 233.22,
       "equipos": ["Terex Finlay J-1175", "Terex Finlay 883+"],
