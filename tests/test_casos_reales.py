@@ -7,20 +7,17 @@ resultados dentro de ±15% de los valores esperados.
 Los valores del JSON son la FUENTE DE VERDAD: si el test falla, se corrige
 el motor, nunca el JSON.
 
-Nota sobre HOURS_PER_MONTH: cada caso define horas_dia × dias_mes (ej. 6×30=180).
-El módulo recommender usa 500 h/mes como estándar de dimensionamiento.
-Para la verificación de meses_requeridos usamos las horas reales del caso,
-parcheando la constante antes de llamar a run_config().
+Nota sobre horas_dia/dias_mes: cada caso define estos valores (ej. 6×30=180).
+Se pasan directamente a run_config() para calcular meses_requeridos con las
+horas reales del caso (no las 500 h/mes estándar).
 """
 import sys
 import json
 from pathlib import Path
-from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
-import app.services.recommender as rec_module
 from app.services.recommender import run_config
 from app.routers.equipment import _FALLBACK
 
@@ -92,7 +89,6 @@ def test_caso_real(caso):
     Verifica que run_config() produce resultados dentro de ±15% del caso real.
     Muestra esperado vs obtenido cuando falla.
     """
-    horas_mes = float(caso["horas_dia"] * caso["dias_mes"])
     duracion = caso["plazo_meses"]
     esperado = caso["esperado"]
 
@@ -107,16 +103,17 @@ def test_caso_real(caso):
     ]
 
     # Ejecutar con las horas reales del caso (no las 500 h/mes estándar)
-    with patch.object(rec_module, "HOURS_PER_MONTH", horas_mes):
-        result = run_config(
-            equipos=equipos,
-            f80_mm=float(caso["f80_mm"]),
-            products=products,
-            duracion_meses=int(duracion),
-            rock_type="granito",
-            n_units=1,
-            circuit="closed",
-        )
+    result = run_config(
+        equipos=equipos,
+        f80_mm=float(caso["f80_mm"]),
+        products=products,
+        duracion_meses=int(duracion),
+        rock_type="granito",
+        n_units=1,
+        circuit="closed",
+        horas_dia=float(caso["horas_dia"]),
+        dias_mes=float(caso["dias_mes"]),
+    )
 
     def _dentro_de_15(campo: str, obtenido: float, esp: float) -> None:
         tolerancia = abs(esp) * 0.15

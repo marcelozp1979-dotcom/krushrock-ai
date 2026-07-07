@@ -102,6 +102,8 @@ export function SimpleMode({ eqCatalog, onBack }) {
     { id: 1, name: "", minMm: "", maxMm: "", volumenTon: "" },
   ]);
   const [meses, setMeses]           = useState(3);
+  const [horasDia, setHorasDia]     = useState(8);
+  const [diasMes, setDiasMes]       = useState(25);
   const [inchancables, setInchancables] = useState(false);
 
   // ── Ingreso de tamaño de material (3 niveles) ─────────────────────────────
@@ -174,7 +176,8 @@ export function SimpleMode({ eqCatalog, onBack }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rock_type: rockKey, ...buildFeedPayload(),
-          products: buildProductsPayload(), duracion_meses: Number(meses), inchancables }),
+          products: buildProductsPayload(), duracion_meses: Number(meses), inchancables,
+          horas_dia: Number(horasDia), dias_mes: Number(diasMes) }),
       });
       if (!resp.ok) {
         const t = await resp.text();
@@ -233,7 +236,8 @@ export function SimpleMode({ eqCatalog, onBack }) {
             tarifa_arriendo_usd_mes: null,
           },
           faena: { rock_type: rockKey, ...buildFeedPayload(),
-            products: buildProductsPayload(), duracion_meses: Number(meses), inchancables },
+            products: buildProductsPayload(), duracion_meses: Number(meses), inchancables,
+            horas_dia: Number(horasDia), dias_mes: Number(diasMes) },
         }),
       });
       if (!resp.ok) {
@@ -452,6 +456,22 @@ export function SimpleMode({ eqCatalog, onBack }) {
                 <input type="number" value={meses} min={1} max={60}
                   onChange={e => setMeses(e.target.value)} style={{ ...inp, maxWidth: 100 }} />
                 <span style={{ color: G.muted, fontSize: 13 }}>meses</span>
+              </div>
+            </div>
+            <div style={{ flex: 0, minWidth: 160 }}>
+              <label style={lbl}>Horas de trabajo por día</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input type="number" value={horasDia} min={1} max={24}
+                  onChange={e => setHorasDia(e.target.value)} style={{ ...inp, maxWidth: 90 }} />
+                <span style={{ color: G.muted, fontSize: 13 }}>h/día</span>
+              </div>
+            </div>
+            <div style={{ flex: 0, minWidth: 160 }}>
+              <label style={lbl}>Días por mes</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input type="number" value={diasMes} min={1} max={31}
+                  onChange={e => setDiasMes(e.target.value)} style={{ ...inp, maxWidth: 90 }} />
+                <span style={{ color: G.muted, fontSize: 13 }}>días/mes</span>
               </div>
             </div>
           </div>

@@ -158,6 +158,7 @@ def _per_product_detail(
     product_yields: List[Dict],
     n_units: int,
     duracion_meses: int,
+    hours_per_month: float = HOURS_PER_MONTH,
 ) -> tuple:
     """
     Calcula producción y plazo por cada producto a partir del balance de masa.
@@ -182,7 +183,7 @@ def _per_product_detail(
                 "inalcanzable": True,
             })
         else:
-            meses = round(volumen / (tph_total * HOURS_PER_MONTH), 1) if volumen > 0 else 0.0
+            meses = round(volumen / (tph_total * hours_per_month), 1) if volumen > 0 else 0.0
             detail.append({
                 "name": prod.get("name", ""),
                 "min_mm": prod.get("min_mm", 0),
@@ -219,6 +220,8 @@ def recommend(
     duracion_meses: int,
     inchancables: bool,
     feed_curve_dict: Optional[Dict] = None,
+    horas_dia: Optional[float] = None,
+    dias_mes: Optional[float] = None,
 ) -> List[Dict]:
     """
     Genera las 2 mejores configuraciones de equipo para un proyecto de chancado.
@@ -238,8 +241,9 @@ def recommend(
       product_fit_pct, circ_load_pct, cumple_plazo, inchancables_recomendado,
       products_detail
     """
+    hours_per_month = horas_dia * dias_mes if (horas_dia and dias_mes) else HOURS_PER_MONTH
     total_volumen = sum(float(p.get("volumen_ton") or 0) for p in products)
-    tph_required = total_volumen / max(duracion_meses, 1) / HOURS_PER_MONTH
+    tph_required = total_volumen / max(duracion_meses, 1) / hours_per_month
 
     # P80 objetivo: max_mm del producto más fino × 0.85 (criterio conservador)
     if products:
@@ -378,7 +382,7 @@ def recommend(
         # plazo y detalle por producto usando balance de masa
         product_yields = sim.get("product_yields") or []
         prods_detail, meses_req, cumple = _per_product_detail(
-            products, product_yields, cand["n_units"], duracion_meses
+            products, product_yields, cand["n_units"], duracion_meses, hours_per_month
         )
 
         results.append({
@@ -492,6 +496,8 @@ def run_config(
     circuit: str,
     tarifa_arriendo_usd_mes: Optional[float] = None,
     feed_curve_dict: Optional[Dict] = None,
+    horas_dia: Optional[float] = None,
+    dias_mes: Optional[float] = None,
 ) -> Dict:
     """
     Corre el motor sobre una configuración de planta y devuelve sus métricas.
@@ -501,8 +507,9 @@ def run_config(
       n_equipos_total, costo_arriendo_mes_usd, cumple_plazo, products_detail
     O lanza ValueError/RuntimeError si la config es inválida.
     """
+    hours_per_month = horas_dia * dias_mes if (horas_dia and dias_mes) else HOURS_PER_MONTH
     total_volumen = sum(float(p.get("volumen_ton") or 0) for p in products)
-    tph_required = total_volumen / max(duracion_meses, 1) / HOURS_PER_MONTH
+    tph_required = total_volumen / max(duracion_meses, 1) / hours_per_month
     valid_rock = rock_type if rock_type in ROCK_DB else "desconocida"
 
     if products:
@@ -564,7 +571,7 @@ def run_config(
     # plazo y detalle por producto usando balance de masa
     product_yields = sim.get("product_yields") or []
     prods_detail, meses_req, cumple = _per_product_detail(
-        products, product_yields, n_units, duracion_meses
+        products, product_yields, n_units, duracion_meses, hours_per_month
     )
 
     costo_mes: Optional[float] = (

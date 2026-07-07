@@ -147,6 +147,8 @@ class FaenaData(BaseModel):
     products: List[ProductInput]
     duracion_meses: int = 1
     inchancables: bool = False
+    horas_dia: Optional[float] = None
+    dias_mes: Optional[float] = None
 
     @model_validator(mode="after")
     def check_feed_input(self) -> "FaenaData":
@@ -170,6 +172,8 @@ class RecommendRequest(BaseModel):
     products: List[ProductInput]
     duracion_meses: int = 1
     inchancables: bool = False
+    horas_dia: Optional[float] = None
+    dias_mes: Optional[float] = None
 
     @model_validator(mode="after")
     def check_feed_input(self) -> "RecommendRequest":
@@ -328,6 +332,8 @@ async def recommend_circuit(req: RecommendRequest):
             duracion_meses=req.duracion_meses,
             inchancables=req.inchancables,
             feed_curve_dict=feed_curve_dict,
+            horas_dia=req.horas_dia,
+            dias_mes=req.dias_mes,
         )
         return {"recommendations": results}
     except Exception as exc:
@@ -369,6 +375,8 @@ def _build_compare_table(req: CompareConfigsRequest) -> Dict[str, Any]:
             circuit=plant.circuit,
             tarifa_arriendo_usd_mes=plant.tarifa_arriendo_usd_mes,
             feed_curve_dict=feed_curve_dict,
+            horas_dia=req.faena.horas_dia,
+            dias_mes=req.faena.dias_mes,
         )
 
     res_u = _run(req.config_usuario)
