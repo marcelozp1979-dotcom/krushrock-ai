@@ -27,6 +27,7 @@ ROCK_DB: Dict[str, Dict] = {
     "porfido":        {"wi": 16.0, "ab": 0.30, "den": 2.72, "rrN": 0.83, "name": "Pórfido Cuprífero"},
     "andesita":       {"wi": 14.5, "ab": 0.25, "den": 2.68, "rrN": 0.84, "name": "Andesita"},
     "meta_andesita":  {"wi": 15.0, "ab": 0.26, "den": 2.70, "rrN": 0.84, "name": "Meta-andesita"},
+    "hierro":         {"wi": 13.5, "ab": 0.25, "den": 3.20, "rrN": 0.82, "name": "Mineral de Hierro"},
     "desconocida":    {"wi": 13.0, "ab": 0.20, "den": 2.65, "rrN": 0.85, "name": "Roca desconocida"},
 }
 
@@ -48,6 +49,7 @@ COST_DB = {
         "porfido":       {"jaw": 0.20, "cone": 0.25, "screen": 0.07},
         "andesita":      {"jaw": 0.16, "cone": 0.20, "screen": 0.05},
         "meta_andesita": {"jaw": 0.17, "cone": 0.21, "screen": 0.05},
+        "hierro":        {"jaw": 0.20, "cone": 0.24, "screen": 0.06},
         "desconocida":   {"jaw": 0.18, "cone": 0.22, "screen": 0.06},
     },
     "maint_pct": {"jaw": 0.08, "cone": 0.10, "screen": 0.05, "scalper": 0.04},
@@ -266,99 +268,223 @@ def simulate(
     node_results: Dict[str, Dict] = {}
     total_energy_kwh_t = 0.0
 
-    # Estado del harnero (bifurcación)
     screen_undersize: Optional[Stream] = None
-    screen_oversize: Optional[Stream] = None
-    screen_node_id: Optional[str] = None
-    pre_screen_stream: Optional[Stream] = None  # corriente antes de la seleccionadora
+    screen_oversize:  Optional[Stream] = None
+    screen_node_id:   Optional[str]    = None
+    pre_screen_stream: Optional[Stream] = None
+    carga_circulante_pct: float = 0.0
     is_open_circuit = (circuit in ("open", "abierto")) or \
                       not any(n.get("type") == "screen" for n in sorted_nodes)
 
-    for node in sorted_nodes:
-        node_id = node["id"]
-        node_type = node.get("type", "jaw")
-        p80_in = current_stream.pXX(80)
+    # Índice de la seleccionadora en el grafo ordenado
+    _sidx: Optional[int] = next(
+        (i for i, n in enumerate(sorted_nodes) if n.get("type") == "screen"),
+        None,
+    )
 
-        if node_type in ("jaw", "cone", "scalper", "impactor", "hsi", "vsi"):
-            css = _get_crusher_css(node, p80_target, feed_stream=current_stream)
-            norm_curve = _NORM_CURVES.get(node_type, JAW_PRODUCT_NORMALIZED)
+    if not is_open_circuit and _sidx is not None and _sidx > 0:
+        # ── CIRCUITO CERRADO: recirculación iterativa ─────────────────────────
+        # El oversize de la seleccionadora vuelve al último chancador anterior.
+        # Los nodos previos corren en abierto con la alimentación fresca.
+        # tph (parámetro) = capacidad total = alimentación_fresca + recirculado.
+        _ridx         = _sidx - 1
+        _pre_nodes    = sorted_nodes[:_ridx]
+        _recycle_node = sorted_nodes[_ridx]
+        _screen_node  = sorted_nodes[_sidx]
 
-            out_stream = crusher(current_stream, css, norm_curve)
-            p80_out = out_stream.pXX(80)
+        # Paso 1 — pre-nodos: pasada única con la alimentación fresca completa.
+        _curr = feed_stream
+        for _nd in _pre_nodes:
+            _nt = _nd.get("type", "jaw")
+            if _nt in ("jaw", "cone", "scalper", "impactor", "hsi", "vsi"):
+                _css = _get_crusher_css(_nd, p80_target, feed_stream=_curr)
+                _nrm = _NORM_CURVES.get(_nt, JAW_PRODUCT_NORMALIZED)
+                _pi  = _curr.pXX(80)
+                _out = crusher(_curr, _css, _nrm)
+                _po  = _out.pXX(80)
+                _E   = _bond_energy_kwh_t(rock["wi"], _po, _pi)
+                total_energy_kwh_t += _E
+                _eq  = _nd.get("equipment", {})
+                _cv  = _eq.get("curves", {})
+                _cn  = lerp(_cv.get("css", [_css]), _cv.get("tph", [_curr.tph]), _css) or _curr.tph
+                _ut  = min(100.0, (_curr.tph / max(_cn, 0.1)) * 100.0)
+                node_results[_nd["id"]] = {
+                    "type": _nt, "css_mm": round(_css, 1),
+                    "cap_nominal": round(_cn, 0), "cap_real": round(min(_curr.tph, _cn), 0),
+                    "p80_in_mm": round(_pi, 1), "p80_out_mm": round(_po, 1),
+                    "tph": round(_out.tph, 1), "energy_kwh_t": round(_E, 3),
+                    "energy_kw_total": round(_E * _out.tph, 1),
+                    "utilization_pct": round(_ut, 1),
+                    "ratio_reduction": round(_pi / max(_po, 0.1), 2),
+                    "status": "overload" if _ut > 95 else "ok" if _ut > 60 else "underload",
+                }
+                streams[f"{_nd['id']}_out"] = _serialize_stream(_out)
+                _curr = _out
 
-            # Bond en µm — fórmula correcta
-            energy = _bond_energy_kwh_t(rock["wi"], p80_out, p80_in)
-            total_energy_kwh_t += energy
+        # La curva post-pre-nodos no cambia con el TPH; solo el caudal cambia.
+        _pre_curve = dict(zip(_curr.xs, _curr.ys))
 
-            # Capacidad del equipo (de las curvas del equipo, si disponible)
-            eq = node.get("equipment", {})
-            curves_eq = eq.get("curves", {})
-            css_curve = curves_eq.get("css", [css])
-            tph_curve_eq = curves_eq.get("tph", [current_stream.tph])
-            cap_nominal = lerp(css_curve, tph_curve_eq, css)
-            if cap_nominal <= 0:
-                cap_nominal = current_stream.tph  # sin datos de equipo
-            utilization = min(100.0, (current_stream.tph / max(cap_nominal, 0.1)) * 100.0)
+        # Paso 2 — lazo iterativo hasta convergencia (cambio < 0.5 tph, máx 30 iter).
+        _ap_s, _ef_s = _get_screen_params(_screen_node, p80_target, humidity)
+        _recirc = Stream(0.0, dict(zip(feed_stream.xs, feed_stream.ys)))
+        _prev_R = 0.0
 
-            node_results[node_id] = {
-                "type":             node_type,
-                "css_mm":           round(css, 1),
-                "cap_nominal":      round(cap_nominal, 0),
-                "cap_real":         round(min(current_stream.tph, cap_nominal), 0),
-                "p80_in_mm":        round(p80_in, 1),
-                "p80_out_mm":       round(p80_out, 1),
-                "tph":              round(out_stream.tph, 1),
-                "energy_kwh_t":     round(energy, 3),
-                "energy_kw_total":  round(energy * out_stream.tph, 1),
-                "utilization_pct":  round(utilization, 1),
-                "ratio_reduction":  round(p80_in / max(p80_out, 0.1), 2),
-                "status": (
-                    "overload" if utilization > 95
-                    else "ok" if utilization > 60
-                    else "underload"
-                ),
-            }
-            streams[f"{node_id}_out"] = _serialize_stream(out_stream)
-            current_stream = out_stream
+        # CSS se calcula una vez sobre la corriente pre-bucle (es un setting físico fijo).
+        _ntr  = _recycle_node.get("type", "cone")
+        _cssr = _get_crusher_css(_recycle_node, p80_target, feed_stream=_curr)
+        _nrmr = _NORM_CURVES.get(_ntr, JAW_PRODUCT_NORMALIZED)
 
-        elif node_type == "screen":
-            pre_screen_stream = current_stream  # guardar salida del chancador antes de clasificar
-            aperture, efficiency = _get_screen_params(node, p80_target, humidity)
-            fines, coarse = screen(current_stream, aperture, efficiency)
+        # Valores por defecto (sobreescritos al converger)
+        _lf   = _curr
+        _arec = _curr
+        _fin  = _curr
+        _cos  = Stream(0.0, dict(zip(_curr.xs, _curr.ys)))
+        _pi_r = _curr.pXX(80)
+        _po_r = _curr.pXX(80)
 
-            screen_undersize = fines
-            screen_oversize = coarse
-            screen_node_id = node_id
+        for _it in range(30):
+            _fresh_tph = max(tph - _recirc.tph, 0.0)
+            _ap_k      = Stream(_fresh_tph, _pre_curve)
+            _lf        = merge_streams([_ap_k, _recirc]) if _recirc.tph > 0.0 else _ap_k
 
-            circ_load = (coarse.tph / max(current_stream.tph, 0.1)) * 100.0
+            _pi_r = _lf.pXX(80)
+            _arec = crusher(_lf, _cssr, _nrmr)
+            _po_r = _arec.pXX(80)
 
-            node_results[node_id] = {
-                "type":             "screen",
-                "aperture_mm":      round(aperture, 1),
-                "efficiency_pct":   round(efficiency * 100.0, 1),
-                "undersize_tph":    round(fines.tph, 1),
-                "oversize_tph":     round(coarse.tph, 1),
-                "p80_undersize_mm": round(fines.pXX(80), 1),
-                "p80_oversize_mm":  round(coarse.pXX(80), 1),
-                "circ_load_pct":    round(circ_load, 1),
-                "status": (
-                    "overload" if circ_load > 35
-                    else "warn" if circ_load > 20
-                    else "ok"
-                ),
-            }
-            streams[f"{node_id}_undersize"] = _serialize_stream(fines)
-            streams[f"{node_id}_oversize"] = _serialize_stream(coarse)
+            _fin, _cos = screen(_arec, _ap_s, _ef_s)
 
-            # En circuito cerrado el oversize alimenta el siguiente chancador
-            if not is_open_circuit:
-                current_stream = coarse
-            else:
-                current_stream = fines
+            if abs(_cos.tph - _prev_R) < 0.5:
+                break
+            _prev_R = _cos.tph
+            _recirc = _cos
+        else:
+            raise RuntimeError(
+                f"Circuito cerrado no convergió en 30 iteraciones "
+                f"(carga circulante: {_cos.tph:.1f} tph)"
+            )
 
-    # ── 4. CORRIENTE FINAL (PRODUCTO) ─────────────────────────────────────────
-    # Circuito cerrado: undersize del harnero es el producto fino de la planta
-    # Circuito abierto o sin harnero: última corriente procesada
+        # carga_circulante_pct: recirculado / alimentación_fresca × 100
+        _fresh_final = max(tph - _cos.tph, 0.1)
+        carga_circulante_pct = round(_cos.tph / _fresh_final * 100.0, 1)
+
+        # Registrar estado convergido del chancador de recirculación
+        _Er  = _bond_energy_kwh_t(rock["wi"], _po_r, _pi_r)
+        total_energy_kwh_t += _Er
+        _eqr = _recycle_node.get("equipment", {})
+        _cvr = _eqr.get("curves", {})
+        _cnr = lerp(_cvr.get("css", [_cssr]), _cvr.get("tph", [_lf.tph]), _cssr) or _lf.tph
+        _utr = min(100.0, (_lf.tph / max(_cnr, 0.1)) * 100.0)
+        _clr = (_cos.tph / max(_lf.tph, 0.1)) * 100.0
+        node_results[_recycle_node["id"]] = {
+            "type": _ntr, "css_mm": round(_cssr, 1),
+            "cap_nominal": round(_cnr, 0), "cap_real": round(min(_lf.tph, _cnr), 0),
+            "p80_in_mm": round(_pi_r, 1), "p80_out_mm": round(_po_r, 1),
+            "tph": round(_arec.tph, 1), "energy_kwh_t": round(_Er, 3),
+            "energy_kw_total": round(_Er * _arec.tph, 1),
+            "utilization_pct": round(_utr, 1),
+            "ratio_reduction": round(_pi_r / max(_po_r, 0.1), 2),
+            "status": "overload" if _utr > 95 else "ok" if _utr > 60 else "underload",
+        }
+        streams[f"{_recycle_node['id']}_out"] = _serialize_stream(_arec)
+
+        # Registrar seleccionadora
+        screen_node_id = _screen_node["id"]
+        node_results[screen_node_id] = {
+            "type": "screen",
+            "aperture_mm": round(_ap_s, 1),
+            "efficiency_pct": round(_ef_s * 100.0, 1),
+            "undersize_tph": round(_fin.tph, 1),
+            "oversize_tph": round(_cos.tph, 1),
+            "p80_undersize_mm": round(_fin.pXX(80), 1),
+            "p80_oversize_mm": round(_cos.pXX(80), 1),
+            "circ_load_pct": round(_clr, 1),
+            "status": "overload" if _clr > 35 else "warn" if _clr > 20 else "ok",
+        }
+        streams[f"{screen_node_id}_undersize"] = _serialize_stream(_fin)
+        streams[f"{screen_node_id}_oversize"]  = _serialize_stream(_cos)
+
+        pre_screen_stream = _arec
+        screen_undersize  = _fin
+        screen_oversize   = _cos
+
+    else:
+        # ── CIRCUITO ABIERTO O SIN SELECCIONADORA: pasada única ───────────────
+        for node in sorted_nodes:
+            node_id   = node["id"]
+            node_type = node.get("type", "jaw")
+            p80_in    = current_stream.pXX(80)
+
+            if node_type in ("jaw", "cone", "scalper", "impactor", "hsi", "vsi"):
+                css = _get_crusher_css(node, p80_target, feed_stream=current_stream)
+                norm_curve = _NORM_CURVES.get(node_type, JAW_PRODUCT_NORMALIZED)
+
+                out_stream = crusher(current_stream, css, norm_curve)
+                p80_out = out_stream.pXX(80)
+
+                energy = _bond_energy_kwh_t(rock["wi"], p80_out, p80_in)
+                total_energy_kwh_t += energy
+
+                eq = node.get("equipment", {})
+                curves_eq = eq.get("curves", {})
+                css_curve = curves_eq.get("css", [css])
+                tph_curve_eq = curves_eq.get("tph", [current_stream.tph])
+                cap_nominal = lerp(css_curve, tph_curve_eq, css)
+                if cap_nominal <= 0:
+                    cap_nominal = current_stream.tph
+                utilization = min(100.0, (current_stream.tph / max(cap_nominal, 0.1)) * 100.0)
+
+                node_results[node_id] = {
+                    "type":             node_type,
+                    "css_mm":           round(css, 1),
+                    "cap_nominal":      round(cap_nominal, 0),
+                    "cap_real":         round(min(current_stream.tph, cap_nominal), 0),
+                    "p80_in_mm":        round(p80_in, 1),
+                    "p80_out_mm":       round(p80_out, 1),
+                    "tph":              round(out_stream.tph, 1),
+                    "energy_kwh_t":     round(energy, 3),
+                    "energy_kw_total":  round(energy * out_stream.tph, 1),
+                    "utilization_pct":  round(utilization, 1),
+                    "ratio_reduction":  round(p80_in / max(p80_out, 0.1), 2),
+                    "status": (
+                        "overload" if utilization > 95
+                        else "ok" if utilization > 60
+                        else "underload"
+                    ),
+                }
+                streams[f"{node_id}_out"] = _serialize_stream(out_stream)
+                current_stream = out_stream
+
+            elif node_type == "screen":
+                pre_screen_stream = current_stream
+                aperture, efficiency = _get_screen_params(node, p80_target, humidity)
+                fines, coarse = screen(current_stream, aperture, efficiency)
+
+                screen_undersize = fines
+                screen_oversize  = coarse
+                screen_node_id   = node_id
+
+                circ_load = (coarse.tph / max(current_stream.tph, 0.1)) * 100.0
+
+                node_results[node_id] = {
+                    "type":             "screen",
+                    "aperture_mm":      round(aperture, 1),
+                    "efficiency_pct":   round(efficiency * 100.0, 1),
+                    "undersize_tph":    round(fines.tph, 1),
+                    "oversize_tph":     round(coarse.tph, 1),
+                    "p80_undersize_mm": round(fines.pXX(80), 1),
+                    "p80_oversize_mm":  round(coarse.pXX(80), 1),
+                    "circ_load_pct":    round(circ_load, 1),
+                    "status": (
+                        "overload" if circ_load > 35
+                        else "warn" if circ_load > 20
+                        else "ok"
+                    ),
+                }
+                streams[f"{node_id}_undersize"] = _serialize_stream(fines)
+                streams[f"{node_id}_oversize"]  = _serialize_stream(coarse)
+                current_stream = fines  # circuito abierto: producto = undersize
+
+    # ── 4. CORRIENTE FINAL ────────────────────────────────────────────────────
     if screen_undersize is not None and not is_open_circuit:
         final_stream = screen_undersize
     else:
@@ -426,8 +552,9 @@ def simulate(
         "total_product_tph":   round(total_prod_tph, 1),
         "production_factor":   round(production_factor, 3),
         "final_p80_mm":        round(final_p80, 1),
-        "circ_load_pct":       round(circ_load_pct, 1),
-        "product_fit_pct":     product_fit_pct,
+        "circ_load_pct":          round(circ_load_pct, 1),
+        "carga_circulante_pct":   round(carga_circulante_pct, 1),
+        "product_fit_pct":        product_fit_pct,
         "bottlenecks":         bottlenecks,
         "rock":                rock,
         "tph":                 tph,

@@ -14,6 +14,7 @@ horas reales del caso (no las 500 h/mes estándar).
 import sys
 import json
 from pathlib import Path
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -23,20 +24,37 @@ from app.routers.equipment import _FALLBACK
 
 # ── Resolución de equipos ─────────────────────────────────────────────────────
 
+# Nombres completos que no se pueden parsear con rsplit(" ", 1) porque la marca
+# tiene varias palabras (ej. "Minyu MS 4230" → marca="Minyu MS", modelo="4230").
+# Mapeados al sustituto equivalente del catálogo.
+_FULL_NAME_ALIASES: dict = {
+    "Minyu MS 4230":   ("jaw",    "Terex Finlay", "J-1175"),
+    "Minyu MSP 300 F": ("cone",   "Terex Finlay", "C-1540"),
+    "Minyu MOP2460D":  ("cone",   "Sandvik",      "QH332"),
+    "MEKA 90/2000 ROS":("screen", "Kleemann",     "MS 703i"),
+}
+
 # Modelos reales no presentes en catálogo → sustituto de misma capacidad y tipo.
 # La seleccionadora 883+ (3-deck, ~350 tph) se mapea a 694+ que tiene las mismas
 # características relevantes; con la mandíbula J-1175 como cuello de botella
 # el TPH del circuito no cambia.
 _MODEL_ALIASES = {
-    "883+": ("screen", "Terex Finlay", "694+"),
+    "883+":    ("screen", "Terex Finlay", "694+"),
+    "MS 703i": ("screen", "Kleemann",     "MS 703i"),
 }
 
 
 def _resolve_equipo(nombre_completo: str) -> dict:
     """
     'Terex Finlay J-1175' → {etapa, marca, modelo} buscando en catálogo.
-    Si no se encuentra exacto, intenta _MODEL_ALIASES; luego infiere por tipo.
+    Si no se encuentra exacto, intenta _FULL_NAME_ALIASES, _MODEL_ALIASES;
+    luego infiere por tipo.
     """
+    # Alias de nombre completo (marcas multi-palabra que rsplit no puede parsear)
+    if nombre_completo in _FULL_NAME_ALIASES:
+        etapa, marca_cat, modelo_cat = _FULL_NAME_ALIASES[nombre_completo]
+        return {"etapa": etapa, "marca": marca_cat, "modelo": modelo_cat}
+
     partes = nombre_completo.rsplit(" ", 1)
     if len(partes) != 2:
         raise ValueError(f"No se puede parsear equipo: {nombre_completo!r}")
@@ -89,9 +107,6 @@ def test_caso_real(caso):
     Verifica que run_config() produce resultados dentro de ±15% del caso real.
     Muestra esperado vs obtenido cuando falla.
     """
-    if caso.get("estado") == "pendiente_recirculacion":
-        pytest.skip("requiere recirculación (pendiente #3)")
-
     duracion = caso["plazo_meses"]
     esperado = caso["esperado"]
 
@@ -105,6 +120,14 @@ def test_caso_real(caso):
         }
     ]
 
+    # Construir feed_curve_dict si el caso lo tiene
+    feed_curve_dict: Optional[dict] = None
+    if "feed_curve" in caso:
+        feed_curve_dict = {
+            float(p["size_mm"]): float(p["passing_pct"])
+            for p in caso["feed_curve"]
+        }
+
     # Ejecutar con las horas reales del caso (no las 500 h/mes estándar)
     result = run_config(
         equipos=equipos,
@@ -113,9 +136,10 @@ def test_caso_real(caso):
         duracion_meses=int(duracion),
         rock_type=caso.get("rock_type", "granito"),
         n_units=1,
-        circuit="closed",
+        circuit=caso.get("circuito", "open"),
         horas_dia=float(caso["horas_dia"]),
         dias_mes=float(caso["dias_mes"]),
+        feed_curve_dict=feed_curve_dict,
     )
 
     def _dentro_de_15(campo: str, obtenido: float, esp: float) -> None:
@@ -128,8 +152,9 @@ def test_caso_real(caso):
             f"  diferencia= {diferencia:.2f}  (tolerancia={tolerancia:.2f})"
         )
 
-    _dentro_de_15("tph_util",         result["tph_util"],         esperado["tph_util"])
-    _dentro_de_15("product_fit_pct",  result["product_fit_pct"],  esperado["product_fit_pct"])
+    _dentro_de_15("tph_util", result["tph_util"], esperado["tph_util"])
+    if "product_fit_pct" in esperado:
+        _dentro_de_15("product_fit_pct", result["product_fit_pct"], esperado["product_fit_pct"])
 
     meses_obt = result["meses_requeridos"]
     assert meses_obt is not None, (
