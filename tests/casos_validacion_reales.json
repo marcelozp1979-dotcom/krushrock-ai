@@ -19,6 +19,41 @@
         "cumple_plazo": true
       },
       "descarte": {"rango": "-127+100", "tph": 24, "tratamiento": "no recircula"}
+    },
+    {
+      "nombre": "Mina El Pleito Fase 3 - Hierro (circuito cerrado)",
+      "estado": "pendiente_recirculacion",
+      "material": "Mineral de hierro, Cantera Pleito 2",
+      "rock_type": "hierro",
+      "densidad_ton_m3": 3.2,
+      "f80_mm": 304.8,
+      "feed_curve": [
+        {"size_mm": 508,   "passing_pct": 100},
+        {"size_mm": 406.4, "passing_pct": 90},
+        {"size_mm": 304.8, "passing_pct": 80},
+        {"size_mm": 203.2, "passing_pct": 70},
+        {"size_mm": 152.4, "passing_pct": 60},
+        {"size_mm": 101.6, "passing_pct": 52},
+        {"size_mm": 76.2,  "passing_pct": 42},
+        {"size_mm": 50.8,  "passing_pct": 35},
+        {"size_mm": 25.4,  "passing_pct": 30},
+        {"size_mm": 12.7,  "passing_pct": 25},
+        {"size_mm": 6.35,  "passing_pct": 20}
+      ],
+      "equipos": ["Minyu MS 4230", "Minyu MSP 300 F", "Minyu MOP2460D",
+                  "MEKA 90/2000 ROS", "Minyu MOP2460D"],
+      "circuito": "cerrado",
+      "alimentacion_tph": 300,
+      "producto_objetivo": {"min_mm": 0, "max_mm": 6.35, "volumen_ton": 130000},
+      "plazo_meses": 4,
+      "horas_dia": 7,
+      "dias_mes": 30,
+      "esperado": {
+        "tph_util": 161,
+        "p80_producto_mm": 3.95,
+        "meses_requeridos": 3.9,
+        "cumple_plazo": true
+      }
     }
   ]
 }

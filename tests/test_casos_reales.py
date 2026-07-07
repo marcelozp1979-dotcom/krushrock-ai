@@ -89,6 +89,9 @@ def test_caso_real(caso):
     Verifica que run_config() produce resultados dentro de ±15% del caso real.
     Muestra esperado vs obtenido cuando falla.
     """
+    if caso.get("estado") == "pendiente_recirculacion":
+        pytest.skip("requiere recirculación (pendiente #3)")
+
     duracion = caso["plazo_meses"]
     esperado = caso["esperado"]
 
