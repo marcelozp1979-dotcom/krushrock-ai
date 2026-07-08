@@ -102,11 +102,20 @@ def _load_casos():
 # ── Test parametrizado ────────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("caso", _load_casos(), ids=lambda c: c["nombre"])
-def test_caso_real(caso):
+def test_caso_real(caso, request):
     """
     Verifica que run_config() produce resultados dentro de ±15% del caso real.
-    Muestra esperado vs obtenido cuando falla.
+    - aggflow_verificado: fallo = error real (strict).
+    - referencia: fallo = xfail (advertencia, no bloquea la suite).
     """
+    if caso.get("certificacion") == "referencia":
+        request.applymarker(
+            pytest.mark.xfail(
+                strict=False,
+                reason="caso de referencia sin reporte AggFlow verificado",
+            )
+        )
+
     duracion = caso["plazo_meses"]
     esperado = caso["esperado"]
 

@@ -2,6 +2,7 @@
   "casos": [
     {
       "nombre": "ROM Botadero Argentina - AggFlow real",
+      "certificacion": "aggflow_verificado",
       "material": "ROM Botadero Argentina",
       "rock_type": "caliza",
       "densidad_ton_m3": 1.7,
@@ -22,6 +23,7 @@
     },
     {
       "nombre": "Mina El Pleito Fase 3 - Hierro (circuito cerrado)",
+      "certificacion": "aggflow_verificado",
       "estado": "pendiente_recirculacion",
       "material": "Mineral de hierro, Cantera Pleito 2",
       "rock_type": "hierro",
