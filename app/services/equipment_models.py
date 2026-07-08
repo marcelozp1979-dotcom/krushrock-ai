@@ -1,8 +1,12 @@
 """
 Modelos de equipos — transformaciones de corrientes (Stream) basadas en curvas normalizadas
-Arquitectura: cada modelo de equipo trae su curva de producto normalizada (d/CSS → % pasante)
+Arquitectura: cada modelo de equipo trae su curva de producto normalizada (d/CSS → % pasante).
+
+Catálogo: los equipos pueden declarar un campo opcional product_curve
+{d/CSS: % pasante} propio del modelo. Si está presente, crusher() lo usa
+en lugar de la curva genérica del tipo. Sin campo = comportamiento genérico.
 """
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 from app.services.granulometry import Stream, interp_log, SIEVES
 
 
@@ -51,6 +55,38 @@ IMPACTOR_PRODUCT_NORMALIZED = {
     1.40: 97,
     1.60: 100
 }
+
+
+# Mapa tipo de chancador → curva genérica.
+# Usado como fallback cuando el modelo no declara product_curve propia.
+_GENERIC_CURVES: Dict[str, Dict[float, float]] = {
+    "jaw":      JAW_PRODUCT_NORMALIZED,
+    "scalper":  JAW_PRODUCT_NORMALIZED,
+    "cone":     CONE_PRODUCT_NORMALIZED,
+    "impactor": IMPACTOR_PRODUCT_NORMALIZED,
+    "hsi":      IMPACTOR_PRODUCT_NORMALIZED,
+    "vsi":      IMPACTOR_PRODUCT_NORMALIZED,
+}
+
+
+def resolve_product_curve(
+    equipment: Dict,
+    crusher_type: str,
+) -> Dict[float, float]:
+    """
+    Devuelve la curva de producto normalizada (d/CSS → % pasante) para un equipo.
+
+    Prioridad:
+    1. equipment["product_curve"] — curva propia del modelo (>=2 puntos).
+    2. Curva genérica del tipo (JAW, CONE, IMPACTOR…).
+
+    Permite que cada modelo del catálogo tenga su propia huella granulométrica
+    sin afectar modelos que no la declaran (comportamiento idéntico al anterior).
+    """
+    own: Optional[Dict] = equipment.get("product_curve")
+    if own and len(own) >= 2:
+        return {float(k): float(v) for k, v in own.items()}
+    return _GENERIC_CURVES.get(crusher_type, JAW_PRODUCT_NORMALIZED)
 
 
 def crusher(

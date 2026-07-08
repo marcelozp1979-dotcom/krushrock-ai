@@ -13,6 +13,7 @@ from app.services.equipment_models import (
     CONE_PRODUCT_NORMALIZED,
     JAW_PRODUCT_NORMALIZED,
     IMPACTOR_PRODUCT_NORMALIZED,
+    resolve_product_curve,
 )
 from app.services.css_selection import solve_css, CSS_RANGES
 
@@ -164,11 +165,11 @@ def _get_crusher_css(
         else CSS_RANGES.get(node_type, (6.0, 200.0))
     )
 
-    # Prioridad 2 y 3: bisección sobre curvas normalizadas
+    # Prioridad 2 y 3: bisección sobre curva del modelo (propia o genérica)
     if feed_stream is not None:
         target = node.get("target_p80_mm")
         target = float(target) if target and float(target) > 0 else p80_target
-        norm_curve = _NORM_CURVES.get(node_type, JAW_PRODUCT_NORMALIZED)
+        norm_curve = resolve_product_curve(eq, node_type)
         css_solved, _, _ = solve_css(feed_stream, target, norm_curve, css_min, css_max)
         return css_solved
 
@@ -297,14 +298,14 @@ def simulate(
         for _nd in _pre_nodes:
             _nt = _nd.get("type", "jaw")
             if _nt in ("jaw", "cone", "scalper", "impactor", "hsi", "vsi"):
+                _eq  = _nd.get("equipment", {})
                 _css = _get_crusher_css(_nd, p80_target, feed_stream=_curr)
-                _nrm = _NORM_CURVES.get(_nt, JAW_PRODUCT_NORMALIZED)
+                _nrm = resolve_product_curve(_eq, _nt)
                 _pi  = _curr.pXX(80)
                 _out = crusher(_curr, _css, _nrm)
                 _po  = _out.pXX(80)
                 _E   = _bond_energy_kwh_t(rock["wi"], _po, _pi)
                 total_energy_kwh_t += _E
-                _eq  = _nd.get("equipment", {})
                 _cv  = _eq.get("curves", {})
                 _cn  = lerp(_cv.get("css", [_css]), _cv.get("tph", [_curr.tph]), _css) or _curr.tph
                 _ut  = min(100.0, (_curr.tph / max(_cn, 0.1)) * 100.0)
@@ -332,7 +333,7 @@ def simulate(
         # CSS se calcula una vez sobre la corriente pre-bucle (es un setting físico fijo).
         _ntr  = _recycle_node.get("type", "cone")
         _cssr = _get_crusher_css(_recycle_node, p80_target, feed_stream=_curr)
-        _nrmr = _NORM_CURVES.get(_ntr, JAW_PRODUCT_NORMALIZED)
+        _nrmr = resolve_product_curve(_recycle_node.get("equipment", {}), _ntr)
 
         # Valores por defecto (sobreescritos al converger)
         _lf   = _curr
@@ -415,8 +416,9 @@ def simulate(
             p80_in    = current_stream.pXX(80)
 
             if node_type in ("jaw", "cone", "scalper", "impactor", "hsi", "vsi"):
+                eq = node.get("equipment", {})
                 css = _get_crusher_css(node, p80_target, feed_stream=current_stream)
-                norm_curve = _NORM_CURVES.get(node_type, JAW_PRODUCT_NORMALIZED)
+                norm_curve = resolve_product_curve(eq, node_type)
 
                 out_stream = crusher(current_stream, css, norm_curve)
                 p80_out = out_stream.pXX(80)
@@ -424,7 +426,6 @@ def simulate(
                 energy = _bond_energy_kwh_t(rock["wi"], p80_out, p80_in)
                 total_energy_kwh_t += energy
 
-                eq = node.get("equipment", {})
                 curves_eq = eq.get("curves", {})
                 css_curve = curves_eq.get("css", [css])
                 tph_curve_eq = curves_eq.get("tph", [current_stream.tph])
