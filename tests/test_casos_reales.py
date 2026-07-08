@@ -28,10 +28,13 @@ from app.routers.equipment import _FALLBACK
 # tiene varias palabras (ej. "Minyu MS 4230" → marca="Minyu MS", modelo="4230").
 # Mapeados al sustituto equivalente del catálogo.
 _FULL_NAME_ALIASES: dict = {
-    "Minyu MS 4230":   ("jaw",    "Terex Finlay", "J-1175"),
-    "Minyu MSP 300 F": ("cone",   "Terex Finlay", "C-1540"),
-    "Minyu MOP2460D":  ("cone",   "Sandvik",      "QH332"),
-    "MEKA 90/2000 ROS":("screen", "Kleemann",     "MS 703i"),
+    "Minyu MS 4230":             ("jaw",    "Terex Finlay", "J-1175"),
+    "Minyu MSP 300 F":           ("cone",   "Terex Finlay", "C-1540"),
+    "Minyu MOP2460D":            ("cone",   "Sandvik",      "QH332"),
+    "MEKA 90/2000 ROS":          ("screen", "Kleemann",     "MS 703i"),
+    "Powerscreen Premiertrak R400":  ("jaw",    "Powerscreen", "Premiertrak R400"),
+    "Powerscreen XH320SR":          ("hsi",    "Powerscreen", "XH320SR"),
+    "Powerscreen XH320SR Screen":   ("screen", "Powerscreen", "XH320SR Screen"),
 }
 
 # Modelos reales no presentes en catálogo → sustituto de misma capacidad y tipo.
@@ -149,6 +152,7 @@ def test_caso_real(caso, request):
         horas_dia=float(caso["horas_dia"]),
         dias_mes=float(caso["dias_mes"]),
         feed_curve_dict=feed_curve_dict,
+        alimentacion_tph=caso.get("alimentacion_tph"),
     )
 
     def _dentro_de_15(campo: str, obtenido: float, esp: float) -> None:

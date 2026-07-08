@@ -22,10 +22,13 @@ from app.routers.equipment import _FALLBACK
 
 # Mismos aliases que test_casos_reales.py
 _FULL_NAME_ALIASES: dict = {
-    "Minyu MS 4230":    ("jaw",    "Terex Finlay", "J-1175"),
-    "Minyu MSP 300 F":  ("cone",   "Terex Finlay", "C-1540"),
-    "Minyu MOP2460D":   ("cone",   "Sandvik",      "QH332"),
-    "MEKA 90/2000 ROS": ("screen", "Kleemann",     "MS 703i"),
+    "Minyu MS 4230":              ("jaw",    "Terex Finlay", "J-1175"),
+    "Minyu MSP 300 F":            ("cone",   "Terex Finlay", "C-1540"),
+    "Minyu MOP2460D":             ("cone",   "Sandvik",      "QH332"),
+    "MEKA 90/2000 ROS":           ("screen", "Kleemann",     "MS 703i"),
+    "Powerscreen Premiertrak R400":  ("jaw",    "Powerscreen", "Premiertrak R400"),
+    "Powerscreen XH320SR":          ("hsi",    "Powerscreen", "XH320SR"),
+    "Powerscreen XH320SR Screen":   ("screen", "Powerscreen", "XH320SR Screen"),
 }
 _MODEL_ALIASES: dict = {
     "883+":    ("screen", "Terex Finlay", "694+"),
@@ -99,6 +102,7 @@ def _run_caso(caso: dict) -> list:
             horas_dia=float(caso["horas_dia"]),
             dias_mes=float(caso["dias_mes"]),
             feed_curve_dict=feed_curve_dict,
+            alimentacion_tph=caso.get("alimentacion_tph"),
         )
         error = None
     except Exception as exc:

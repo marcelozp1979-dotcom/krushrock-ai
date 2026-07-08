@@ -56,6 +56,48 @@
         "meses_requeridos": 3.9,
         "cumple_plazo": true
       }
+    },
+    {
+      "nombre": "KR-AF-003 Lincom C&D - Powerscreen R400 + XH320SR",
+      "certificacion": "aggflow_verificado",
+      "material": "Hormigon de demolicion limpio (C&D)",
+      "rock_type": "hormigon_demolicion",
+      "densidad_ton_m3": 2.3,
+      "f80_mm": 101.6,
+      "feed_curve": [
+        {"size_mm": 304.8, "passing_pct": 100},
+        {"size_mm": 203.2, "passing_pct": 98},
+        {"size_mm": 152.4, "passing_pct": 92},
+        {"size_mm": 101.6, "passing_pct": 80},
+        {"size_mm": 76.2,  "passing_pct": 73},
+        {"size_mm": 50.8,  "passing_pct": 62},
+        {"size_mm": 38.1,  "passing_pct": 57},
+        {"size_mm": 25.4,  "passing_pct": 48},
+        {"size_mm": 19.05, "passing_pct": 45},
+        {"size_mm": 12.7,  "passing_pct": 41},
+        {"size_mm": 9.53,  "passing_pct": 37},
+        {"size_mm": 6.35,  "passing_pct": 34},
+        {"size_mm": 4.76,  "passing_pct": 30},
+        {"size_mm": 2.38,  "passing_pct": 24},
+        {"size_mm": 1.19,  "passing_pct": 19},
+        {"size_mm": 0.595, "passing_pct": 14},
+        {"size_mm": 0.297, "passing_pct": 10},
+        {"size_mm": 0.149, "passing_pct": 4}
+      ],
+      "equipos": ["Powerscreen Premiertrak R400", "Powerscreen XH320SR", "Powerscreen XH320SR Screen"],
+      "circuito": "cerrado",
+      "alimentacion_tph": 120,
+      "producto_objetivo": {"min_mm": 0, "max_mm": 19, "volumen_ton": 50000},
+      "plazo_meses": 3,
+      "horas_dia": 8,
+      "dias_mes": 25,
+      "esperado": {
+        "tph_util": 120,
+        "product_fit_pct": 100.0,
+        "meses_requeridos": 2.1,
+        "cumple_plazo": true
+      },
+      "nota": "Circuito cerrado con impactor; todo el alimentado termina en producto -19mm segun reporte AggFlow #10790"
     }
   ]
 }

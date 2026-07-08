@@ -28,8 +28,9 @@ ROCK_DB: Dict[str, Dict] = {
     "porfido":        {"wi": 16.0, "ab": 0.30, "den": 2.72, "rrN": 0.83, "name": "Pórfido Cuprífero"},
     "andesita":       {"wi": 14.5, "ab": 0.25, "den": 2.68, "rrN": 0.84, "name": "Andesita"},
     "meta_andesita":  {"wi": 15.0, "ab": 0.26, "den": 2.70, "rrN": 0.84, "name": "Meta-andesita"},
-    "hierro":         {"wi": 13.5, "ab": 0.25, "den": 3.20, "rrN": 0.82, "name": "Mineral de Hierro"},
-    "desconocida":    {"wi": 13.0, "ab": 0.20, "den": 2.65, "rrN": 0.85, "name": "Roca desconocida"},
+    "hierro":              {"wi": 13.5, "ab": 0.25, "den": 3.20, "rrN": 0.82, "name": "Mineral de Hierro"},
+    "hormigon_demolicion": {"wi": 9.0,  "ab": 0.08, "den": 2.30, "rrN": 0.95, "name": "Hormigón de Demolición"},
+    "desconocida":         {"wi": 13.0, "ab": 0.20, "den": 2.65, "rrN": 0.85, "name": "Roca desconocida"},
 }
 
 # ── COSTOS REFERENCIALES CHILE 2024-2025 ─────────────────────────────────────
@@ -50,8 +51,9 @@ COST_DB = {
         "porfido":       {"jaw": 0.20, "cone": 0.25, "screen": 0.07},
         "andesita":      {"jaw": 0.16, "cone": 0.20, "screen": 0.05},
         "meta_andesita": {"jaw": 0.17, "cone": 0.21, "screen": 0.05},
-        "hierro":        {"jaw": 0.20, "cone": 0.24, "screen": 0.06},
-        "desconocida":   {"jaw": 0.18, "cone": 0.22, "screen": 0.06},
+        "hierro":              {"jaw": 0.20, "cone": 0.24, "screen": 0.06},
+        "hormigon_demolicion": {"jaw": 0.06, "cone": 0.07, "screen": 0.02},
+        "desconocida":         {"jaw": 0.18, "cone": 0.22, "screen": 0.06},
     },
     "maint_pct": {"jaw": 0.08, "cone": 0.10, "screen": 0.05, "scalper": 0.04},
 }
@@ -162,6 +164,7 @@ def _get_crusher_css(
     css_min, css_max = (
         (float(css_range_spec[0]), float(css_range_spec[1]))
         if css_range_spec and len(css_range_spec) == 2
+            and css_range_spec[0] is not None and css_range_spec[1] is not None
         else CSS_RANGES.get(node_type, (6.0, 200.0))
     )
 
@@ -515,17 +518,24 @@ def simulate(
 
     total_prod_tph = sum(p["tph_out"] for p in products_out)
 
-    # Rendimiento granulométrico: fracción de la salida del chancador (antes de la
-    # seleccionadora) que cae en los rangos de producto — coincide con la métrica
-    # "product fit" de AggFlow (sin penalizar por eficiencia de clasificación).
+    # Rendimiento granulométrico:
+    # - Circuito abierto: fracción de la salida del chancador (antes del harnero)
+    #   que cae en los rangos de producto → coincide con AggFlow "product fit".
+    # - Circuito cerrado: el oversize recircula hasta que todo pase el harnero, así
+    #   que el rendimiento de circuito es 100 % → se usa final_stream (undersize).
     granulometric_yield: Optional[float] = None
-    if pre_screen_stream is not None and products:
+    _gran_ref = (
+        final_stream
+        if (not is_open_circuit and screen_undersize is not None)
+        else pre_screen_stream
+    )
+    if _gran_ref is not None and products:
         gran_sum = 0.0
         for prod in products:
             p_min = float(prod.get("min_mm") or prod.get("minMm") or 0)
             p_max = float(prod.get("max_mm") or prod.get("maxMm") or 9999)
-            hi = pre_screen_stream.passing(p_max) if p_max < 9999 else 100.0
-            lo = pre_screen_stream.passing(p_min) if p_min > 0 else 0.0
+            hi = _gran_ref.passing(p_max) if p_max < 9999 else 100.0
+            lo = _gran_ref.passing(p_min) if p_min > 0 else 0.0
             gran_sum += max(0.0, hi - lo)
         granulometric_yield = round(min(100.0, gran_sum), 1)
 

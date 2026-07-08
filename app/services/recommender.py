@@ -513,6 +513,7 @@ def run_config(
     feed_curve_dict: Optional[Dict] = None,
     horas_dia: Optional[float] = None,
     dias_mes: Optional[float] = None,
+    alimentacion_tph: Optional[float] = None,
 ) -> Dict:
     """
     Corre el motor sobre una configuración de planta y devuelve sus métricas.
@@ -559,18 +560,33 @@ def run_config(
         else None
     )
 
-    sim = simulate(
-        nodes=nodes,
-        tph=cap_per_unit,
-        f80=f80_mm,
-        p80_target=p80_target,
-        rock_type=valid_rock,
-        humidity=0,
-        circuit=circuit,
-        hours_per_year=6000,
-        products=products_for_sim,
-        feed_curve_dict=feed_curve_dict,
-    )
+    def _run_sim(tph_total: float) -> Dict:
+        return simulate(
+            nodes=nodes,
+            tph=tph_total,
+            f80=f80_mm,
+            p80_target=p80_target,
+            rock_type=valid_rock,
+            humidity=0,
+            circuit=circuit,
+            hours_per_year=6000,
+            products=products_for_sim,
+            feed_curve_dict=feed_curve_dict,
+        )
+
+    sim = _run_sim(cap_per_unit)
+
+    # Si se especifica alimentacion_tph (alimentación fresca real), reescalar:
+    # tph en simulate() es la carga total del chancador (fresca + recirculante).
+    # total_product_tph = carga_total × ratio → para obtener la producción deseada
+    # debemos ajustar la carga total proporcionalmente.
+    if alimentacion_tph is not None:
+        max_prod = sim.get("total_product_tph") or (cap_per_unit * sim.get("production_factor", 1.0))
+        target_prod = min(float(alimentacion_tph), max_prod)
+        if max_prod > 0 and target_prod < max_prod:
+            ratio = max_prod / cap_per_unit
+            tph_scaled = target_prod / ratio if ratio > 0 else cap_per_unit
+            sim = _run_sim(tph_scaled)
 
     # product_fit_pct: rendimiento granulométrico (fracción de la salida del chancador
     # que cae en los rangos del producto, antes de pérdidas por eficiencia de clasificación).

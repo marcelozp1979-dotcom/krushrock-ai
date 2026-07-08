@@ -152,6 +152,14 @@ export const ROCK_DB = {
     name: "Caliche",
     desc: "Wi ≈ 7.0  | Muy blanda",
   },
+  hormigon_demolicion: {
+    wi: 9.0,
+    ab: 0.08,
+    den: 2.3,
+    rrN: 1.15,
+    name: "Hormigón de demolición",
+    desc: "Wi ≈ 9.0  | Reciclaje C&D, baja abrasión",
+  },
   desconocida: {
     wi: 13.0,
     ab: 0.2,
@@ -166,7 +174,7 @@ export const ROCK_CATS = {
   aridos: ["huevillo_fino", "huevillo_grueso", "grava_aluvial", "bolones_rio"],
   mineria: ["porfido", "cobre_ox", "magnetita", "oro_cuarzo"],
   roca_dura: ["andesita", "granito", "basalto", "cuarcita"],
-  roca_blanda: ["caliza", "caliche", "arenisca", "dolomita"],
+  roca_blanda: ["caliza", "caliche", "arenisca", "dolomita", "hormigon_demolicion"],
 };
 
 // ── CATÁLOGO DE EQUIPOS (FALLBACK LOCAL) ──────────────────────────────────
