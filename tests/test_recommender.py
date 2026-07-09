@@ -18,6 +18,7 @@ CAMPOS_ESPERADOS = {
     "config", "equipos", "n_units",
     "tph_efectivo", "product_fit_pct",
     "circ_load_pct", "cumple_plazo",
+    "pct_cumplimiento",
     "inchancables_recomendado",
 }
 
@@ -42,12 +43,13 @@ def test_recommend_returns_results():
 def test_coarse_fewer_stages_than_fine():
     """
     Ranking definitivo:
-    - A = config con menos unidades totales que cumple el plazo.
-    - B = config distinta; si tiene mayor product_fit_pct que A, se prefiere (contraste).
+    - A = config que cumple (pct >= 98%) con menor flota.
+    - B = mejor no-cumple (mayor pct < 98%).
 
     Invariantes verificados:
     - A.cumple_plazo = True cuando alguna config cumple.
-    - A.n_units_total <= B.n_units_total (A tiene menos o igual equipos).
+    - A.pct_cumplimiento >= 98.
+    - Si B existe: B.cumple_plazo = False.
     """
     coarse = recommend(
         rock_type="granito",
@@ -66,29 +68,21 @@ def test_coarse_fewer_stages_than_fine():
     assert len(coarse) >= 1, "Producto grueso debe generar recomendaciones"
     assert len(fine) >= 1, "Producto fino debe generar recomendaciones"
 
-    # A cumple el plazo cuando alguna config cumple
-    any_coarse_cumple = any(r["cumple_plazo"] for r in coarse)
-    assert coarse[0]["cumple_plazo"] or not any_coarse_cumple, (
-        "Opción A debe cumplir el plazo cuando existe alguna config que cumple"
-    )
-    any_fine_cumple = any(r["cumple_plazo"] for r in fine)
-    assert fine[0]["cumple_plazo"] or not any_fine_cumple, (
-        "Opción A (fino) debe cumplir el plazo cuando existe alguna config que cumple"
-    )
-
-    # A tiene <= unidades totales que B (A es la opción con menos equipos)
-    if len(coarse) >= 2:
-        units_A = coarse[0]["n_units"] * len(coarse[0]["equipos"])
-        units_B = coarse[1]["n_units"] * len(coarse[1]["equipos"])
-        assert units_A <= units_B, (
-            f"Opción A debe tener <= unidades totales que B: A={units_A} > B={units_B}"
+    # A cumple cuando alguna config cumple, y su pct >= 98
+    for rec_list, label in [(coarse, "grueso"), (fine, "fino")]:
+        any_cumple = any(r["cumple_plazo"] for r in rec_list)
+        assert rec_list[0]["cumple_plazo"] or not any_cumple, (
+            f"Opción A ({label}) debe cumplir cuando existe config que cumple"
         )
-    if len(fine) >= 2:
-        units_A = fine[0]["n_units"] * len(fine[0]["equipos"])
-        units_B = fine[1]["n_units"] * len(fine[1]["equipos"])
-        assert units_A <= units_B, (
-            f"Opción A (fino) debe tener <= unidades totales que B: A={units_A} > B={units_B}"
-        )
+        if rec_list[0]["cumple_plazo"]:
+            assert rec_list[0]["pct_cumplimiento"] >= 98.0, (
+                f"Opción A ({label}) pct_cumplimiento={rec_list[0]['pct_cumplimiento']} < 98"
+            )
+        # B siempre es no-cumple (o no existe)
+        if len(rec_list) >= 2:
+            assert not rec_list[1]["cumple_plazo"], (
+                f"Opción B ({label}) debe ser no-cumple; cumple_plazo={rec_list[1]['cumple_plazo']}"
+            )
 
 
 def test_high_tph_requires_parallel_units():
@@ -112,8 +106,8 @@ def test_high_tph_requires_parallel_units():
 
 def test_alt_ranking_usa_n_units_totales():
     """
-    Ranking definitivo: A tiene menos unidades físicas totales (n_units × len(equipos))
-    que B, o B tiene mayor product_fit_pct que A (contraste).
+    Ranking definitivo: A cumple (pct >= 98%), B no cumple.
+    B es el mejor no-cumple (mayor pct_cumplimiento).
     """
     results = recommend(
         rock_type="granito",
@@ -125,18 +119,11 @@ def test_alt_ranking_usa_n_units_totales():
     if len(results) < 2:
         return  # sin alternativa, nada que verificar
     best, alt = results[0], results[1]
-    best_totales = best["n_units"] * len(best["equipos"])
-    alt_totales  = alt["n_units"]  * len(alt["equipos"])
 
-    assert alt["config"] != best["config"], (
-        "La alternativa debe ser de config distinta a la principal"
-    )
-    # A tiene <= unidades totales que B (criterio principal de ranking)
-    # o B tiene mayor product_fit_pct que A (contraste elegido explícitamente)
-    assert best_totales <= alt_totales or alt["product_fit_pct"] > best["product_fit_pct"], (
-        f"A debe tener <= unidades que B, o B debe tener mayor fit: "
-        f"A_tot={best_totales} B_tot={alt_totales} "
-        f"A_fit={best['product_fit_pct']}% B_fit={alt['product_fit_pct']}%"
+    assert best["cumple_plazo"], "A debe cumplir el plazo"
+    assert not alt["cumple_plazo"], "B debe ser el mejor no-cumple"
+    assert alt["pct_cumplimiento"] < 98.0, (
+        f"B.pct_cumplimiento={alt['pct_cumplimiento']} no debe ser >= 98"
     )
 
 
@@ -262,6 +249,100 @@ def test_n_units_aumenta_cuando_produccion_util_no_alcanza():
     assert a["n_units"] >= 2, (
         f"Opción A debe necesitar >= 2 unidades. n_units={a['n_units']}"
     )
+
+
+def test_un_equipo_grande_vence_a_dos_chicos():
+    """
+    Test (a): 1 equipo más grande que cumple gana a 2 equipos más chicos que también cumplen.
+    Verifica que el ranking (n_units * len, cap_sum) no rompe este invariante.
+
+    Escenario: volumen entre tph_1_pequeño y tph_1_grande (ambos cumple en rango de 98%).
+    → pequeño necesita n=2, grande alcanza con n=1.
+    → Opción A debe ser el de n=1 (mayor equipo, menor flota).
+    """
+    import pytest
+    from app.services.recommender import run_config
+
+    ROCK = "granito"; F80 = 400.0; HORAS_DIA = 8.0; DIAS_MES = 25.0; DURACION = 3
+    hours_per_month = HORAS_DIA * DIAS_MES
+    hours_total = DURACION * hours_per_month
+
+    dummy_prod = [{"name": "grava", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 1.0}]
+
+    # Equipo pequeño: J-960 (cap 200)
+    tph_small = run_config(
+        equipos=[{"etapa": "jaw", "marca": "Terex Finlay", "modelo": "J-960"}],
+        f80_mm=F80, products=dummy_prod, duracion_meses=DURACION,
+        rock_type=ROCK, n_units=1, circuit="open",
+        horas_dia=HORAS_DIA, dias_mes=DIAS_MES,
+    )["tph_util"]
+
+    # Equipo más grande: Premiertrak 600 (cap 220)
+    tph_large = run_config(
+        equipos=[{"etapa": "jaw", "marca": "Powerscreen", "modelo": "Premiertrak 600"}],
+        f80_mm=F80, products=dummy_prod, duracion_meses=DURACION,
+        rock_type=ROCK, n_units=1, circuit="open",
+        horas_dia=HORAS_DIA, dias_mes=DIAS_MES,
+    )["tph_util"]
+
+    if tph_large <= tph_small * 1.02:
+        pytest.skip(f"Grande ({tph_large}) no supera materialmente a pequeño ({tph_small})")
+
+    # Volumen entre ambos: pequeño n=1 no cumple (< 98%), grande n=1 sí cumple (>= 98%)
+    vol = round((tph_small * 1.05) * hours_total)  # 5% más de lo que produce el pequeño
+
+    results = recommend(
+        rock_type=ROCK, f80_mm=F80,
+        products=[{"name": "grava", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": vol}],
+        duracion_meses=DURACION, inchancables=False,
+        horas_dia=HORAS_DIA, dias_mes=DIAS_MES,
+    )
+
+    assert results, "Debe retornar recomendaciones"
+    a = results[0]
+    any_cumple = any(r["cumple_plazo"] for r in results)
+    if not any_cumple:
+        pytest.skip("Ninguna config cumple con este volumen; test no aplica")
+    assert a["cumple_plazo"], f"Opción A debe cumplir el plazo. n_units={a['n_units']}"
+    assert a["n_units"] == 1, (
+        f"Opción A debe ser 1 unidad (el equipo más grande que cumple). n_units={a['n_units']}"
+    )
+
+
+def test_feed_max_excluye_equipos_insuficientes():
+    """
+    Test (b): con material de hasta 700mm en la alimentación, ningún equipo recomendado
+    debe tener feed_max_mm < 700mm.
+    """
+    from app.routers.equipment import _FALLBACK
+
+    # feed_curve con máximo en 700mm; f80 moderado para no excluir todos los jaws
+    feed_curve = {200: 30, 400: 65, 550: 85, 700: 100}
+
+    results = recommend(
+        rock_type="granito",
+        f80_mm=400.0,
+        products=[{"name": "grava", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 10_000.0}],
+        duracion_meses=3,
+        inchancables=False,
+        feed_curve_dict=feed_curve,
+    )
+
+    assert results, "Debe retornar al menos 1 recomendación"
+
+    # Construir mapa feed_max_mm por (brand, model)
+    feed_map = {}
+    for tipo in ("jaw", "cone", "hsi"):
+        for eq in _FALLBACK.get(tipo, []):
+            feed_map[(eq["brand"], eq["model"])] = eq.get("feed_max_mm") or 0
+
+    for rec in results:
+        for eq in rec["equipos"]:
+            if eq["etapa"] == "jaw":
+                feed_max = feed_map.get((eq["marca"], eq["modelo"]), 0)
+                assert feed_max >= 700, (
+                    f"Equipo {eq['marca']} {eq['modelo']} tiene feed_max_mm={feed_max} < 700mm"
+                )
 
 
 def test_plazo_cumple_prioritario_sobre_mayor_fit():

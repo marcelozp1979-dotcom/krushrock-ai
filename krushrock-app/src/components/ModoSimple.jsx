@@ -536,34 +536,30 @@ export function SimpleMode({ eqCatalog, onBack }) {
                     const horasMes = Number(horasDia) * Number(diasMes);
                     const optionLabel = idx === 0
                       ? "Opción A — Cumple tu producción con la menor flota"
-                      : rec.product_fit_pct > recs[0].product_fit_pct
-                        ? "Opción B — Mayor aprovechamiento del material"
-                        : "Opción B — Menos equipos, más tiempo";
+                      : "Opción B — Alternativa más pequeña (requiere más horas)";
                     const detail = rec.products_detail || [];
+                    const totalVolumen = detail.reduce((s, d) => s + (d.volumen_ton || 0), 0);
 
                     let implicancia;
                     let implicanciaColor = G.muted;
                     if (rec.meses_requeridos === null) {
                       implicancia = "Esta configuración no puede producir alguno de los productos requeridos.";
                       implicanciaColor = G.red;
-                    } else if (!rec.cumple_plazo) {
-                      implicancia = `No alcanza el volumen en el plazo: terminaría en ${mesesReq} meses.`;
-                      implicanciaColor = G.accent;
                     } else if (idx === 0) {
                       implicancia = `Aprovecha ${pf}% del material. Requiere ${nUnitsTotal} unidad${nUnitsTotal !== 1 ? "es" : ""}. Termina en ${mesesReq} meses.`;
                     } else {
-                      const menosUnidades = nUnitsTotalA - nUnitsTotal;
-                      const mesesA = recs[0].meses_requeridos ?? 0;
-                      const horasAdicionales = Math.max(0, Math.round((mesesReq - mesesA) * horasMes));
-                      const menosText = menosUnidades > 0
-                        ? `${menosUnidades} menos que la opción A`
-                        : menosUnidades === 0 ? "igual cantidad que la opción A"
-                        : `${-menosUnidades} más que la opción A`;
-                      implicancia = `Usa ${nUnitsTotal} unidad${nUnitsTotal !== 1 ? "es" : ""} (${menosText}). `
-                        + `Aprovecha ${pf}% (descarta ${descartePct}% del material). `
-                        + (horasAdicionales > 0
-                            ? `Necesita ${mesesReq} meses / ${horasAdicionales} horas adicionales para el mismo volumen.`
-                            : `Termina en ${mesesReq} meses.`);
+                      const pctCumpl = rec.pct_cumplimiento ?? 0;
+                      const volLogrado = totalVolumen > 0
+                        ? Math.round(pctCumpl / 100 * totalVolumen).toLocaleString()
+                        : null;
+                      const horasAdicionales = rec.horas_adicionales_mes;
+                      implicancia = `Lograría ${pctCumpl}% del volumen en el plazo`;
+                      if (volLogrado) implicancia += ` (${volLogrado} t)`;
+                      implicancia += ".";
+                      if (horasAdicionales && horasAdicionales > 0) {
+                        implicancia += ` Agregando ${Math.ceil(horasAdicionales)} horas/mes se logra el volumen en el plazo.`;
+                      }
+                      implicanciaColor = G.accent;
                     }
 
                     return (

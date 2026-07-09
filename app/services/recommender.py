@@ -42,11 +42,11 @@ _PICK: int = 2
 
 # ── FILTROS DE CATÁLOGO ───────────────────────────────────────────────────────
 
-def _viable_jaws(f80_mm: float) -> List[Dict]:
-    """Mandíbulas que aceptan el F80 de alimentación, orden ascendente de capacidad."""
+def _viable_jaws(feed_max_material_mm: float) -> List[Dict]:
+    """Mandíbulas cuyo feed_max_mm acepta el tamaño máximo real de partícula."""
     return sorted(
         [e for e in _FALLBACK["jaw"]
-         if (e.get("feed_max_mm") or 0) >= f80_mm],
+         if (e.get("feed_max_mm") or 0) >= feed_max_material_mm],
         key=lambda e: e["cap_max_tph"],
     )
 
@@ -259,6 +259,12 @@ def recommend(
     total_volumen = sum(float(p.get("volumen_ton") or 0) for p in products)
     tph_required = total_volumen / max(duracion_meses, 1) / hours_per_month
 
+    # Tamaño máximo real de partícula: desde la curva si existe, sino f80/0.8
+    if feed_curve_dict:
+        feed_max_material_mm = max(float(k) for k in feed_curve_dict.keys())
+    else:
+        feed_max_material_mm = f80_mm / 0.8
+
     # P80 objetivo: max_mm del producto más fino × 0.85 (criterio conservador)
     if products:
         finest_max = min(float(p.get("max_mm", 9999)) for p in products)
@@ -274,8 +280,8 @@ def recommend(
     # al menos 3× el objetivo final, o 35% del F80 de alimentación
     jaw_target_p80 = max(p80_target * 3.0, f80_mm * 0.35)
 
-    # Filtros de catálogo
-    jaws = _viable_jaws(f80_mm)
+    # Filtros de catálogo — jaws filtradas por tamaño real de partícula
+    jaws = _viable_jaws(feed_max_material_mm)
     cones = _viable_cones(jaw_target_p80)
     screens = _viable_screens(len(products))
 
@@ -304,17 +310,18 @@ def recommend(
     # ── Generar candidatos ────────────────────────────────────────────────────
     candidates: List[Dict] = []
 
+    # Candidatos siempre parten con n=1; el escalamiento a n=2..4
+    # se hace en el bucle de simulación si la producción real no cumple.
+    # Así 1 equipo grande siempre gana a 2 equipos chicos en el ranking.
+
     # A: mandíbula sola (solo para productos gruesos — jaw no puede producir <50mm útil)
     if finest_max >= _JAW_ONLY_MIN_MM:
         for jaw in top_jaws:
-            n = _parallel_n(jaw["cap_max_tph"], tph_required)
-            if n == 0:
-                continue
             candidates.append({
                 "label": "jaw_only",
                 "nodes": [_make_jaw_node(jaw, p80_target)],
                 "circuit": "open",
-                "n_units": n,
+                "n_units": 1,
                 "cap_bottleneck_tph": jaw["cap_max_tph"],
             })
 
@@ -323,9 +330,6 @@ def recommend(
         for jaw in top_jaws:
             for scr in top_screens:
                 bn = _bottleneck_cap([jaw, scr])
-                n = _parallel_n(bn, tph_required)
-                if n == 0:
-                    continue
                 candidates.append({
                     "label": "jaw_screen",
                     "nodes": [
@@ -333,7 +337,7 @@ def recommend(
                         _make_screen_node(scr, aperture_mm),
                     ],
                     "circuit": "closed",
-                    "n_units": n,
+                    "n_units": 1,
                     "cap_bottleneck_tph": bn,
                 })
 
@@ -343,9 +347,6 @@ def recommend(
             for cone in top_cones:
                 for scr in top_screens:
                     bn = _bottleneck_cap([jaw, cone, scr])
-                    n = _parallel_n(bn, tph_required)
-                    if n == 0:
-                        continue
                     candidates.append({
                         "label": "jaw_cone_screen",
                         "nodes": [
@@ -354,7 +355,7 @@ def recommend(
                             _make_screen_node(scr, aperture_mm),
                         ],
                         "circuit": "closed",
-                        "n_units": n,
+                        "n_units": 1,
                         "cap_bottleneck_tph": bn,
                     })
 
@@ -399,20 +400,40 @@ def recommend(
 
         # plazo y detalle por producto usando balance de masa
         product_yields = sim.get("product_yields") or []
-        n_units = cand["n_units"]
-        prods_detail, meses_req, cumple = _per_product_detail(
+        n_units = 1  # siempre se empieza con 1
+
+        def _pct_cumpl(meses_r: Optional[float]) -> float:
+            if meses_r is None:
+                return 0.0
+            if meses_r <= 0:
+                return 100.0
+            return min(100.0, round(duracion_meses / meses_r * 100.0, 1))
+
+        prods_detail, meses_req, _ = _per_product_detail(
             products, product_yields, n_units, duracion_meses, hours_per_month
         )
+        pct_cumpl = _pct_cumpl(meses_req)
+        cumple = pct_cumpl >= 98.0
 
-        # Si la producción real es menor que la nominal, la config puede no cumplir
-        # aunque _parallel_n dijera que n=1 bastaba. Probar hasta n=4.
+        # Si la producción real no alcanza el 98%, escalar hasta n=4
         while not cumple and n_units < 4 and meses_req is not None:
             n_units += 1
-            prods_detail, meses_req, cumple = _per_product_detail(
+            prods_detail, meses_req, _ = _per_product_detail(
                 products, product_yields, n_units, duracion_meses, hours_per_month
             )
+            pct_cumpl = _pct_cumpl(meses_req)
+            cumple = pct_cumpl >= 98.0
 
         tph_util = round(tph_eff_per_unit * n_units, 1)
+
+        # Horas/mes adicionales para completar el volumen si no cumple
+        if not cumple and tph_util > 0 and meses_req is not None:
+            horas_adicionales_mes = max(
+                0.0,
+                round(total_volumen / (tph_util * duracion_meses) - hours_per_month, 1),
+            )
+        else:
+            horas_adicionales_mes = None
 
         results.append({
             "config": cand["label"],
@@ -430,8 +451,10 @@ def recommend(
             "product_fit_pct": pf,
             "descarte_pct": descarte_pct,
             "circ_load_pct": round(float(cc), 1),
+            "pct_cumplimiento": pct_cumpl,
             "meses_requeridos": meses_req,
             "cumple_plazo": cumple,
+            "horas_adicionales_mes": horas_adicionales_mes,
             "inchancables_recomendado": inchancables,
             "products_detail": prods_detail,
             "_cap_sum_tph": sum(
@@ -443,47 +466,39 @@ def recommend(
         return []
 
     # ── Ranking definitivo por criterio de negocio ────────────────────────────
-    # 1. Filtro: configs que cumplen el plazo. Si ninguna cumple, usar todas.
+    # A: entre configs que cumplen (pct >= 98%), la de menor flota.
+    # B: la config que NO cumple pero más se acerca por abajo (mayor pct < 98%).
     cumplen = [r for r in results if r["cumple_plazo"]]
-    pool = cumplen if cumplen else results
+
+    def _rank_key(r: Dict) -> tuple:
+        return (r["n_units"] * len(r["equipos"]), r["_cap_sum_tph"])
 
     if cumplen:
-        # Orden: (a) menos unidades totales, (b) equipos más pequeños, (c) mayor fit
-        def _rank_key(r: Dict) -> tuple:
-            return (
-                r["n_units"] * len(r["equipos"]),
-                r["_cap_sum_tph"],
-                -r["product_fit_pct"],
-            )
-        pool.sort(key=_rank_key)
-        best = pool[0]
+        cumplen.sort(key=_rank_key)
+        best = cumplen[0]
 
-        # B: siguiente config distinta; si tiene mayor fit que A, preferirla (contraste)
-        alt_pool = sorted(
-            [r for r in pool if r["config"] != best["config"]],
-            key=_rank_key,
-        )
-        if alt_pool:
-            higher_fit = [r for r in alt_pool if r["product_fit_pct"] > best["product_fit_pct"]]
-            alt = (
-                max(higher_fit, key=lambda r: r["product_fit_pct"])
-                if higher_fit
-                else alt_pool[0]
+        # B: mejor no-cumple (mayor pct_cumplimiento), desempatando por menor flota
+        no_cumplen = [r for r in results if not r["cumple_plazo"]]
+        alt = (
+            max(
+                no_cumplen,
+                key=lambda r: (
+                    r["pct_cumplimiento"],
+                    -(r["n_units"] * len(r["equipos"])),
+                    -r["_cap_sum_tph"],
+                ),
             )
-        else:
-            alt = None
-    else:
-        # Fallback: ninguna cumple → A = la que menos se demora
-        def _fallback_key(r: Dict) -> tuple:
-            m = r["meses_requeridos"]
-            return (m if m is not None else float("inf"),)
-        pool.sort(key=_fallback_key)
-        best = pool[0]
-        alt_fb = sorted(
-            [r for r in pool if r["config"] != best["config"]],
-            key=_fallback_key,
+            if no_cumplen
+            else None
         )
-        alt = alt_fb[0] if alt_fb else None
+    else:
+        # Fallback: ninguna cumple → A = mayor pct_cumplimiento
+        results_sorted = sorted(results, key=lambda r: -r["pct_cumplimiento"])
+        best = results_sorted[0]
+        alt = next(
+            (r for r in results_sorted if r["config"] != best["config"]),
+            None,
+        )
 
     # Eliminar campo interno antes de retornar
     top2 = [best] + ([alt] if alt else [])
