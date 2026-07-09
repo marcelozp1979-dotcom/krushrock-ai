@@ -423,21 +423,61 @@ def recommend(
             "cumple_plazo": cumple,
             "inchancables_recomendado": inchancables,
             "products_detail": prods_detail,
+            "_cap_sum_tph": sum(
+                node["equipment"].get("cap_max_tph", 0) for node in cand["nodes"]
+            ),
         })
 
     if not results:
         return []
 
-    # ── Opción principal: mayor product_fit_pct ───────────────────────────────
-    results.sort(key=lambda r: -r["product_fit_pct"])
-    best = results[0]
+    # ── Ranking definitivo por criterio de negocio ────────────────────────────
+    # 1. Filtro: configs que cumplen el plazo. Si ninguna cumple, usar todas.
+    cumplen = [r for r in results if r["cumple_plazo"]]
+    pool = cumplen if cumplen else results
 
-    # ── Alternativa: menor número de equipos, config distinta de la principal ─
-    alt_pool = [r for r in results if r["config"] != best["config"]]
-    alt_pool.sort(key=lambda r: (r["n_units"] * len(r["equipos"]), -r["product_fit_pct"]))
-    alt = alt_pool[0] if alt_pool else None
+    if cumplen:
+        # Orden: (a) menos unidades totales, (b) equipos más pequeños, (c) mayor fit
+        def _rank_key(r: Dict) -> tuple:
+            return (
+                r["n_units"] * len(r["equipos"]),
+                r["_cap_sum_tph"],
+                -r["product_fit_pct"],
+            )
+        pool.sort(key=_rank_key)
+        best = pool[0]
 
+        # B: siguiente config distinta; si tiene mayor fit que A, preferirla (contraste)
+        alt_pool = sorted(
+            [r for r in pool if r["config"] != best["config"]],
+            key=_rank_key,
+        )
+        if alt_pool:
+            higher_fit = [r for r in alt_pool if r["product_fit_pct"] > best["product_fit_pct"]]
+            alt = (
+                max(higher_fit, key=lambda r: r["product_fit_pct"])
+                if higher_fit
+                else alt_pool[0]
+            )
+        else:
+            alt = None
+    else:
+        # Fallback: ninguna cumple → A = la que menos se demora
+        def _fallback_key(r: Dict) -> tuple:
+            m = r["meses_requeridos"]
+            return (m if m is not None else float("inf"),)
+        pool.sort(key=_fallback_key)
+        best = pool[0]
+        alt_fb = sorted(
+            [r for r in pool if r["config"] != best["config"]],
+            key=_fallback_key,
+        )
+        alt = alt_fb[0] if alt_fb else None
+
+    # Eliminar campo interno antes de retornar
     top2 = [best] + ([alt] if alt else [])
+    for r in top2:
+        r.pop("_cap_sum_tph", None)
     return top2
 
 

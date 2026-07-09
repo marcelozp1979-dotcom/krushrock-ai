@@ -41,14 +41,13 @@ def test_recommend_returns_results():
 
 def test_coarse_fewer_stages_than_fine():
     """
-    Regla de ranking vigente:
-    - Principal  = mayor product_fit_pct
-    - Alternativa = menor n_units_totales (n_units × len(equipos)), luego mayor product_fit_pct
+    Ranking definitivo:
+    - A = config con menos unidades totales que cumple el plazo.
+    - B = config distinta; si tiene mayor product_fit_pct que A, se prefiere (contraste).
 
-    Para producto grueso (75mm): la alternativa (si existe) debe tener
-    ≤ unidades físicas totales que la principal.
-    Para producto fino (19mm): la principal debe tener mayor product_fit_pct
-    que cualquier configuración de etapa única disponible.
+    Invariantes verificados:
+    - A.cumple_plazo = True cuando alguna config cumple.
+    - A.n_units_total <= B.n_units_total (A tiene menos o igual equipos).
     """
     coarse = recommend(
         rock_type="granito",
@@ -67,27 +66,28 @@ def test_coarse_fewer_stages_than_fine():
     assert len(coarse) >= 1, "Producto grueso debe generar recomendaciones"
     assert len(fine) >= 1, "Producto fino debe generar recomendaciones"
 
-    # Principal siempre tiene el mayor product_fit_pct
-    if len(coarse) >= 2:
-        assert coarse[0]["product_fit_pct"] >= coarse[1]["product_fit_pct"], (
-            f"Principal debe tener mayor o igual product_fit_pct que alternativa: "
-            f"{coarse[0]['product_fit_pct']}% vs {coarse[1]['product_fit_pct']}%"
-        )
+    # A cumple el plazo cuando alguna config cumple
+    any_coarse_cumple = any(r["cumple_plazo"] for r in coarse)
+    assert coarse[0]["cumple_plazo"] or not any_coarse_cumple, (
+        "Opción A debe cumplir el plazo cuando existe alguna config que cumple"
+    )
+    any_fine_cumple = any(r["cumple_plazo"] for r in fine)
+    assert fine[0]["cumple_plazo"] or not any_fine_cumple, (
+        "Opción A (fino) debe cumplir el plazo cuando existe alguna config que cumple"
+    )
 
-    # Alternativa tiene ≤ unidades físicas totales que la principal
+    # A tiene <= unidades totales que B (A es la opción con menos equipos)
     if len(coarse) >= 2:
-        units_principal = coarse[0]["n_units"] * len(coarse[0]["equipos"])
-        units_alt       = coarse[1]["n_units"] * len(coarse[1]["equipos"])
-        assert units_alt <= units_principal, (
-            f"Alternativa debe tener ≤ unidades físicas totales que la principal: "
-            f"alt={units_alt} > principal={units_principal}"
+        units_A = coarse[0]["n_units"] * len(coarse[0]["equipos"])
+        units_B = coarse[1]["n_units"] * len(coarse[1]["equipos"])
+        assert units_A <= units_B, (
+            f"Opción A debe tener <= unidades totales que B: A={units_A} > B={units_B}"
         )
-
-    # Para producto fino la principal debe superar en product_fit_pct a la alternativa
     if len(fine) >= 2:
-        assert fine[0]["product_fit_pct"] >= fine[1]["product_fit_pct"], (
-            f"Principal (fino) debe tener mayor o igual product_fit_pct que alternativa: "
-            f"{fine[0]['product_fit_pct']}% vs {fine[1]['product_fit_pct']}%"
+        units_A = fine[0]["n_units"] * len(fine[0]["equipos"])
+        units_B = fine[1]["n_units"] * len(fine[1]["equipos"])
+        assert units_A <= units_B, (
+            f"Opción A (fino) debe tener <= unidades totales que B: A={units_A} > B={units_B}"
         )
 
 
@@ -112,9 +112,8 @@ def test_high_tph_requires_parallel_units():
 
 def test_alt_ranking_usa_n_units_totales():
     """
-    La alternativa se elige por n_units * len(equipos), no solo por len(equipos).
-    Cuando hay dos alternativas, la que tiene menos unidades físicas totales gana,
-    aunque tenga más tipos de equipo.
+    Ranking definitivo: A tiene menos unidades físicas totales (n_units × len(equipos))
+    que B, o B tiene mayor product_fit_pct que A (contraste).
     """
     results = recommend(
         rock_type="granito",
@@ -127,19 +126,18 @@ def test_alt_ranking_usa_n_units_totales():
         return  # sin alternativa, nada que verificar
     best, alt = results[0], results[1]
     best_totales = best["n_units"] * len(best["equipos"])
-    alt_totales = alt["n_units"] * len(alt["equipos"])
-    # La alternativa debe tener al menos tantas unidades físicas como la principal,
-    # o — si tiene menos — mejor product_fit_pct que cualquier opción descartada.
-    # El invariante mínimo: alt_totales >= best_totales O alt tiene distinto config.
+    alt_totales  = alt["n_units"]  * len(alt["equipos"])
+
     assert alt["config"] != best["config"], (
         "La alternativa debe ser de config distinta a la principal"
     )
-    # La alternativa no debe tener más unidades físicas que otra candidata rechazada
-    # con la misma config: verificamos que n_units_totales es el criterio correcto
-    # comparando que alt_totales <= best_totales cuando best tiene más etapas.
-    if len(best["equipos"]) > len(alt["equipos"]):
-        # best tiene más tipos → alt tiene menos etapas; n_units puede compensar
-        assert alt_totales <= best_totales or alt["product_fit_pct"] >= best["product_fit_pct"]
+    # A tiene <= unidades totales que B (criterio principal de ranking)
+    # o B tiene mayor product_fit_pct que A (contraste elegido explícitamente)
+    assert best_totales <= alt_totales or alt["product_fit_pct"] > best["product_fit_pct"], (
+        f"A debe tener <= unidades que B, o B debe tener mayor fit: "
+        f"A_tot={best_totales} B_tot={alt_totales} "
+        f"A_fit={best['product_fit_pct']}% B_fit={alt['product_fit_pct']}%"
+    )
 
 
 def test_jaw_screen_product_fit_no_menor_que_jaw_solo():
@@ -202,4 +200,59 @@ def test_inchancables_flag_preserved():
     for r in results:
         assert r["inchancables_recomendado"] is True, (
             f"inchancables_recomendado debería ser True pero es {r['inchancables_recomendado']}"
+        )
+
+
+def test_plazo_cumple_prioritario_sobre_mayor_fit():
+    """
+    Cuando una config de menor fit cumple el plazo y una de mayor fit no cumple,
+    la Opción A debe ser la que cumple el plazo (aunque tenga menor product_fit_pct).
+    """
+    import pytest
+    from app.services.recommender import run_config
+
+    ROCK = "granito"; F80 = 400.0; HORAS_DIA = 8.0; DIAS_MES = 25.0; DURACION = 2
+    horas_total = DURACION * HORAS_DIA * DIAS_MES  # 400 h
+
+    big_vol = [{"name": "prod", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 1_000_000.0}]
+
+    tph_jaw = run_config(
+        equipos=[{"etapa": "jaw", "marca": "Terex Finlay", "modelo": "J-960"}],
+        f80_mm=F80, products=big_vol, duracion_meses=DURACION,
+        rock_type=ROCK, n_units=1, circuit="open",
+        horas_dia=HORAS_DIA, dias_mes=DIAS_MES,
+    )["tph_util"]
+
+    tph_jcs = run_config(
+        equipos=[
+            {"etapa": "jaw",    "marca": "Terex Finlay", "modelo": "J-960"},
+            {"etapa": "cone",   "marca": "Terex Finlay", "modelo": "C-1540"},
+            {"etapa": "screen", "marca": "Terex Finlay", "modelo": "683"},
+        ],
+        f80_mm=F80, products=big_vol, duracion_meses=DURACION,
+        rock_type=ROCK, n_units=1, circuit="closed",
+        horas_dia=HORAS_DIA, dias_mes=DIAS_MES,
+    )["tph_util"]
+
+    if tph_jaw <= tph_jcs:
+        pytest.skip(f"Precondición no cumplida: jaw ({tph_jaw:.1f}) ≤ jcs ({tph_jcs:.1f})")
+
+    # Vol en punto medio: jaw cumple, jcs no cumple
+    vol_split = round((tph_jcs * horas_total + tph_jaw * horas_total) / 2)
+
+    results = recommend(
+        rock_type=ROCK, f80_mm=F80,
+        products=[{"name": "prod", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": vol_split}],
+        duracion_meses=DURACION, inchancables=False,
+        horas_dia=HORAS_DIA, dias_mes=DIAS_MES,
+    )
+
+    assert results, "Debe retornar al menos 1 recomendación"
+    a = results[0]
+    any_cumple = any(r["cumple_plazo"] for r in results)
+    if any_cumple:
+        assert a["cumple_plazo"], (
+            f"Opción A debe cumplir el plazo cuando existe config que cumple. "
+            f"config={a['config']}, cumple_plazo={a['cumple_plazo']}, "
+            f"meses={a['meses_requeridos']}"
         )
