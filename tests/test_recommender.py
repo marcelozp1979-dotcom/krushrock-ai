@@ -128,6 +128,53 @@ def test_alt_ranking_usa_n_units_totales():
         assert alt_totales <= best_totales or alt["product_fit_pct"] >= best["product_fit_pct"]
 
 
+def test_jaw_screen_product_fit_no_menor_que_jaw_solo():
+    """
+    Config con seleccionadora nunca debe dar menor product_fit_pct que jaw solo
+    para el mismo material y rango de producto.
+    """
+    from app.services.recommender import run_config
+
+    feed_curve = {152.4: 69.0, 203.2: 77.0, 254.0: 82.0, 304.8: 86.0}
+    product = [{"name": "triturado", "min_mm": 0.0, "max_mm": 100.0, "volumen_ton": 110_000.0}]
+
+    jaw_only = run_config(
+        equipos=[{"etapa": "jaw", "marca": "Terex Finlay", "modelo": "J-960"}],
+        f80_mm=234.0,
+        products=product,
+        duracion_meses=3,
+        rock_type="andesita",
+        n_units=2,
+        circuit="open",
+        horas_dia=6.0,
+        dias_mes=30.0,
+        feed_curve_dict=feed_curve,
+    )
+
+    jaw_screen = run_config(
+        equipos=[
+            {"etapa": "jaw",    "marca": "Terex Finlay", "modelo": "J-960"},
+            {"etapa": "screen", "marca": "Terex Finlay", "modelo": "683"},
+        ],
+        f80_mm=234.0,
+        products=product,
+        duracion_meses=3,
+        rock_type="andesita",
+        n_units=2,
+        circuit="closed",
+        horas_dia=6.0,
+        dias_mes=30.0,
+        feed_curve_dict=feed_curve,
+    )
+
+    pf_only   = jaw_only["product_fit_pct"]
+    pf_screen = jaw_screen["product_fit_pct"]
+    assert pf_screen >= pf_only, (
+        f"Circuito cerrado con seleccionadora no debe reducir product_fit_pct: "
+        f"jaw_only={pf_only}% > jaw_screen={pf_screen}%"
+    )
+
+
 def test_inchancables_flag_preserved():
     """El flag inchancables=True se propaga a todos los resultados devueltos."""
     results = recommend(

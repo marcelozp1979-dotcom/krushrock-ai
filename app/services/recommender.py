@@ -385,9 +385,12 @@ def recommend(
         except Exception:
             continue  # candidato inviable — saltar
 
-        # production_factor = total_prod_tph / feed_tph = fracción real que se convierte en producto
+        # granulometric_yield: % del material en rango de producto (calculado desde curva).
+        # production_factor: total_prod_tph / carga_total_chancador (incluye recirculante en cerrado).
+        # Usar granulometric_yield cuando existe; fallback a production_factor para circuito abierto sin seleccionadora.
         production_factor = sim.get("production_factor", 0.0)
-        pf = round(production_factor * 100.0, 1)
+        gran_yield = sim.get("granulometric_yield")
+        pf = round(gran_yield if gran_yield is not None else production_factor * 100.0, 1)
         cc = sim.get("circ_load_pct", 0.0)
         # tph_efectivo total = producto por unidad × n_units
         tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * production_factor, 1)
