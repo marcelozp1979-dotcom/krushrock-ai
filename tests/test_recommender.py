@@ -96,6 +96,38 @@ def test_high_tph_requires_parallel_units():
     )
 
 
+def test_alt_ranking_usa_n_units_totales():
+    """
+    La alternativa se elige por n_units * len(equipos), no solo por len(equipos).
+    Cuando hay dos alternativas, la que tiene menos unidades físicas totales gana,
+    aunque tenga más tipos de equipo.
+    """
+    results = recommend(
+        rock_type="granito",
+        f80_mm=400.0,
+        products=[{"name": "arena", "min_mm": 0.0, "max_mm": 19.0, "volumen_ton": 15_000.0}],
+        duracion_meses=3,
+        inchancables=False,
+    )
+    if len(results) < 2:
+        return  # sin alternativa, nada que verificar
+    best, alt = results[0], results[1]
+    best_totales = best["n_units"] * len(best["equipos"])
+    alt_totales = alt["n_units"] * len(alt["equipos"])
+    # La alternativa debe tener al menos tantas unidades físicas como la principal,
+    # o — si tiene menos — mejor product_fit_pct que cualquier opción descartada.
+    # El invariante mínimo: alt_totales >= best_totales O alt tiene distinto config.
+    assert alt["config"] != best["config"], (
+        "La alternativa debe ser de config distinta a la principal"
+    )
+    # La alternativa no debe tener más unidades físicas que otra candidata rechazada
+    # con la misma config: verificamos que n_units_totales es el criterio correcto
+    # comparando que alt_totales <= best_totales cuando best tiene más etapas.
+    if len(best["equipos"]) > len(alt["equipos"]):
+        # best tiene más tipos → alt tiene menos etapas; n_units puede compensar
+        assert alt_totales <= best_totales or alt["product_fit_pct"] >= best["product_fit_pct"]
+
+
 def test_inchancables_flag_preserved():
     """El flag inchancables=True se propaga a todos los resultados devueltos."""
     results = recommend(

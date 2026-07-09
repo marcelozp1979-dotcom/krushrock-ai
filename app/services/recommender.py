@@ -431,7 +431,7 @@ def recommend(
 
     # ── Alternativa: menor número de equipos, config distinta de la principal ─
     alt_pool = [r for r in results if r["config"] != best["config"]]
-    alt_pool.sort(key=lambda r: (len(r["equipos"]), -r["product_fit_pct"]))
+    alt_pool.sort(key=lambda r: (r["n_units"] * len(r["equipos"]), -r["product_fit_pct"]))
     alt = alt_pool[0] if alt_pool else None
 
     top2 = [best] + ([alt] if alt else [])
