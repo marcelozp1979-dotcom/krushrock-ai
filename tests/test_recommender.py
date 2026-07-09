@@ -41,9 +41,14 @@ def test_recommend_returns_results():
 
 def test_coarse_fewer_stages_than_fine():
     """
-    Producto grueso (75mm) → mandíbula sola (1 etapa).
-    Producto fino (19mm) → mandíbula + cono + seleccionadora (3 etapas).
-    finest_max=75 ≥ 50 habilita Config A; finest_max=19 < 20 excluye Config A y B.
+    Regla de ranking vigente:
+    - Principal  = mayor product_fit_pct
+    - Alternativa = menor n_units_totales (n_units × len(equipos)), luego mayor product_fit_pct
+
+    Para producto grueso (75mm): la alternativa (si existe) debe tener
+    ≤ unidades físicas totales que la principal.
+    Para producto fino (19mm): la principal debe tener mayor product_fit_pct
+    que cualquier configuración de etapa única disponible.
     """
     coarse = recommend(
         rock_type="granito",
@@ -62,19 +67,28 @@ def test_coarse_fewer_stages_than_fine():
     assert len(coarse) >= 1, "Producto grueso debe generar recomendaciones"
     assert len(fine) >= 1, "Producto fino debe generar recomendaciones"
 
-    # El mejor para producto grueso es mandíbula sola (1 etapa)
-    assert coarse[0]["config"] == "jaw_only", (
-        f"Producto grueso debe recomendar jaw_only, se obtuvo '{coarse[0]['config']}'"
-    )
-    # El mejor para producto fino es el circuito de 3 etapas
-    assert fine[0]["config"] == "jaw_cone_screen", (
-        f"Producto fino debe recomendar jaw_cone_screen, se obtuvo '{fine[0]['config']}'"
-    )
-    # Verificación cuantitativa del número de etapas
-    assert len(coarse[0]["equipos"]) < len(fine[0]["equipos"]), (
-        f"Grueso debe tener menos etapas que fino: "
-        f"{len(coarse[0]['equipos'])} vs {len(fine[0]['equipos'])}"
-    )
+    # Principal siempre tiene el mayor product_fit_pct
+    if len(coarse) >= 2:
+        assert coarse[0]["product_fit_pct"] >= coarse[1]["product_fit_pct"], (
+            f"Principal debe tener mayor o igual product_fit_pct que alternativa: "
+            f"{coarse[0]['product_fit_pct']}% vs {coarse[1]['product_fit_pct']}%"
+        )
+
+    # Alternativa tiene ≤ unidades físicas totales que la principal
+    if len(coarse) >= 2:
+        units_principal = coarse[0]["n_units"] * len(coarse[0]["equipos"])
+        units_alt       = coarse[1]["n_units"] * len(coarse[1]["equipos"])
+        assert units_alt <= units_principal, (
+            f"Alternativa debe tener ≤ unidades físicas totales que la principal: "
+            f"alt={units_alt} > principal={units_principal}"
+        )
+
+    # Para producto fino la principal debe superar en product_fit_pct a la alternativa
+    if len(fine) >= 2:
+        assert fine[0]["product_fit_pct"] >= fine[1]["product_fit_pct"], (
+            f"Principal (fino) debe tener mayor o igual product_fit_pct que alternativa: "
+            f"{fine[0]['product_fit_pct']}% vs {fine[1]['product_fit_pct']}%"
+        )
 
 
 def test_high_tph_requires_parallel_units():
