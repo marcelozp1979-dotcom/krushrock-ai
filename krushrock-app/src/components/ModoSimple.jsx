@@ -531,22 +531,45 @@ export function SimpleMode({ eqCatalog, onBack }) {
                     const pfClr = pf >= 70 ? G.green : pf >= 45 ? G.accent : G.red;
                     const descartePct = rec.descarte_pct ?? (100 - pf);
                     const mesesReq = rec.meses_requeridos ?? 0;
-                    const cardTitle = idx === 0 ? "★ MAYOR APROVECHAMIENTO" : "ALTERNATIVA CON MENOS EQUIPOS";
+                    const nUnitsTotal = rec.n_units * rec.equipos.length;
+                    const nUnitsTotalA = recs[0].n_units * recs[0].equipos.length;
+                    const horasMes = Number(horasDia) * Number(diasMes);
+                    const optionLabel = idx === 0
+                      ? "Opción A — Máximo aprovechamiento del material"
+                      : "Opción B — Menos equipos";
                     const detail = rec.products_detail || [];
-                    const slowestProd = detail.length
-                      ? detail.reduce((a, b) =>
-                          ((b.meses ?? Infinity) > (a.meses ?? Infinity)) ? b : a, detail[0])
-                      : null;
+
+                    let implicancia;
+                    let implicanciaColor = G.muted;
+                    if (rec.meses_requeridos === null) {
+                      implicancia = "Esta configuración no puede producir alguno de los productos requeridos.";
+                      implicanciaColor = G.red;
+                    } else if (!rec.cumple_plazo) {
+                      implicancia = `No alcanza el volumen en el plazo: terminaría en ${mesesReq} meses.`;
+                      implicanciaColor = G.accent;
+                    } else if (idx === 0) {
+                      implicancia = `Aprovecha ${pf}% del material. Requiere ${nUnitsTotal} unidad${nUnitsTotal !== 1 ? "es" : ""}. Termina en ${mesesReq} meses.`;
+                    } else {
+                      const menosUnidades = nUnitsTotalA - nUnitsTotal;
+                      const mesesA = recs[0].meses_requeridos ?? 0;
+                      const horasAdicionales = Math.max(0, Math.round((mesesReq - mesesA) * horasMes));
+                      const menosText = menosUnidades > 0
+                        ? `${menosUnidades} menos que la opción A`
+                        : menosUnidades === 0 ? "igual cantidad que la opción A"
+                        : `${-menosUnidades} más que la opción A`;
+                      implicancia = `Usa ${nUnitsTotal} unidad${nUnitsTotal !== 1 ? "es" : ""} (${menosText}). `
+                        + `Aprovecha ${pf}% (descarta ${descartePct}% del material). `
+                        + (horasAdicionales > 0
+                            ? `Necesita ${mesesReq} meses / ${horasAdicionales} horas adicionales para el mismo volumen.`
+                            : `Termina en ${mesesReq} meses.`);
+                    }
+
                     return (
                       <div key={idx} style={{ background: G.card,
-                        border: `1px solid ${idx === 0 ? G.accent : G.border}`,
+                        border: `1px solid ${G.border}`,
                         borderRadius: 12, padding: 24, display: "grid", gap: 16 }}>
-                        <div style={{ fontSize: 11, color: idx === 0 ? G.accent : G.muted,
-                          fontWeight: 700, letterSpacing: "0.1em" }}>{cardTitle}</div>
-                        <div style={{ fontFamily: G.fontD, fontSize: 17,
-                          fontWeight: 700, color: G.text }}>
-                          {CFG_LABELS[rec.config] || rec.config}
-                        </div>
+                        <div style={{ fontFamily: G.fontD, fontSize: 16,
+                          fontWeight: 700, color: G.text }}>{optionLabel}</div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                           {rec.equipos.map((eq, ei) => (
                             <span key={ei} style={{ background: G.surface,
@@ -561,6 +584,10 @@ export function SimpleMode({ eqCatalog, onBack }) {
                               × {rec.n_units} unidades en paralelo
                             </span>
                           )}
+                        </div>
+                        <div style={{ fontSize: 14, color: implicanciaColor, lineHeight: 1.6,
+                          background: G.surface, borderRadius: 8, padding: "12px 16px" }}>
+                          {implicancia}
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 28 }}>
                           <div>
@@ -627,24 +654,6 @@ export function SimpleMode({ eqCatalog, onBack }) {
                             </table>
                           </div>
                         )}
-                        <div style={{ fontSize: 13, fontWeight: 600,
-                          color: rec.cumple_plazo ? G.green : G.accent,
-                          background: rec.cumple_plazo ? undefined : G.faint,
-                          borderRadius: rec.cumple_plazo ? undefined : 6,
-                          padding: rec.cumple_plazo ? undefined : "8px 12px" }}>
-                          {rec.meses_requeridos === null
-                            ? "✗ Hay productos que esta configuración no puede producir"
-                            : rec.cumple_plazo
-                              ? `✓ Plazo total: ${mesesReq} meses${slowestProd && detail.length > 1 ? ` (lo define ${slowestProd.name || `${slowestProd.min_mm}–${slowestProd.max_mm}mm`})` : ""}`
-                              : `⚠ Plazo total: ${mesesReq} meses${slowestProd && detail.length > 1 ? ` (lo define ${slowestProd.name || `${slowestProd.min_mm}–${slowestProd.max_mm}mm`})` : ""}`
-                          }
-                        </div>
-                        {idx === 1 && descartePct > 35 && (
-                          <div style={{ fontSize: 12, color: G.muted,
-                            background: G.faint, borderRadius: 6, padding: "8px 12px" }}>
-                            Esta opción descarta {descartePct}% del material: menos equipos, pero más material perdido
-                          </div>
-                        )}
                         {rec.inchancables_recomendado && (
                           <div style={{ fontSize: 12, color: G.accent,
                             background: G.faint, borderRadius: 6, padding: "8px 12px" }}>
@@ -655,6 +664,12 @@ export function SimpleMode({ eqCatalog, onBack }) {
                       </div>
                     );
                   })}
+                  {recs.length === 1 && (
+                    <div style={{ fontSize: 13, color: G.muted, textAlign: "center",
+                      padding: "8px 0", fontStyle: "italic" }}>
+                      Con estos requisitos no hay una alternativa con menos equipos.
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ textAlign: "center" }}>
