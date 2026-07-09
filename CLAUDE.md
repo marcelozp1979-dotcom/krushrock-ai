@@ -113,6 +113,7 @@ Usar siempre **seleccionadora**, nunca "zaranda". Estos términos deben usarse c
 5. Todo cambio al motor o recommender debe seguir pasando `tests/casos_validacion_reales.json` dentro de ±15% de error. Esos valores son la fuente de verdad; nunca ajustar el caso para que calce con el código.
 6. Un cambio por sesión. No aprovechar de "mejorar" cosas no pedidas.
 7. Reporte final: máximo 5 líneas (qué cambió, test agregado, resultado pytest, push). Sin relato de proceso.
+8. Nunca crear un alias, mapeo o sustituto que haga pasar un equipo por otro. Si un equipo solicitado no existe en el catálogo, decirlo explícitamente y pedir sus especificaciones reales (marca, modelo, tipo, capacidad, css, decks) antes de continuar. Nunca inventar ni aproximar datos de equipos.
 
 ---
 
