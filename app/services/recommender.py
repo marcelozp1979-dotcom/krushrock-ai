@@ -399,9 +399,20 @@ def recommend(
 
         # plazo y detalle por producto usando balance de masa
         product_yields = sim.get("product_yields") or []
+        n_units = cand["n_units"]
         prods_detail, meses_req, cumple = _per_product_detail(
-            products, product_yields, cand["n_units"], duracion_meses, hours_per_month
+            products, product_yields, n_units, duracion_meses, hours_per_month
         )
+
+        # Si la producción real es menor que la nominal, la config puede no cumplir
+        # aunque _parallel_n dijera que n=1 bastaba. Probar hasta n=4.
+        while not cumple and n_units < 4 and meses_req is not None:
+            n_units += 1
+            prods_detail, meses_req, cumple = _per_product_detail(
+                products, product_yields, n_units, duracion_meses, hours_per_month
+            )
+
+        tph_util = round(tph_eff_per_unit * n_units, 1)
 
         results.append({
             "config": cand["label"],
@@ -413,7 +424,7 @@ def recommend(
                 }
                 for node in cand["nodes"]
             ],
-            "n_units": cand["n_units"],
+            "n_units": n_units,
             "tph_efectivo": tph_util,
             "tph_util": tph_util,
             "product_fit_pct": pf,

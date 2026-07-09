@@ -1,6 +1,6 @@
 # KrushRock — Informe de Validacion
 
-Commit: `3dca788` · Fecha: 2026-07-09
+Commit: `5119a74` · Fecha: 2026-07-09
 
 | Caso | Cert. | Campo | Esperado | Obtenido | Delta abs | Delta % | Estado |
 |------|-------|-------|----------|----------|-----------|---------|--------|

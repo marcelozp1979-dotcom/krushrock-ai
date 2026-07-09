@@ -535,8 +535,10 @@ export function SimpleMode({ eqCatalog, onBack }) {
                     const nUnitsTotalA = recs[0].n_units * recs[0].equipos.length;
                     const horasMes = Number(horasDia) * Number(diasMes);
                     const optionLabel = idx === 0
-                      ? "Opción A — Máximo aprovechamiento del material"
-                      : "Opción B — Menos equipos";
+                      ? "Opción A — Cumple tu producción con la menor flota"
+                      : rec.product_fit_pct > recs[0].product_fit_pct
+                        ? "Opción B — Mayor aprovechamiento del material"
+                        : "Opción B — Menos equipos, más tiempo";
                     const detail = rec.products_detail || [];
 
                     let implicancia;

@@ -203,6 +203,67 @@ def test_inchancables_flag_preserved():
         )
 
 
+def test_n_units_aumenta_cuando_produccion_util_no_alcanza():
+    """
+    Bug fix: _parallel_n fija n con capacidad nominal, pero tph_util real es menor.
+    Cuando con n=1 no cumple el plazo (aunque nominal lo permita), recommend()
+    debe probar n=2 y retornar cumple_plazo=True con n_units >= 2.
+    """
+    import pytest
+    from app.services.recommender import run_config
+
+    ROCK = "granito"; F80 = 400.0; HORAS_DIA = 8.0; DIAS_MES = 25.0; DURACION = 3
+    hours_per_month = HORAS_DIA * DIAS_MES  # 200 h/mes
+    J960_CAP_NOMINAL = 200.0  # cap_max_tph del J-960
+
+    # Producción real de 1 unidad y 2 unidades de J-960 para 0-75mm granito
+    dummy_prod = [{"name": "grava", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 1.0}]
+    tph_1 = run_config(
+        equipos=[{"etapa": "jaw", "marca": "Terex Finlay", "modelo": "J-960"}],
+        f80_mm=F80, products=dummy_prod, duracion_meses=DURACION,
+        rock_type=ROCK, n_units=1, circuit="open",
+        horas_dia=HORAS_DIA, dias_mes=DIAS_MES,
+    )["tph_util"]
+    tph_2 = run_config(
+        equipos=[{"etapa": "jaw", "marca": "Terex Finlay", "modelo": "J-960"}],
+        f80_mm=F80, products=dummy_prod, duracion_meses=DURACION,
+        rock_type=ROCK, n_units=2, circuit="open",
+        horas_dia=HORAS_DIA, dias_mes=DIAS_MES,
+    )["tph_util"]
+
+    # Precondición del bug: tph_util real < cap nominal (capR × wi_factor < 1)
+    assert tph_1 < J960_CAP_NOMINAL, (
+        f"Precondición: tph_util_1 ({tph_1}) debe ser < cap_nominal ({J960_CAP_NOMINAL})"
+    )
+    if tph_2 <= tph_1:
+        pytest.skip(f"2 unidades no mejoran: tph_2={tph_2} <= tph_1={tph_1}")
+
+    # Volumen en punto medio → n=1 no cumple, n=2 sí, nominal n=1 "alcanza"
+    tph_mid = (tph_1 + min(tph_2, J960_CAP_NOMINAL)) / 2.0
+    vol = round(tph_mid * DURACION * hours_per_month)
+
+    results = recommend(
+        rock_type=ROCK, f80_mm=F80,
+        products=[{"name": "grava", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": vol}],
+        duracion_meses=DURACION, inchancables=False,
+        horas_dia=HORAS_DIA, dias_mes=DIAS_MES,
+    )
+
+    assert results, "Debe retornar al menos 1 recomendación"
+    any_cumple = any(r["cumple_plazo"] for r in results)
+    assert any_cumple, (
+        f"Al menos una config debe cumplir al ajustar n_units. "
+        f"tph_1={tph_1}, tph_2={tph_2}, tph_mid={tph_mid:.1f}"
+    )
+    a = results[0]
+    assert a["cumple_plazo"], (
+        f"Opción A debe cumplir el plazo. config={a['config']}, n_units={a['n_units']}"
+    )
+    assert a["n_units"] >= 2, (
+        f"Opción A debe necesitar >= 2 unidades. n_units={a['n_units']}"
+    )
+
+
 def test_plazo_cumple_prioritario_sobre_mayor_fit():
     """
     Cuando una config de menor fit cumple el plazo y una de mayor fit no cumple,
