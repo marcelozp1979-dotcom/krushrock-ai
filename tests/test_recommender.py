@@ -87,20 +87,21 @@ def test_coarse_fewer_stages_than_fine():
 
 def test_high_tph_requires_parallel_units():
     """
-    Tonelaje alto (150 000 t/mes = 300 tph) supera la capacidad de una sola
-    unidad de los equipos más pequeños del catálogo → N_units > 1.
+    Tonelaje extremo (≈800 tph) supera la capacidad de una sola unidad incluso del
+    equipo más grande del catálogo (J-1480, 600 tph nominal × capR × wi_factor ≈ 450 tph
+    de producto) → la Opción A debe necesitar N_units > 1.
     """
     results = recommend(
         rock_type="caliza",
         f80_mm=400.0,
-        products=[{"name": "base", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 900_000.0}],
+        products=[{"name": "base", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 2_400_000.0}],
         duracion_meses=6,
         inchancables=False,
     )
     assert len(results) >= 1, "Debe retornar al menos 1 recomendación"
-    # Al menos la primera recomendación debe necesitar más de 1 unidad
+    # Con 800 tph requeridos, ningún equipo del catálogo cumple con n=1 → n > 1
     assert results[0]["n_units"] > 1, (
-        f"Se esperaba N > 1 para 300 tph; se obtuvo N={results[0]['n_units']}"
+        f"Se esperaba N > 1 para ~800 tph; se obtuvo N={results[0]['n_units']}"
     )
 
 
@@ -239,16 +240,15 @@ def test_n_units_aumenta_cuando_produccion_util_no_alcanza():
     assert results, "Debe retornar al menos 1 recomendación"
     any_cumple = any(r["cumple_plazo"] for r in results)
     assert any_cumple, (
-        f"Al menos una config debe cumplir al ajustar n_units. "
+        f"Al menos una config debe cumplir al ajustar n_units o usando un equipo mayor. "
         f"tph_1={tph_1}, tph_2={tph_2}, tph_mid={tph_mid:.1f}"
     )
     a = results[0]
     assert a["cumple_plazo"], (
         f"Opción A debe cumplir el plazo. config={a['config']}, n_units={a['n_units']}"
     )
-    assert a["n_units"] >= 2, (
-        f"Opción A debe necesitar >= 2 unidades. n_units={a['n_units']}"
-    )
+    # Con el código nuevo: puede cumplir via 1 unidad grande O 2 unidades J-960.
+    # El invariante es que alguna config cumple; n_units específico depende del catálogo.
 
 
 def test_un_equipo_grande_vence_a_dos_chicos():
@@ -398,3 +398,37 @@ def test_plazo_cumple_prioritario_sobre_mayor_fit():
             f"config={a['config']}, cumple_plazo={a['cumple_plazo']}, "
             f"meses={a['meses_requeridos']}"
         )
+
+
+def test_andesita_recomienda_equipo_mayor_no_dos_chicos():
+    """
+    Con curva andesita y producto 0-100mm, Opción A debe ser 1 unidad de mandíbula
+    mayor que J-960 (J-1160 o J-1175), no 2×J-960. Opción B debe existir.
+    Verifica que el corte temprano y el ranking priorizan el equipo individual más grande.
+    """
+    feed_curve = {152.4: 69, 203.2: 77, 254: 82, 304.8: 86}
+    results = recommend(
+        rock_type="andesita",
+        f80_mm=234.0,
+        products=[{"name": "triturado", "min_mm": 0.0, "max_mm": 100.0, "volumen_ton": 110_000.0}],
+        duracion_meses=3,
+        inchancables=False,
+        feed_curve_dict=feed_curve,
+        horas_dia=6.0,
+        dias_mes=30.0,
+    )
+    assert results, "Debe retornar recomendaciones"
+    assert len(results) >= 2, f"Debe existir Opción B; solo retornó {len(results)}"
+    a = results[0]
+    assert a["cumple_plazo"], (
+        f"Opción A debe cumplir el plazo. pct={a['pct_cumplimiento']}"
+    )
+    assert a["n_units"] == 1, (
+        f"Opción A debe ser 1 unidad, no {a['n_units']}. config={a['config']}"
+    )
+    jaw_a = next((e for e in a["equipos"] if e["etapa"] == "jaw"), None)
+    assert jaw_a is not None, "Opción A debe incluir una mandíbula"
+    assert jaw_a["modelo"] != "J-960", (
+        f"Opción A no debe ser J-960 (un equipo más grande debe cumplir con n=1). "
+        f"Got: {jaw_a['modelo']}"
+    )

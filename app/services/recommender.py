@@ -107,6 +107,7 @@ def _make_jaw_node(eq: Dict, target_p80_mm: float) -> Dict:
             "brand": eq["brand"],
             "model": eq["model"],
             "type": "jaw",
+            "cap_max_tph": eq.get("cap_max_tph", 0),
             "specs": {
                 "feedMm": eq.get("feed_max_mm"),
                 "cssRange": [
@@ -132,6 +133,7 @@ def _make_cone_node(eq: Dict, target_p80_mm: float) -> Dict:
             "brand": eq["brand"],
             "model": eq["model"],
             "type": "cone",
+            "cap_max_tph": eq.get("cap_max_tph", 0),
             "specs": {
                 "feedMm": eq.get("feed_max_mm"),
                 "cssRange": [
@@ -157,6 +159,7 @@ def _make_screen_node(eq: Dict, aperture_mm: float) -> Dict:
             "brand": eq["brand"],
             "model": eq["model"],
             "type": "screen",
+            "cap_max_tph": eq.get("cap_max_tph", 0),
             "specs": {},
             "curves": {},
             "capex_usd": 400_000,
@@ -282,14 +285,11 @@ def recommend(
 
     # Filtros de catálogo — jaws filtradas por tamaño real de partícula
     jaws = _viable_jaws(feed_max_material_mm)
-    cones = _viable_cones(jaw_target_p80)
+    # Partícula máxima a la salida de la mandíbula ≈ P80/0.8 (P80 es percentil 80, no máximo)
+    cones = _viable_cones(jaw_target_p80 / 0.8)
     screens = _viable_screens(len(products))
 
-    top_jaws = jaws[:_PICK]
-    top_cones = cones[:_PICK]
-    top_screens = screens[:_PICK] if screens else []
-
-    if not top_jaws:
+    if not jaws:
         return []
 
     # Productos en el formato que acepta simulate()
@@ -316,7 +316,7 @@ def recommend(
 
     # A: mandíbula sola (solo para productos gruesos — jaw no puede producir <50mm útil)
     if finest_max >= _JAW_ONLY_MIN_MM:
-        for jaw in top_jaws:
+        for jaw in jaws:
             candidates.append({
                 "label": "jaw_only",
                 "nodes": [_make_jaw_node(jaw, p80_target)],
@@ -326,9 +326,9 @@ def recommend(
             })
 
     # B: mandíbula + seleccionadora
-    if finest_max >= _JAW_SCREEN_MIN_MM and top_screens:
-        for jaw in top_jaws:
-            for scr in top_screens:
+    if finest_max >= _JAW_SCREEN_MIN_MM and screens:
+        for jaw in jaws:
+            for scr in screens:
                 bn = _bottleneck_cap([jaw, scr])
                 candidates.append({
                     "label": "jaw_screen",
@@ -342,10 +342,10 @@ def recommend(
                 })
 
     # C: mandíbula + cono + seleccionadora
-    if top_cones and top_screens:
-        for jaw in top_jaws:
-            for cone in top_cones:
-                for scr in top_screens:
+    if cones and screens:
+        for jaw in jaws:
+            for cone in cones:
+                for scr in screens:
                     bn = _bottleneck_cap([jaw, cone, scr])
                     candidates.append({
                         "label": "jaw_cone_screen",
@@ -362,105 +362,124 @@ def recommend(
     if not candidates:
         return []
 
-    # ── Simular cada candidato ────────────────────────────────────────────────
+    # ── Simular con corte temprano por tipo de configuración ──────────────────
+    # Fase 1: para cada tipo, probar n=1 en orden ascending de cap.
+    #         Cortar al primer equipo que cumple con n=1 (los más grandes no aportan).
+    # Fase 2: si ningún n=1 cumplió, escalar n=2..4 usando las sims cacheadas.
     valid_rock = rock_type if rock_type in ROCK_DB else "desconocida"
     results: List[Dict] = []
 
     wi_factor = _wi_capacity_factor(valid_rock)
+
+    def _pct_cumpl(meses_r: Optional[float]) -> float:
+        if meses_r is None:
+            return 0.0
+        if meses_r <= 0:
+            return 100.0
+        return min(100.0, round(duracion_meses / meses_r * 100.0, 1))
+
+    # Agrupar por tipo y ordenar ascending por cap (el más chico primero)
+    by_type: Dict[str, List[Dict]] = {}
     for cand in candidates:
-        # Capacidad real por unidad = cuello de botella nominal × capR × factor Wi
-        cap_per_unit = cand["cap_bottleneck_tph"] * capR * wi_factor
-        try:
-            sim = simulate(
-                nodes=cand["nodes"],
-                tph=cap_per_unit,
-                f80=f80_mm,
-                p80_target=p80_target,
-                rock_type=valid_rock,
-                humidity=0,
-                circuit=cand["circuit"],
-                hours_per_year=6000,
-                products=products_for_sim,
-                feed_curve_dict=feed_curve_dict,
+        by_type.setdefault(cand["label"], []).append(cand)
+    for lst in by_type.values():
+        lst.sort(key=lambda c: c["cap_bottleneck_tph"])
+
+    for type_cands in by_type.values():
+        cached: list = []  # (cand, cap_per_unit, pf, cc, tph_eff_per_unit, product_yields, descarte_pct)
+        n1_cumple_found = False
+
+        for cand in type_cands:
+            if n1_cumple_found:
+                break
+            cap_per_unit = cand["cap_bottleneck_tph"] * capR * wi_factor
+            try:
+                sim = simulate(
+                    nodes=cand["nodes"],
+                    tph=cap_per_unit,
+                    f80=f80_mm,
+                    p80_target=p80_target,
+                    rock_type=valid_rock,
+                    humidity=0,
+                    circuit=cand["circuit"],
+                    hours_per_year=6000,
+                    products=products_for_sim,
+                    feed_curve_dict=feed_curve_dict,
+                )
+            except Exception:
+                continue
+
+            production_factor = sim.get("production_factor", 0.0)
+            gran_yield = sim.get("granulometric_yield")
+            pf = round(gran_yield if gran_yield is not None else production_factor * 100.0, 1)
+            cc = sim.get("circ_load_pct", 0.0)
+            tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * production_factor, 1)
+            product_yields = sim.get("product_yields") or []
+            descarte_pct = round(100.0 - pf, 1)
+
+            cached.append((cand, cap_per_unit, pf, cc, tph_eff_per_unit, product_yields, descarte_pct))
+
+            # Verificar si n=1 cumple para aplicar corte temprano
+            _, meses_req_1, _ = _per_product_detail(
+                products, product_yields, 1, duracion_meses, hours_per_month
             )
-        except Exception:
-            continue  # candidato inviable — saltar
+            if _pct_cumpl(meses_req_1) >= 98.0:
+                n1_cumple_found = True
 
-        # granulometric_yield: % del material en rango de producto (calculado desde curva).
-        # production_factor: total_prod_tph / carga_total_chancador (incluye recirculante en cerrado).
-        # Usar granulometric_yield cuando existe; fallback a production_factor para circuito abierto sin seleccionadora.
-        production_factor = sim.get("production_factor", 0.0)
-        gran_yield = sim.get("granulometric_yield")
-        pf = round(gran_yield if gran_yield is not None else production_factor * 100.0, 1)
-        cc = sim.get("circ_load_pct", 0.0)
-        # tph_efectivo total = producto por unidad × n_units
-        tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * production_factor, 1)
-        tph_util = round(tph_eff_per_unit * cand["n_units"], 1)
-        descarte_pct = round(100.0 - pf, 1)
-
-        # plazo y detalle por producto usando balance de masa
-        product_yields = sim.get("product_yields") or []
-        n_units = 1  # siempre se empieza con 1
-
-        def _pct_cumpl(meses_r: Optional[float]) -> float:
-            if meses_r is None:
-                return 0.0
-            if meses_r <= 0:
-                return 100.0
-            return min(100.0, round(duracion_meses / meses_r * 100.0, 1))
-
-        prods_detail, meses_req, _ = _per_product_detail(
-            products, product_yields, n_units, duracion_meses, hours_per_month
-        )
-        pct_cumpl = _pct_cumpl(meses_req)
-        cumple = pct_cumpl >= 98.0
-
-        # Si la producción real no alcanza el 98%, escalar hasta n=4
-        while not cumple and n_units < 4 and meses_req is not None:
-            n_units += 1
+        # Construir resultados desde cache; escalar n=2..4 solo si ningún n=1 cumplió
+        for cand, cap_per_unit, pf, cc, tph_eff_per_unit, product_yields, descarte_pct in cached:
+            n_units = 1
             prods_detail, meses_req, _ = _per_product_detail(
                 products, product_yields, n_units, duracion_meses, hours_per_month
             )
             pct_cumpl = _pct_cumpl(meses_req)
             cumple = pct_cumpl >= 98.0
 
-        tph_util = round(tph_eff_per_unit * n_units, 1)
+            if not n1_cumple_found:
+                while not cumple and n_units < 4 and meses_req is not None:
+                    n_units += 1
+                    prods_detail, meses_req, _ = _per_product_detail(
+                        products, product_yields, n_units, duracion_meses, hours_per_month
+                    )
+                    pct_cumpl = _pct_cumpl(meses_req)
+                    cumple = pct_cumpl >= 98.0
 
-        # Horas/mes adicionales para completar el volumen si no cumple
-        if not cumple and tph_util > 0 and meses_req is not None:
-            horas_adicionales_mes = max(
-                0.0,
-                round(total_volumen / (tph_util * duracion_meses) - hours_per_month, 1),
-            )
-        else:
-            horas_adicionales_mes = None
+            tph_util = round(tph_eff_per_unit * n_units, 1)
 
-        results.append({
-            "config": cand["label"],
-            "equipos": [
-                {
-                    "etapa": node["type"],
-                    "marca": node["equipment"]["brand"],
-                    "modelo": node["equipment"]["model"],
-                }
-                for node in cand["nodes"]
-            ],
-            "n_units": n_units,
-            "tph_efectivo": tph_util,
-            "tph_util": tph_util,
-            "product_fit_pct": pf,
-            "descarte_pct": descarte_pct,
-            "circ_load_pct": round(float(cc), 1),
-            "pct_cumplimiento": pct_cumpl,
-            "meses_requeridos": meses_req,
-            "cumple_plazo": cumple,
-            "horas_adicionales_mes": horas_adicionales_mes,
-            "inchancables_recomendado": inchancables,
-            "products_detail": prods_detail,
-            "_cap_sum_tph": sum(
-                node["equipment"].get("cap_max_tph", 0) for node in cand["nodes"]
-            ),
-        })
+            if not cumple and tph_util > 0 and meses_req is not None:
+                horas_adicionales_mes = max(
+                    0.0,
+                    round(total_volumen / (tph_util * duracion_meses) - hours_per_month, 1),
+                )
+            else:
+                horas_adicionales_mes = None
+
+            results.append({
+                "config": cand["label"],
+                "equipos": [
+                    {
+                        "etapa": node["type"],
+                        "marca": node["equipment"]["brand"],
+                        "modelo": node["equipment"]["model"],
+                    }
+                    for node in cand["nodes"]
+                ],
+                "n_units": n_units,
+                "tph_efectivo": tph_util,
+                "tph_util": tph_util,
+                "product_fit_pct": pf,
+                "descarte_pct": descarte_pct,
+                "circ_load_pct": round(float(cc), 1),
+                "pct_cumplimiento": pct_cumpl,
+                "meses_requeridos": meses_req,
+                "cumple_plazo": cumple,
+                "horas_adicionales_mes": horas_adicionales_mes,
+                "inchancables_recomendado": inchancables,
+                "products_detail": prods_detail,
+                "_cap_sum_tph": sum(
+                    node["equipment"].get("cap_max_tph", 0) for node in cand["nodes"]
+                ),
+            })
 
     if not results:
         return []
