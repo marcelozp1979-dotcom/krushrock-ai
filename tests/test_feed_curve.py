@@ -90,3 +90,39 @@ def test_recommend_con_f80_mm_sigue_funcionando():
     resp = client.post("/api/v1/simulations/recommend", json=payload)
     assert resp.status_code == 200
     assert "recommendations" in resp.json()
+
+
+def test_recommend_equipos_incluyen_css_mm_y_tipo_legible():
+    """
+    Cada equipo en la respuesta de /recommend debe incluir:
+    - tipo_legible: nombre en español del tipo de equipo
+    - css_mm: CSS usado en simulación (no None) para chancadores
+    - abertura_mm: malla real (no None) para seleccionadoras
+    """
+    payload = {**_FAENA_BASE, "f80_mm": 400}
+    resp = client.post("/api/v1/simulations/recommend", json=payload)
+    assert resp.status_code == 200
+    recs = resp.json()["recommendations"]
+    assert recs, "Debe retornar al menos 1 recomendación"
+
+    for rec in recs:
+        for eq in rec["equipos"]:
+            assert "tipo_legible" in eq, f"Falta tipo_legible en {eq}"
+            assert eq["tipo_legible"], f"tipo_legible vacío en {eq}"
+
+            etapa = eq.get("etapa", "")
+            if etapa == "screen":
+                assert eq.get("abertura_mm") is not None, (
+                    f"Seleccionadora sin abertura_mm: {eq}"
+                )
+                assert eq.get("decks") is not None, (
+                    f"Seleccionadora sin decks: {eq}"
+                )
+                assert "Seleccionadora" in eq["tipo_legible"], (
+                    f"tipo_legible de screen incorrecto: {eq['tipo_legible']}"
+                )
+            else:
+                assert eq.get("css_mm") is not None, (
+                    f"Chancador {eq.get('modelo')} sin css_mm: {eq}"
+                )
+                assert eq["css_mm"] > 0, f"css_mm debe ser > 0: {eq}"

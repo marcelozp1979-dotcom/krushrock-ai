@@ -569,16 +569,34 @@ export function SimpleMode({ eqCatalog, onBack }) {
                         <div style={{ fontFamily: G.fontD, fontSize: 16,
                           fontWeight: 700, color: G.text }}>{optionLabel}</div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                          {rec.equipos.map((eq, ei) => (
-                            <span key={ei} style={{ background: G.surface,
-                              border: `1px solid ${G.border}`, borderRadius: 6,
-                              padding: "4px 10px", fontSize: 13, color: G.text }}>
-                              {eq.marca} {eq.modelo}
-                            </span>
-                          ))}
+                          {rec.equipos.map((eq, ei) => {
+                            const opParam = eq.css_mm != null
+                              ? `CSS ${eq.css_mm} mm`
+                              : eq.abertura_mm != null
+                                ? `malla ${eq.abertura_mm} mm`
+                                : null;
+                            const tipoLine = eq.tipo_legible || null;
+                            const paramLine = [tipoLine, opParam].filter(Boolean).join(" · ");
+                            return (
+                              <div key={ei} style={{ background: G.surface,
+                                border: `1px solid ${G.border}`, borderRadius: 6,
+                                padding: "6px 12px", display: "flex", flexDirection: "column", gap: 2 }}>
+                                <span style={{ fontSize: 13, color: G.text, fontWeight: 600 }}>
+                                  {eq.marca} {eq.modelo}
+                                  <span style={{ fontWeight: 400, color: G.muted, fontSize: 12 }}> o equipo equivalente</span>
+                                </span>
+                                {paramLine && (
+                                  <span style={{ fontSize: 11, color: G.muted }}>
+                                    {paramLine}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                           {rec.n_units > 1 && (
                             <span style={{ background: G.faint, border: `1px solid ${G.accent}`,
-                              borderRadius: 6, padding: "4px 10px", fontSize: 12, color: G.accent }}>
+                              borderRadius: 6, padding: "4px 10px", fontSize: 12, color: G.accent,
+                              alignSelf: "flex-start" }}>
                               × {rec.n_units} unidades en paralelo
                             </span>
                           )}

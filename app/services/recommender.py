@@ -39,6 +39,42 @@ _JAW_SCREEN_MIN_MM: float = 20.0   # mandíbula + seleccionadora para finest_max
 # Máximo de equipos a considerar por tipo (limita el nº de simulaciones)
 _PICK: int = 2
 
+# Nombres legibles por tipo de equipo
+_TIPO_LEGIBLE_MAP: Dict[str, str] = {
+    "jaw":      "Chancador de mandíbula",
+    "scalper":  "Scalper",
+    "cone":     "Chancador de cono",
+    "hsi":      "Impactor",
+    "vsi":      "Impactor",
+    "impactor": "Impactor",
+}
+
+
+def _build_equipo_dict(node: Dict, node_res: Dict) -> Dict:
+    """Construye el dict de equipo con tipo legible y parámetros reales de simulación."""
+    ntype = node["type"]
+    eq = node["equipment"]
+    if ntype == "screen":
+        decks = eq.get("decks") or 2
+        return {
+            "etapa": ntype,
+            "marca": eq["brand"],
+            "modelo": eq["model"],
+            "tipo_legible": f"Seleccionadora de {decks} decks",
+            "css_mm": None,
+            "abertura_mm": node_res.get("aperture_mm") or node.get("aperture_mm"),
+            "decks": decks,
+        }
+    return {
+        "etapa": ntype,
+        "marca": eq["brand"],
+        "modelo": eq["model"],
+        "tipo_legible": _TIPO_LEGIBLE_MAP.get(ntype, ntype),
+        "css_mm": node_res.get("css_mm"),
+        "abertura_mm": None,
+        "decks": None,
+    }
+
 
 # ── FILTROS DE CATÁLOGO ───────────────────────────────────────────────────────
 
@@ -160,6 +196,7 @@ def _make_screen_node(eq: Dict, aperture_mm: float) -> Dict:
             "model": eq["model"],
             "type": "screen",
             "cap_max_tph": eq.get("cap_max_tph", 0),
+            "decks": eq.get("decks") or 2,
             "specs": {},
             "curves": {},
             "capex_usd": 400_000,
@@ -416,8 +453,9 @@ def recommend(
             tph_eff_per_unit = sim.get("total_product_tph") or round(cap_per_unit * production_factor, 1)
             product_yields = sim.get("product_yields") or []
             descarte_pct = round(100.0 - pf, 1)
+            sim_node_results = sim.get("node_results", {})
 
-            cached.append((cand, cap_per_unit, pf, cc, tph_eff_per_unit, product_yields, descarte_pct))
+            cached.append((cand, cap_per_unit, pf, cc, tph_eff_per_unit, product_yields, descarte_pct, sim_node_results))
 
             # Verificar si n=1 cumple para aplicar corte temprano
             _, meses_req_1, _ = _per_product_detail(
@@ -427,7 +465,7 @@ def recommend(
                 n1_cumple_found = True
 
         # Construir resultados desde cache; escalar n=2..4 solo si ningún n=1 cumplió
-        for cand, cap_per_unit, pf, cc, tph_eff_per_unit, product_yields, descarte_pct in cached:
+        for cand, cap_per_unit, pf, cc, tph_eff_per_unit, product_yields, descarte_pct, sim_node_results in cached:
             n_units = 1
             prods_detail, meses_req, _ = _per_product_detail(
                 products, product_yields, n_units, duracion_meses, hours_per_month
@@ -457,11 +495,7 @@ def recommend(
             results.append({
                 "config": cand["label"],
                 "equipos": [
-                    {
-                        "etapa": node["type"],
-                        "marca": node["equipment"]["brand"],
-                        "modelo": node["equipment"]["model"],
-                    }
+                    _build_equipo_dict(node, sim_node_results.get(node["id"], {}))
                     for node in cand["nodes"]
                 ],
                 "n_units": n_units,
