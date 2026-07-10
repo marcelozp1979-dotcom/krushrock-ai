@@ -8,6 +8,24 @@ router = APIRouter()
 # Usado cuando Supabase no está disponible o la tabla está vacía.
 # Esta es la misma fuente de verdad que EQ en App.jsx.
 # ELIMINAR cuando el seed de Supabase sea estable en producción.
+#
+# Campos opcionales (None = sin dato; el usuario los carga desde fichas de fabricante):
+#   Chancadores (jaw / cone / hsi):
+#     feed_max_recomendado_mm   — límite operativo recomendado de alimentación
+#     css_min_recomendado_mm    — CSS mínimo recomendado (operativo, no mecánico)
+#     css_max_recomendado_mm    — CSS máximo recomendado
+#     producto_min_p80_mm       — P80 mínimo que el equipo puede producir confiablemente
+#     camara                    — tipo de cámara del cono (str, ej. "EC", "M", "C", "F", "EF")
+#   Seleccionadoras (screen):
+#     area_util_m2              — área útil de malla (m²)
+#     malla_min_mm              — apertura mínima de malla instalable (mm)
+#     malla_max_mm              — apertura máxima de malla instalable (mm)
+#     carga_max_tph_m2          — capacidad máxima por m² de área (tph/m²)
+#   Scalpers (dentro de tipo jaw con scalper=True o tipo propio):
+#     separacion_grizzly_min_mm — separación mínima de grizzly (mm)
+#     separacion_grizzly_max_mm — separación máxima de grizzly (mm)
+#
+# PROHIBIDO inventar valores — dejar None hasta tener ficha de fabricante verificada.
 _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
     "jaw": [
         {"brand": "Terex Finlay",  "model": "J-960",            "type": "jaw", "css_min_mm": 40,  "css_max_mm": 140, "cap_min_tph": 80,  "cap_max_tph": 200,  "feed_max_mm": 580,  "decks": None, "extra_specs": {"palanca": "doble",  "rpm": 320}, "notes": "Compacta, orugas"},
@@ -125,6 +143,15 @@ def _to_frontend(item: Dict[str, Any]) -> Dict[str, Any]:
         result["palanca"] = specs["palanca"]
     if specs.get("rpm"):
         result["rpm"] = specs["rpm"]
+    # Campos opcionales de validación física (None si no hay datos del fabricante)
+    for opt in (
+        "feed_max_recomendado_mm", "css_min_recomendado_mm", "css_max_recomendado_mm",
+        "producto_min_p80_mm", "camara",
+        "area_util_m2", "malla_min_mm", "malla_max_mm", "carga_max_tph_m2",
+        "separacion_grizzly_min_mm", "separacion_grizzly_max_mm",
+    ):
+        if item.get(opt) is not None:
+            result[opt] = item[opt]
     return result
 
 

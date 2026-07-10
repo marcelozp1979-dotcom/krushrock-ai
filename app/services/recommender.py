@@ -76,6 +76,34 @@ def _build_equipo_dict(node: Dict, node_res: Dict) -> Dict:
     }
 
 
+# ── VALIDACIONES FÍSICAS ─────────────────────────────────────────────────────
+
+# Multiplicador P100_producto / CSS por tipo (curvas normalizadas): jaw≈2.5, cone≈1.9→usamos 1.6 según spec
+_P100_FACTOR: Dict[str, float] = {
+    "jaw": 2.5, "scalper": 2.5,
+    "cone": 1.6,
+    "hsi": 2.0, "vsi": 2.0, "impactor": 2.0,
+}
+# Límite de razón de reducción por etapa aprobado por el usuario
+_MAX_RATIO: Dict[str, float] = {
+    "jaw": 6.0, "scalper": 6.0,
+    "cone": 5.0,
+    "hsi": 8.0, "vsi": 8.0, "impactor": 8.0,
+}
+
+
+def _reduction_ratio_ok(crusher_type: str, feed_max_mm: float, css_mm: float) -> bool:
+    """
+    True si la razón de reducción feed_max / (css × factor) ≤ límite por tipo.
+    Usado para descartar configuraciones físicamente inviables.
+    """
+    factor = _P100_FACTOR.get(crusher_type, 2.5)
+    limit  = _MAX_RATIO.get(crusher_type, 6.0)
+    if css_mm <= 0:
+        return False
+    return (feed_max_mm / (css_mm * factor)) <= limit
+
+
 # ── FILTROS DE CATÁLOGO ───────────────────────────────────────────────────────
 
 def _viable_jaws(feed_max_material_mm: float) -> List[Dict]:
@@ -344,8 +372,9 @@ def recommend(
         else None
     )
 
-    # ── Generar candidatos ────────────────────────────────────────────────────
+    # ── Generar candidatos con validaciones físicas ───────────────────────────
     candidates: List[Dict] = []
+    rejected_reasons: List[str] = []     # mensajes de configs descartadas
 
     # Candidatos siempre parten con n=1; el escalamiento a n=2..4
     # se hace en el bucle de simulación si la producción real no cumple.
@@ -354,6 +383,41 @@ def recommend(
     # A: mandíbula sola (solo para productos gruesos — jaw no puede producir <50mm útil)
     if finest_max >= _JAW_ONLY_MIN_MM:
         for jaw in jaws:
+            css_min_jaw = jaw.get("css_min_mm") or 0
+            css_jaw_est = max(p80_target, css_min_jaw)
+
+            # Regla d: P100_min de mandíbula = css_min × 2.5; debe ser ≤ finest_max
+            p100_min_jaw = css_min_jaw * _P100_FACTOR["jaw"]
+            if p100_min_jaw > finest_max:
+                rejected_reasons.append(
+                    f"{jaw['model']} jaw_only: P100 mín {p100_min_jaw:.0f} mm > producto {finest_max:.0f} mm"
+                )
+                continue
+
+            # Regla a: razón de reducción ≤ 6:1
+            if not _reduction_ratio_ok("jaw", feed_max_material_mm, css_jaw_est):
+                ratio = feed_max_material_mm / (css_jaw_est * _P100_FACTOR["jaw"])
+                rejected_reasons.append(
+                    f"{jaw['model']} jaw_only: razón {ratio:.1f}:1 > 6:1"
+                )
+                continue
+
+            # Regla c: css_min_recomendado_mm (cuando exista)
+            css_min_rec = jaw.get("css_min_recomendado_mm")
+            if css_min_rec and css_jaw_est < css_min_rec:
+                rejected_reasons.append(
+                    f"{jaw['model']} jaw_only: CSS objetivo {css_jaw_est:.0f} mm < recomendado {css_min_rec} mm"
+                )
+                continue
+
+            # Regla c: producto_min_p80_mm (cuando exista)
+            prod_min = jaw.get("producto_min_p80_mm")
+            if prod_min and p80_target < prod_min:
+                rejected_reasons.append(
+                    f"{jaw['model']}: no puede producir P80 {p80_target:.0f} mm (mín {prod_min} mm)"
+                )
+                continue
+
             candidates.append({
                 "label": "jaw_only",
                 "nodes": [_make_jaw_node(jaw, p80_target)],
@@ -365,6 +429,17 @@ def recommend(
     # B: mandíbula + seleccionadora
     if finest_max >= _JAW_SCREEN_MIN_MM and screens:
         for jaw in jaws:
+            css_min_jaw = jaw.get("css_min_mm") or 0
+            css_jaw_est = max(p80_target, css_min_jaw)
+
+            # Regla a: razón de reducción mandíbula ≤ 6:1 (jaw_screen usa p80_target como target jaw)
+            if not _reduction_ratio_ok("jaw", feed_max_material_mm, css_jaw_est):
+                ratio = feed_max_material_mm / (css_jaw_est * _P100_FACTOR["jaw"])
+                rejected_reasons.append(
+                    f"{jaw['model']} jaw_screen: razón {ratio:.1f}:1 > 6:1"
+                )
+                continue
+
             for scr in screens:
                 bn = _bottleneck_cap([jaw, scr])
                 candidates.append({
@@ -381,7 +456,31 @@ def recommend(
     # C: mandíbula + cono + seleccionadora
     if cones and screens:
         for jaw in jaws:
+            css_min_jaw = jaw.get("css_min_mm") or 0
+            css_jaw_est_jcs = max(jaw_target_p80, css_min_jaw)
+
+            # Regla a: mandíbula en jaw_cone_screen usa jaw_target_p80 (más fácil de conseguir)
+            if not _reduction_ratio_ok("jaw", feed_max_material_mm, css_jaw_est_jcs):
+                ratio = feed_max_material_mm / (css_jaw_est_jcs * _P100_FACTOR["jaw"])
+                rejected_reasons.append(
+                    f"{jaw['model']} jaw_cone_screen: razón jaw {ratio:.1f}:1 > 6:1"
+                )
+                continue
+
             for cone in cones:
+                css_min_cone = cone.get("css_min_mm") or 0
+                css_cone_est = max(p80_target, css_min_cone)
+                # Partícula máxima que llega al cono ≈ jaw_target_p80 / 0.8
+                cone_feed_max = jaw_target_p80 / 0.8
+
+                # Regla a: razón de reducción cono ≤ 5:1
+                if not _reduction_ratio_ok("cone", cone_feed_max, css_cone_est):
+                    ratio = cone_feed_max / (css_cone_est * _P100_FACTOR["cone"])
+                    rejected_reasons.append(
+                        f"{cone['model']} cone: razón {ratio:.1f}:1 > 5:1"
+                    )
+                    continue
+
                 for scr in screens:
                     bn = _bottleneck_cap([jaw, cone, scr])
                     candidates.append({
@@ -397,7 +496,25 @@ def recommend(
                     })
 
     if not candidates:
-        return []
+        # Calcular razón de reducción requerida para el mensaje informativo
+        css_ref = max(p80_target, 40.0)  # referencia conservadora
+        ratio_req = round(feed_max_material_mm / (css_ref * _P100_FACTOR["jaw"]), 1)
+        msg = (
+            f"El producto pedido requiere una razón de reducción de {ratio_req}:1; "
+            "se necesita una etapa adicional de chancado."
+        )
+        return [{
+            "config": "infeasible",
+            "error_message": msg,
+            "equipos": [], "n_units": 0,
+            "tph_efectivo": 0.0, "tph_util": 0.0,
+            "product_fit_pct": 0.0, "descarte_pct": 100.0,
+            "circ_load_pct": 0.0, "pct_cumplimiento": 0.0,
+            "meses_requeridos": None, "cumple_plazo": False,
+            "horas_adicionales_mes": None,
+            "inchancables_recomendado": inchancables,
+            "products_detail": [],
+        }]
 
     # ── Simular con corte temprano por tipo de configuración ──────────────────
     # Fase 1: para cada tipo, probar n=1 en orden ascending de cap.

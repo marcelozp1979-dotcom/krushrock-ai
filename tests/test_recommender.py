@@ -432,3 +432,105 @@ def test_andesita_recomienda_equipo_mayor_no_dos_chicos():
         f"Opción A no debe ser J-960 (un equipo más grande debe cumplir con n=1). "
         f"Got: {jaw_a['modelo']}"
     )
+
+
+# ── Tests de validaciones físicas ─────────────────────────────────────────────
+
+def test_500mm_a_50mm_no_recomienda_mandibula_sola():
+    """
+    Test a: alimentación ROM con partículas hasta 500mm y producto 0-50mm no debe
+    recomendar mandíbula sola (jaw_only).
+    Regla d: P100_min de cualquier mandíbula del catálogo (css_min × 2.5 ≥ 100 mm)
+    supera el tamaño máximo del producto (50 mm) → jaw_only descartada.
+    El resultado puede ser jaw_screen o jaw_cone_screen — cualquiera con más de
+    1 etapa de procesamiento es correcto.
+    """
+    feed_curve = {100: 20, 250: 55, 400: 80, 500: 100}
+    results = recommend(
+        rock_type="granito",
+        f80_mm=350.0,
+        products=[{"name": "triturado", "min_mm": 0.0, "max_mm": 50.0, "volumen_ton": 30_000.0}],
+        duracion_meses=3,
+        inchancables=False,
+        feed_curve_dict=feed_curve,
+    )
+    assert results, "Debe retornar al menos 1 resultado"
+    configs = [r["config"] for r in results]
+    # jaw_only está descartada por regla d (css_min×2.5 ≥ 100mm > 50mm para toda mandíbula)
+    assert "jaw_only" not in configs, (
+        f"jaw_only no debe aparecer con producto 0-50mm y feed hasta 500mm. "
+        f"Configs: {configs}"
+    )
+    # Debe haber al menos un resultado con más de 1 tipo de equipo
+    assert any(r.get("config") in ("jaw_screen", "jaw_cone_screen") for r in results), (
+        f"Debe recomendarse jaw+seleccionadora o jaw+cono+seleccionadora. Configs: {configs}"
+    )
+
+
+def test_razon_reduccion_excesiva_descarta_config():
+    """
+    Test b: la función _reduction_ratio_ok descarta configuraciones con razón > límite.
+    Mandíbula: límite 6:1. Cono: límite 5:1.
+    """
+    from app.services.recommender import _reduction_ratio_ok
+
+    # Mandíbula: feed=700mm, css=40mm → ratio = 700/(40×2.5) = 7 > 6 → False
+    assert not _reduction_ratio_ok("jaw", 700.0, 40.0), (
+        "Ratio 7:1 con mandíbula debe ser rechazado (límite 6:1)"
+    )
+    # Mandíbula: feed=500mm, css=40mm → ratio = 500/100 = 5 ≤ 6 → True
+    assert _reduction_ratio_ok("jaw", 500.0, 40.0), (
+        "Ratio 5:1 con mandíbula debe ser aceptado"
+    )
+    # Cono: feed=300mm, css=35mm → ratio = 300/(35×1.6) = 5.36 > 5 → False
+    assert not _reduction_ratio_ok("cone", 300.0, 35.0), (
+        "Ratio 5.4:1 con cono debe ser rechazado (límite 5:1)"
+    )
+    # Cono: feed=200mm, css=50mm → ratio = 200/(50×1.6) = 2.5 ≤ 5 → True
+    assert _reduction_ratio_ok("cone", 200.0, 50.0), (
+        "Ratio 2.5:1 con cono debe ser aceptado"
+    )
+    # Impactor: feed=600mm, css=30mm → ratio = 600/(30×2.0) = 10 > 8 → False
+    assert not _reduction_ratio_ok("hsi", 600.0, 30.0), (
+        "Ratio 10:1 con impactor debe ser rechazado (límite 8:1)"
+    )
+
+
+def test_equipos_sin_campos_nuevos_siguen_funcionando():
+    """
+    Test c: equipos sin feed_max_recomendado_mm, css_min_recomendado_mm, etc.
+    (todos los del catálogo actual) siguen produciendo resultados normales en recommend().
+    Verifica que agregar los campos opcionales no rompe ningún caso existente.
+    """
+    # Caso estándar sin campos nuevos → debe retornar resultados normales
+    results = recommend(
+        rock_type="granito",
+        f80_mm=400.0,
+        products=[{"name": "grava", "min_mm": 0.0, "max_mm": 75.0, "volumen_ton": 20_000.0}],
+        duracion_meses=3,
+        inchancables=False,
+    )
+    assert results, "Debe retornar al menos 1 recomendación"
+    assert results[0]["config"] != "infeasible", (
+        "Caso estándar no debe ser infeasible"
+    )
+    for r in results:
+        for eq in r["equipos"]:
+            # Campos opcionales ausentes no causan KeyError
+            assert "tipo_legible" in eq
+            assert "css_mm" in eq or eq["etapa"] == "screen"
+
+    # Caso caso real de validación: caliza 75mm producto → debe funcionar igual
+    results2 = recommend(
+        rock_type="caliza",
+        f80_mm=233.0,
+        products=[{"name": "triturado", "min_mm": 0.0, "max_mm": 100.0, "volumen_ton": 110_000.0}],
+        duracion_meses=3,
+        inchancables=False,
+        horas_dia=6.0,
+        dias_mes=30.0,
+    )
+    assert results2, "Caso real caliza debe retornar recomendaciones"
+    assert results2[0]["config"] != "infeasible", (
+        "Caso real caliza no debe ser infeasible"
+    )
