@@ -30,7 +30,39 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
     "jaw": [
         {"brand": "Terex Finlay",  "model": "J-960",            "type": "jaw", "css_min_mm": 40,  "css_max_mm": 140, "cap_min_tph": 80,  "cap_max_tph": 200,  "feed_max_mm": 580,  "decks": None, "extra_specs": {"palanca": "doble",  "rpm": 320}, "notes": "Compacta, orugas"},
         {"brand": "Terex Finlay",  "model": "J-1160",           "type": "jaw", "css_min_mm": 45,  "css_max_mm": 160, "cap_min_tph": 150, "cap_max_tph": 280,  "feed_max_mm": 780,  "decks": None, "extra_specs": {"palanca": "doble",  "rpm": 300}, "notes": "Orugas, C9.3 ACERT"},
-        {"brand": "Terex Finlay",  "model": "J-1175",           "type": "jaw", "css_min_mm": 50,  "css_max_mm": 175, "cap_min_tph": 200, "cap_max_tph": 350,  "feed_max_mm": 790,  "decks": None, "extra_specs": {"palanca": "doble",  "rpm": 290}, "notes": "Orugas, C13 ACERT"},
+        {
+            "brand": "Terex Finlay", "model": "J-1175", "type": "jaw",
+            "css_min_mm": 50, "css_max_mm": 175,
+            "cap_min_tph": 200, "cap_max_tph": 452,
+            "feed_max_mm": 790, "decks": None,
+            "extra_specs": {"palanca": "doble", "rpm": 290},
+            "notes": "Orugas, C13 ACERT",
+            # Curva de capacidad — Manual Terex Finlay J-1175 Rev 8.8 p.3-10
+            "curves": {
+                "css": [50, 60, 75, 90, 100, 115, 125, 140, 150, 165, 175],
+                "tph": [122.5, 147.5, 176.0, 207.5, 238.5, 276.5, 301.5, 345.5, 364.5, 402.0, 427.0],
+            },
+            "capacity_source": "Manual Terex Finlay J-1175 Rev 8.8 p.3-10, caliza 1600 kg/m3, punto medio de rangos",
+            # Curva de producto normalizada (d/CSS → % pasante) — promedio de 10 columnas CSS, roca dura
+            "product_curve": {
+                0.08: 3.2, 0.10: 3.3, 0.125: 3.6, 0.15: 4.3, 0.175: 4.9,
+                0.20: 5.6, 0.225: 6.2, 0.25: 6.9, 0.30: 8.2, 0.35: 9.7,
+                0.40: 11.4, 0.45: 13.4, 0.50: 15.8, 0.55: 18.6, 0.60: 21.9,
+                0.65: 25.7, 0.70: 29.9, 0.75: 34.7, 0.80: 39.6, 0.85: 45.0,
+                0.90: 51.0, 0.95: 57.5, 1.00: 64.0, 1.10: 75.2, 1.20: 83.7,
+                1.40: 93.5, 1.60: 98.5, 1.80: 100.0,
+            },
+            "product_curve_source": "Manual Terex Finlay J-1175 Rev 8.8 p.3-11, JW3042 roca dura",
+            # Curva de producto roca blanda — sin uso activo, referencia futura
+            "product_curve_soft_rock": {
+                0.08: 3.4, 0.10: 3.5, 0.125: 3.9, 0.15: 4.5, 0.175: 5.2,
+                0.20: 5.9, 0.225: 6.5, 0.25: 7.3, 0.30: 8.9, 0.35: 10.6,
+                0.40: 12.5, 0.45: 14.9, 0.50: 17.5, 0.55: 20.6, 0.60: 24.1,
+                0.65: 28.1, 0.70: 32.5, 0.75: 37.6, 0.80: 43.2, 0.85: 49.5,
+                0.90: 56.1, 0.95: 62.7, 1.00: 69.0, 1.10: 79.3, 1.20: 86.9,
+                1.40: 95.3, 1.60: 99.1, 1.80: 100.0,
+            },
+        },
         {"brand": "Terex Finlay",  "model": "J-1280",           "type": "jaw", "css_min_mm": 75,  "css_max_mm": 175, "cap_min_tph": 250, "cap_max_tph": 400,  "feed_max_mm": 1070, "decks": None, "extra_specs": {"palanca": "doble",  "rpm": 270}, "notes": "Orugas, alta capacidad"},
         {"brand": "Terex Finlay",  "model": "J-1480",           "type": "jaw", "css_min_mm": 100, "css_max_mm": 200, "cap_min_tph": 400, "cap_max_tph": 600,  "feed_max_mm": 1400, "decks": None, "extra_specs": {"palanca": "simple", "rpm": 250}, "notes": "Orugas, gran formato"},
         {"brand": "Powerscreen",   "model": "Premiertrak R400", "type": "jaw", "css_min_mm": 40,  "css_max_mm": 140, "cap_min_tph": 120, "cap_max_tph": 400,  "feed_max_mm": 762,  "decks": None, "extra_specs": {"palanca": "doble",  "rpm": 300}, "notes": "Mandíbula reversible, C&D y primario"},
