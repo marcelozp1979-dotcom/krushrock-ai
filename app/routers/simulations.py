@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.routers.auth import get_current_user
 from app.services.simulation_engine import simulate, ROCK_DB
 from app.services.recommender import recommend, run_config, HOURS_PER_MONTH
+from app.routers.equipment import _FALLBACK
 
 router = APIRouter()
 
@@ -187,6 +188,30 @@ class RecommendRequest(BaseModel):
 
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
+
+def _enrich_node_from_catalog(node_raw: dict) -> dict:
+    """
+    Completa curves y product_curve en el nodo desde _FALLBACK cuando llegan vacíos.
+    Busca por equipment.type + equipment.model; si no lo encuentra, devuelve el nodo sin cambios.
+    """
+    eq = node_raw.get("equipment", {})
+    if eq.get("curves"):  # ya tiene curvas, no tocar
+        return node_raw
+    eq_type = eq.get("type", "")
+    eq_model = (eq.get("model") or "").lower()
+    for cat_eq in _FALLBACK.get(eq_type, []):
+        if (cat_eq.get("model") or "").lower() == eq_model:
+            enriched_eq = dict(eq)
+            enriched_eq["curves"] = cat_eq.get("curves", {})
+            pc = cat_eq.get("product_curve")
+            if pc is not None:
+                enriched_eq["product_curve"] = pc
+            node_copy = dict(node_raw)
+            node_copy["equipment"] = enriched_eq
+            return node_copy
+    return node_raw
+
+
 def _check_sim_limit(user: dict):
     plan = user.get("plan", "free")
     count = user.get("sim_count_month", 0)
@@ -285,7 +310,7 @@ async def calculate_simulation(req: SimulationRequest):
     Permite al frontend obtener resultados del motor v2 sin login.
     """
     try:
-        nodes_raw = [n.dict() for n in req.nodes]
+        nodes_raw = [_enrich_node_from_catalog(n.dict()) for n in req.nodes]
         products_raw = [p.dict() for p in req.products] if req.products else None
 
         result = simulate(

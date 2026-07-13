@@ -162,74 +162,83 @@ def _parallel_n(min_cap_tph: float, tph_required: float) -> int:
 
 def _make_jaw_node(eq: Dict, target_p80_mm: float) -> Dict:
     safe_id = eq["model"].replace(" ", "_").replace("-", "_")
+    equipment: Dict = {
+        "id": f"jaw_{eq['model']}",
+        "brand": eq["brand"],
+        "model": eq["model"],
+        "type": "jaw",
+        "cap_max_tph": eq.get("cap_max_tph", 0),
+        "specs": {
+            "feedMm": eq.get("feed_max_mm"),
+            "cssRange": [
+                eq.get("css_min_mm", 40),
+                eq.get("css_max_mm", 175),
+            ],
+        },
+        "curves": eq.get("curves", {}),
+        "capex_usd": 600_000,
+        "color": "#f59e0b",
+    }
+    if eq.get("product_curve") is not None:
+        equipment["product_curve"] = eq["product_curve"]
     return {
         "id": f"jaw_{safe_id}",
         "type": "jaw",
         "target_p80_mm": target_p80_mm,
-        "equipment": {
-            "id": f"jaw_{eq['model']}",
-            "brand": eq["brand"],
-            "model": eq["model"],
-            "type": "jaw",
-            "cap_max_tph": eq.get("cap_max_tph", 0),
-            "specs": {
-                "feedMm": eq.get("feed_max_mm"),
-                "cssRange": [
-                    eq.get("css_min_mm", 40),
-                    eq.get("css_max_mm", 175),
-                ],
-            },
-            "curves": {},
-            "capex_usd": 600_000,
-            "color": "#f59e0b",
-        },
+        "equipment": equipment,
     }
 
 
 def _make_cone_node(eq: Dict, target_p80_mm: float) -> Dict:
     safe_id = eq["model"].replace(" ", "_").replace("-", "_")
+    equipment: Dict = {
+        "id": f"cone_{eq['model']}",
+        "brand": eq["brand"],
+        "model": eq["model"],
+        "type": "cone",
+        "cap_max_tph": eq.get("cap_max_tph", 0),
+        "specs": {
+            "feedMm": eq.get("feed_max_mm"),
+            "cssRange": [
+                eq.get("css_min_mm", 8),
+                eq.get("css_max_mm", 44),
+            ],
+        },
+        "curves": eq.get("curves", {}),
+        "capex_usd": 800_000,
+        "color": "#3b82f6",
+    }
+    if eq.get("product_curve") is not None:
+        equipment["product_curve"] = eq["product_curve"]
     return {
         "id": f"cone_{safe_id}",
         "type": "cone",
         "target_p80_mm": target_p80_mm,
-        "equipment": {
-            "id": f"cone_{eq['model']}",
-            "brand": eq["brand"],
-            "model": eq["model"],
-            "type": "cone",
-            "cap_max_tph": eq.get("cap_max_tph", 0),
-            "specs": {
-                "feedMm": eq.get("feed_max_mm"),
-                "cssRange": [
-                    eq.get("css_min_mm", 8),
-                    eq.get("css_max_mm", 44),
-                ],
-            },
-            "curves": {},
-            "capex_usd": 800_000,
-            "color": "#3b82f6",
-        },
+        "equipment": equipment,
     }
 
 
 def _make_screen_node(eq: Dict, aperture_mm: float) -> Dict:
     safe_id = eq["model"].replace(" ", "_").replace("-", "_")
+    equipment: Dict = {
+        "id": f"screen_{eq['model']}",
+        "brand": eq["brand"],
+        "model": eq["model"],
+        "type": "screen",
+        "cap_max_tph": eq.get("cap_max_tph", 0),
+        "decks": eq.get("decks") or 2,
+        "specs": {},
+        "curves": eq.get("curves", {}),
+        "capex_usd": 400_000,
+        "color": "#10b981",
+    }
+    if eq.get("product_curve") is not None:
+        equipment["product_curve"] = eq["product_curve"]
     return {
         "id": f"screen_{safe_id}",
         "type": "screen",
         "aperture_mm": aperture_mm,
-        "equipment": {
-            "id": f"screen_{eq['model']}",
-            "brand": eq["brand"],
-            "model": eq["model"],
-            "type": "screen",
-            "cap_max_tph": eq.get("cap_max_tph", 0),
-            "decks": eq.get("decks") or 2,
-            "specs": {},
-            "curves": {},
-            "capex_usd": 400_000,
-            "color": "#10b981",
-        },
+        "equipment": equipment,
     }
 
 
