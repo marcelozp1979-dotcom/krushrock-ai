@@ -43,11 +43,12 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
         },
         {
             "brand": "Terex Finlay", "model": "J-1160", "type": "jaw",
-            "css_min_mm": 45, "css_max_mm": 160,
+            "css_min_mm": 40, "css_max_mm": 145,
             "cap_min_tph": 150, "cap_max_tph": 280,
-            "feed_max_mm": 780, "decks": None,
-            "extra_specs": {"palanca": "doble", "rpm": 300},
-            "notes": "Orugas, C9.3 ACERT",
+            "feed_max_mm": 600, "decks": None,
+            "extra_specs": {"palanca": "simple", "rpm": 260},
+            "notes": "Orugas, hidrostático, boca 1000x600; rpm 220-300",
+            "specs_source": "Manual Terex J-1160 Rev 4.2, datos técnicos",
             # Tablas de granulometría idénticas a J-1175 (misma familia de cámara JW3042)
             "product_curve": {
                 0.08: 3.2, 0.10: 3.3, 0.125: 3.6, 0.15: 4.3, 0.175: 4.9,
