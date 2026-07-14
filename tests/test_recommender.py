@@ -402,15 +402,16 @@ def test_plazo_cumple_prioritario_sobre_mayor_fit():
 
 def test_andesita_recomienda_equipo_mayor_no_dos_chicos():
     """
-    Con curva andesita y producto 0-100mm, Opción A debe ser 1 unidad de mandíbula
-    mayor que J-960 (J-1160 o J-1175), no 2×J-960. Opción B debe existir.
+    Con curva andesita y producto 0-130mm, Opción A debe ser 1 unidad de mandíbula
+    mayor que J-960 (J-1170 o J-1175), no 2×J-960. Opción B debe existir.
     Verifica que el corte temprano y el ranking priorizan el equipo individual más grande.
+    (max_mm=130 para que jaws con css_min=50 sean elegibles: P100_min=125 < 130)
     """
     feed_curve = {152.4: 69, 203.2: 77, 254: 82, 304.8: 86}
     results = recommend(
         rock_type="andesita",
         f80_mm=234.0,
-        products=[{"name": "triturado", "min_mm": 0.0, "max_mm": 100.0, "volumen_ton": 110_000.0}],
+        products=[{"name": "triturado", "min_mm": 0.0, "max_mm": 130.0, "volumen_ton": 110_000.0}],
         duracion_meses=3,
         inchancables=False,
         feed_curve_dict=feed_curve,
