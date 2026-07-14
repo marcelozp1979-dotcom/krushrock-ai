@@ -45,15 +45,20 @@ CONFIG_B = {
 }
 
 INDICADORES_ESPERADOS = {
-    "tph_efectivo", "material_aprovechado", "carga_circulante",
-    "n_equipos_total", "costo_arriendo_mes", "cumple_plazo",
+    "tph_efectivo", "material_aprovechado", "tiempo_requerido",
+    "n_equipos_total", "cumple_plazo",
 }
+
+ORDEN_ESPERADO = [
+    "tph_efectivo", "material_aprovechado", "tiempo_requerido",
+    "n_equipos_total", "cumple_plazo",
+]
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 def test_compare_simple_tabla_estructura():
-    """Respuesta tiene tabla con 6 filas, 6 indicadores correctos y claves requeridas."""
+    """Respuesta tiene tabla con 5 filas, 5 indicadores correctos y claves requeridas."""
     resp = client.post("/api/v1/simulations/compare-simple", json={
         "config_usuario": CONFIG_A,
         "config_sugerida": CONFIG_B,
@@ -64,7 +69,7 @@ def test_compare_simple_tabla_estructura():
     data = resp.json()
     assert "tabla" in data
     tabla = data["tabla"]
-    assert len(tabla) == 6, f"Se esperaban 6 filas, hay {len(tabla)}"
+    assert len(tabla) == 5, f"Se esperaban 5 filas, hay {len(tabla)}"
 
     indicadores = {row["indicador"] for row in tabla}
     assert indicadores == INDICADORES_ESPERADOS
@@ -75,20 +80,29 @@ def test_compare_simple_tabla_estructura():
         assert "unidad"   in row
 
 
-def test_compare_simple_tarifa_y_null():
-    """Tarifa × n_units aparece para la config que la provee; null para la que no."""
-    config_con_tarifa = {**CONFIG_A, "tarifa_arriendo_usd_mes": 18_000.0}
+def test_compare_simple_tabla_orden():
+    """Las 5 filas aparecen en el orden definido."""
     resp = client.post("/api/v1/simulations/compare-simple", json={
-        "config_usuario": config_con_tarifa,
-        "config_sugerida": CONFIG_B,           # sin tarifa
+        "config_usuario": CONFIG_A,
+        "config_sugerida": CONFIG_B,
         "faena": FAENA,
     })
     assert resp.status_code == 200, resp.text
-
     tabla = resp.json()["tabla"]
-    row = next(r for r in tabla if r["indicador"] == "costo_arriendo_mes")
-    assert row["usuario"] == pytest.approx(18_000.0, rel=1e-4)
-    assert row["sugerida"] is None
+    assert [r["indicador"] for r in tabla] == ORDEN_ESPERADO
+
+
+def test_compare_simple_tiempo_requerido_unidad_meses():
+    """La fila tiempo_requerido trae unidad 'meses'."""
+    resp = client.post("/api/v1/simulations/compare-simple", json={
+        "config_usuario": CONFIG_A,
+        "config_sugerida": CONFIG_B,
+        "faena": FAENA,
+    })
+    assert resp.status_code == 200, resp.text
+    tabla = resp.json()["tabla"]
+    row = next(r for r in tabla if r["indicador"] == "tiempo_requerido")
+    assert row["unidad"] == "meses"
 
 
 def test_compare_simple_equipo_invalido_retorna_422():

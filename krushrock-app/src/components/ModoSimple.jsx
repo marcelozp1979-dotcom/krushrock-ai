@@ -21,9 +21,8 @@ const CFG_LABELS = {
 const CMP_META = [
   { key: "tph_efectivo",        label: "Producción estimada",              better: "higher" },
   { key: "material_aprovechado", label: "Material dentro del rango deseado", better: "higher" },
-  { key: "carga_circulante",    label: "Recirculación de material",        better: "lower"  },
+  { key: "tiempo_requerido",    label: "Tiempo para lograr el volumen",    better: "lower"  },
   { key: "n_equipos_total",     label: "Cantidad de equipos necesarios",   better: "lower"  },
-  { key: "costo_arriendo_mes",  label: "Costo mensual de arriendo",        better: "lower"  },
   { key: "cumple_plazo",        label: "¿Cumple el plazo?",               better: "true"   },
 ];
 
@@ -125,7 +124,6 @@ export function SimpleMode({ eqCatalog, onBack }) {
   const [cmpEquipos, setCmpEquipos] = useState([{ etapa: "jaw", marca: "", modelo: "" }]);
   const [cmpCircuit, setCmpCircuit] = useState("open");
   const [cmpN, setCmpN]             = useState(1);
-  const [cmpTarifa, setCmpTarifa]   = useState("");
   const [cmpSugIdx, setCmpSugIdx]   = useState(0);
   const [cmpLoading, setCmpLoading] = useState(false);
   const [cmpError, setCmpError]     = useState(null);
@@ -227,7 +225,7 @@ export function SimpleMode({ eqCatalog, onBack }) {
             equipos: cmpEquipos.map(e => ({ etapa: e.etapa, marca: e.marca, modelo: e.modelo })),
             circuit: cmpCircuit,
             n_units: Number(cmpN),
-            tarifa_arriendo_usd_mes: cmpTarifa ? Number(cmpTarifa) : null,
+            tarifa_arriendo_usd_mes: null,
           },
           config_sugerida: {
             equipos: sugerida.equipos,
@@ -266,7 +264,6 @@ export function SimpleMode({ eqCatalog, onBack }) {
   const fmtVal = (key, val) => {
     if (val === null || val === undefined) return "—";
     if (key === "cumple_plazo") return val ? "Sí ✓" : "No ✗";
-    if (key === "costo_arriendo_mes") return `$${Math.round(Number(val)).toLocaleString()}`;
     if (typeof val === "boolean") return val ? "Sí" : "No";
     if (typeof val === "number") return Number.isInteger(val) ? String(val) : val.toFixed(1);
     return String(val);
@@ -274,7 +271,6 @@ export function SimpleMode({ eqCatalog, onBack }) {
 
   const fmtUnit = (key, unidad) => {
     if (!unidad || unidad === "bool") return "";
-    if (key === "costo_arriendo_mes") return "";
     return ` ${unidad}`;
   };
 
@@ -773,11 +769,6 @@ export function SimpleMode({ eqCatalog, onBack }) {
                         <label style={lbl}>Unidades:</label>
                         <input type="number" value={cmpN} min={1} max={4}
                           onChange={e => setCmpN(e.target.value)} style={inp} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 180 }}>
-                        <label style={lbl}>Tarifa de arriendo (USD/mes, opcional):</label>
-                        <input type="number" value={cmpTarifa} min={0} placeholder="Ej: 15000"
-                          onChange={e => setCmpTarifa(e.target.value)} style={inp} />
                       </div>
                     </div>
 

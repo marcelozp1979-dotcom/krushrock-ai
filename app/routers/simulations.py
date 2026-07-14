@@ -418,9 +418,8 @@ def _build_compare_table(req: CompareConfigsRequest) -> Dict[str, Any]:
     return {"tabla": [
         _row("tph_efectivo",         "tph",      "tph_efectivo"),
         _row("material_aprovechado", "%",        "product_fit_pct"),
-        _row("carga_circulante",     "%",        "circ_load_pct"),
+        _row("tiempo_requerido",     "meses",    "meses_requeridos"),
         _row("n_equipos_total",      "unidades", "n_equipos_total"),
-        _row("costo_arriendo_mes",   "USD/mes",  "costo_arriendo_mes_usd"),
         _row("cumple_plazo",         "bool",     "cumple_plazo"),
     ]}
 

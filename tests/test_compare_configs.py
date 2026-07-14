@@ -98,7 +98,7 @@ def test_equipo_invalido_lanza_value_error():
 
 
 def test_endpoint_compare_configs_tabla_completa():
-    """Endpoint /compare-configs retorna tabla con 6 filas y claves correctas."""
+    """Endpoint /compare-configs retorna tabla con 5 filas y claves correctas."""
     from fastapi.testclient import TestClient
     from app.main import app
 
@@ -109,7 +109,7 @@ def test_endpoint_compare_configs_tabla_completa():
             "equipos": [{"etapa": "jaw", "marca": "Terex Finlay", "modelo": "J-960"}],
             "circuit": "open",
             "n_units": 1,
-            "tarifa_arriendo_usd_mes": 12_000.0,
+            "tarifa_arriendo_usd_mes": None,
         },
         "config_sugerida": {
             "equipos": [
@@ -135,17 +135,14 @@ def test_endpoint_compare_configs_tabla_completa():
     data = resp.json()
     assert "tabla" in data
     tabla = data["tabla"]
-    assert len(tabla) == 6, f"Se esperaban 6 filas, hay {len(tabla)}"
+    assert len(tabla) == 5, f"Se esperaban 5 filas, hay {len(tabla)}"
 
     indicadores = {row["indicador"] for row in tabla}
     esperados = {
-        "tph_efectivo", "material_aprovechado", "carga_circulante",
-        "n_equipos_total", "costo_arriendo_mes", "cumple_plazo",
+        "tph_efectivo", "material_aprovechado", "tiempo_requerido",
+        "n_equipos_total", "cumple_plazo",
     }
     assert esperados == indicadores
 
-    # Tarifa provista para usuario → no null; sugerida sin tarifa → null
-    for row in tabla:
-        if row["indicador"] == "costo_arriendo_mes":
-            assert row["usuario"] == pytest.approx(12_000.0, rel=1e-4)
-            assert row["sugerida"] is None
+    row_tiempo = next(r for r in tabla if r["indicador"] == "tiempo_requerido")
+    assert row_tiempo["unidad"] == "meses"
