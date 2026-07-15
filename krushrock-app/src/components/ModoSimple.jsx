@@ -119,6 +119,9 @@ export function SimpleMode({ eqCatalog, onBack }) {
   const [recError, setRecError]     = useState(null);
   const [recs, setRecs]             = useState(null);
 
+  const [pdfCliente, setPdfCliente] = useState("");
+  const [pdfProyecto, setPdfProyecto] = useState("");
+
   const [showCmp, setShowCmp]       = useState(false);
   const [cmpEquipos, setCmpEquipos] = useState([{ etapa: "jaw", marca: "", modelo: "" }]);
   const [cmpCircuit, setCmpCircuit] = useState("open");
@@ -205,6 +208,49 @@ export function SimpleMode({ eqCatalog, onBack }) {
       ...(field === "etapa" ? { marca: "", modelo: "" } : {}),
       ...(field === "marca" ? { modelo: "" } : {}),
     }));
+  };
+
+  const handleProposal = async (rec) => {
+    const circuitRec = rec.config === "jaw_only" ? "open" : "closed";
+    try {
+      const resp = await fetch(`${API_BASE}/reports/proposal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cliente:  pdfCliente || null,
+          proyecto: pdfProyecto || null,
+          faena: {
+            rock_type: rockKey,
+            ...buildFeedPayload(),
+            products: buildProductsPayload(),
+            duracion_meses: Number(meses),
+            inchancables,
+            horas_dia: Number(horasDia),
+            dias_mes: Number(diasMes),
+          },
+          config: {
+            equipos: rec.equipos.map(e => ({ etapa: e.etapa, marca: e.marca, modelo: e.modelo })),
+            circuit: circuitRec,
+            n_units: rec.n_units,
+          },
+        }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        setRecError(err.detail || "Error al generar el PDF.");
+        return;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const slug = (pdfProyecto || new Date().toISOString().slice(0, 10)).replace(/\s+/g, "_");
+      a.href = url;
+      a.download = `KrushRock_Propuesta_${slug}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setRecError("No se pudo conectar con el servidor para generar el PDF.");
+    }
   };
 
   const handleCompare = async () => {
@@ -510,6 +556,18 @@ export function SimpleMode({ eqCatalog, onBack }) {
                   color: G.text, marginBottom: 16 }}>
                   {recs.length === 1 ? "Recomendación para tu proyecto" : "Recomendaciones para tu proyecto"}
                 </div>
+                <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <label style={lbl}>Cliente (opcional, para el PDF):</label>
+                    <input type="text" value={pdfCliente} placeholder="Ej: Minera Ejemplo S.A."
+                      onChange={e => setPdfCliente(e.target.value)} style={inp} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <label style={lbl}>Nombre del proyecto (opcional):</label>
+                    <input type="text" value={pdfProyecto} placeholder="Ej: Proyecto Áridos Norte"
+                      onChange={e => setPdfProyecto(e.target.value)} style={inp} />
+                  </div>
+                </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 20 }}>
                   {recs.map((rec, idx) => {
                     const pf = Number(rec.product_fit_pct);
@@ -662,6 +720,16 @@ export function SimpleMode({ eqCatalog, onBack }) {
                             o detector de metales antes del chancador
                           </div>
                         )}
+                        <div style={{ textAlign: "right" }}>
+                          <button
+                            onClick={() => handleProposal(rec)}
+                            style={{ padding: "8px 18px", background: "transparent",
+                              border: `1px solid ${G.accent}`, borderRadius: 8,
+                              color: G.accent, cursor: "pointer",
+                              fontSize: 12, fontFamily: G.font }}>
+                            ↓ Descargar propuesta (PDF)
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
