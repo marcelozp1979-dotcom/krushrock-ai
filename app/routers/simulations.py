@@ -372,7 +372,7 @@ def _build_compare_table(req: CompareConfigsRequest) -> Dict[str, Any]:
     Lógica compartida por /compare-configs y /compare-simple.
 
     Corre el motor sobre las dos configuraciones de planta y construye
-    la tabla comparativa de 6 indicadores. Lanza ValueError si algún
+    la tabla comparativa de 4 indicadores. Lanza ValueError si algún
     equipo no existe en el catálogo.
     """
     f80 = req.faena.f80_mm if req.faena.f80_mm is not None else _f80_from_curve(req.faena.feed_curve)
@@ -420,7 +420,6 @@ def _build_compare_table(req: CompareConfigsRequest) -> Dict[str, Any]:
         _row("material_aprovechado", "%",        "product_fit_pct"),
         _row("tiempo_requerido",     "meses",    "meses_requeridos"),
         _row("n_equipos_total",      "unidades", "n_equipos_total"),
-        _row("cumple_plazo",         "bool",     "cumple_plazo"),
     ]}
 
 

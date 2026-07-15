@@ -135,12 +135,12 @@ def test_endpoint_compare_configs_tabla_completa():
     data = resp.json()
     assert "tabla" in data
     tabla = data["tabla"]
-    assert len(tabla) == 5, f"Se esperaban 5 filas, hay {len(tabla)}"
+    assert len(tabla) == 4, f"Se esperaban 4 filas, hay {len(tabla)}"
 
     indicadores = {row["indicador"] for row in tabla}
     esperados = {
         "tph_efectivo", "material_aprovechado", "tiempo_requerido",
-        "n_equipos_total", "cumple_plazo",
+        "n_equipos_total",
     }
     assert esperados == indicadores
 

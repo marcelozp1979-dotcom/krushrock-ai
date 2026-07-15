@@ -19,11 +19,10 @@ const CFG_LABELS = {
 };
 
 const CMP_META = [
-  { key: "tph_efectivo",        label: "Producción estimada",              better: "higher" },
-  { key: "material_aprovechado", label: "Material dentro del rango deseado", better: "higher" },
-  { key: "tiempo_requerido",    label: "Tiempo para lograr el volumen",    better: "lower"  },
-  { key: "n_equipos_total",     label: "Cantidad de equipos necesarios",   better: "lower"  },
-  { key: "cumple_plazo",        label: "¿Cumple el plazo?",               better: "true"   },
+  { key: "tph_efectivo",        label: "Producción estimada"               },
+  { key: "material_aprovechado", label: "Material dentro del rango deseado" },
+  { key: "tiempo_requerido",    label: "Tiempo para lograr el volumen"     },
+  { key: "n_equipos_total",     label: "Cantidad de equipos necesarios"    },
 ];
 
 const ETAPA_OPTS = [
@@ -249,16 +248,6 @@ export function SimpleMode({ eqCatalog, onBack }) {
     } finally {
       setCmpLoading(false);
     }
-  };
-
-  const semaforo = (meta, vU, vS) => {
-    if (vU === null || vU === undefined || vS === null || vS === undefined) return { u: G.muted, s: G.muted };
-    if (vU === vS) return { u: G.text, s: G.text };
-    let uBetter;
-    if (meta.better === "higher") uBetter = vU > vS;
-    else if (meta.better === "lower") uBetter = vU < vS;
-    else uBetter = Boolean(vU) && !Boolean(vS);
-    return { u: uBetter ? G.green : G.red, s: uBetter ? G.red : G.green };
   };
 
   const fmtVal = (key, val) => {
@@ -799,16 +788,25 @@ export function SimpleMode({ eqCatalog, onBack }) {
                                 <th style={{ textAlign: "left", padding: "8px 12px",
                                   color: G.muted, fontWeight: 600, fontSize: 12 }}>Indicador</th>
                                 <th style={{ textAlign: "center", padding: "8px 12px",
-                                  color: G.text, fontWeight: 700 }}>Mi configuración</th>
+                                  color: G.text, fontWeight: 700 }}>
+                                  Mi configuración
+                                  <div style={{ fontSize: 11, fontWeight: 400, color: G.muted, marginTop: 2 }}>
+                                    {cmpEquipos.map(e => e.modelo).filter(Boolean).join(" + ") || "—"}
+                                  </div>
+                                </th>
                                 <th style={{ textAlign: "center", padding: "8px 12px",
-                                  color: G.accent, fontWeight: 700 }}>Recomendación KrushRock</th>
+                                  color: G.accent, fontWeight: 700 }}>
+                                  Recomendación KrushRock
+                                  <div style={{ fontSize: 11, fontWeight: 400, color: G.muted, marginTop: 2 }}>
+                                    {recs[Math.min(cmpSugIdx, recs.length - 1)].equipos.map(e => e.modelo).join(" + ")}
+                                  </div>
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
                               {CMP_META.map(meta => {
                                 const row = cmpResult.find(r => r.indicador === meta.key);
                                 if (!row) return null;
-                                const { u: uClr, s: sClr } = semaforo(meta, row.usuario, row.sugerida);
                                 return (
                                   <tr key={meta.key}
                                     style={{ borderBottom: `1px solid ${G.faint}` }}>
@@ -816,13 +814,13 @@ export function SimpleMode({ eqCatalog, onBack }) {
                                       {meta.label}
                                     </td>
                                     <td style={{ padding: "10px 12px", textAlign: "center",
-                                      fontWeight: 700, color: uClr }}>
+                                      fontWeight: 700, color: G.text }}>
                                       {fmtVal(meta.key, row.usuario)}
                                       {row.usuario !== null && row.usuario !== undefined
                                         ? fmtUnit(meta.key, row.unidad) : ""}
                                     </td>
                                     <td style={{ padding: "10px 12px", textAlign: "center",
-                                      fontWeight: 700, color: sClr }}>
+                                      fontWeight: 700, color: G.text }}>
                                       {fmtVal(meta.key, row.sugerida)}
                                       {row.sugerida !== null && row.sugerida !== undefined
                                         ? fmtUnit(meta.key, row.unidad) : ""}
@@ -832,9 +830,6 @@ export function SimpleMode({ eqCatalog, onBack }) {
                               })}
                             </tbody>
                           </table>
-                        </div>
-                        <div style={{ marginTop: 10, fontSize: 11, color: G.muted }}>
-                          Verde = mejor en ese indicador · Rojo = menos favorable
                         </div>
                       </div>
                     )}

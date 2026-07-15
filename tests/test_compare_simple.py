@@ -46,19 +46,19 @@ CONFIG_B = {
 
 INDICADORES_ESPERADOS = {
     "tph_efectivo", "material_aprovechado", "tiempo_requerido",
-    "n_equipos_total", "cumple_plazo",
+    "n_equipos_total",
 }
 
 ORDEN_ESPERADO = [
     "tph_efectivo", "material_aprovechado", "tiempo_requerido",
-    "n_equipos_total", "cumple_plazo",
+    "n_equipos_total",
 ]
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 def test_compare_simple_tabla_estructura():
-    """Respuesta tiene tabla con 5 filas, 5 indicadores correctos y claves requeridas."""
+    """Respuesta tiene tabla con 4 filas, 4 indicadores correctos y claves requeridas."""
     resp = client.post("/api/v1/simulations/compare-simple", json={
         "config_usuario": CONFIG_A,
         "config_sugerida": CONFIG_B,
@@ -69,7 +69,7 @@ def test_compare_simple_tabla_estructura():
     data = resp.json()
     assert "tabla" in data
     tabla = data["tabla"]
-    assert len(tabla) == 5, f"Se esperaban 5 filas, hay {len(tabla)}"
+    assert len(tabla) == 4, f"Se esperaban 4 filas, hay {len(tabla)}"
 
     indicadores = {row["indicador"] for row in tabla}
     assert indicadores == INDICADORES_ESPERADOS
@@ -81,7 +81,7 @@ def test_compare_simple_tabla_estructura():
 
 
 def test_compare_simple_tabla_orden():
-    """Las 5 filas aparecen en el orden definido."""
+    """Las 4 filas aparecen en el orden definido."""
     resp = client.post("/api/v1/simulations/compare-simple", json={
         "config_usuario": CONFIG_A,
         "config_sugerida": CONFIG_B,
