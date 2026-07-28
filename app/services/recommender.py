@@ -189,10 +189,10 @@ def _make_jaw_node(eq: Dict, target_p80_mm: float) -> Dict:
     }
 
 
-def _make_cone_node(eq: Dict, target_p80_mm: float) -> Dict:
-    safe_id = eq["model"].replace(" ", "_").replace("-", "_")
+def _make_cone_node(eq: Dict, target_p80_mm: float, id_suffix: str = "") -> Dict:
+    safe_id = eq["model"].replace(" ", "_").replace("-", "_") + id_suffix
     equipment: Dict = {
-        "id": f"cone_{eq['model']}",
+        "id": f"cone_{eq['model']}{id_suffix}",
         "brand": eq["brand"],
         "model": eq["model"],
         "type": "cone",
@@ -457,7 +457,7 @@ def recommend(
                         _make_jaw_node(jaw, p80_target),
                         _make_screen_node(scr, aperture_mm),
                     ],
-                    "circuit": "closed",
+                    "circuit": "open",   # oversize se descarta — nunca recircular a mandíbula
                     "n_units": 1,
                     "cap_bottleneck_tph": bn,
                 })
@@ -503,6 +503,90 @@ def recommend(
                         "n_units": 1,
                         "cap_bottleneck_tph": bn,
                     })
+
+    # D: mandíbula + cono secundario + cono terciario + seleccionadora (circuito cerrado)
+    # El motor recircula el oversize de la seleccionadora al cono TERCIARIO (nodo previo a screen).
+    # Se propone siempre que haya cono y seleccionadora disponibles, para dar una opción de
+    # alta reducción junto a jaw_cone_screen.
+    if jaws and cones and screens:
+        # P80 intermedio entre salida de mandíbula y producto final
+        cone_sec_target_p80 = max(p80_target * 2.8, jaw_target_p80 * 0.55)
+        # Feed máx al cono secundario = salida máx de la mandíbula
+        cone_sec_feed_max = jaw_target_p80 / 0.8
+        cones_sec = _viable_cones(cone_sec_feed_max)
+        # Feed máx al cono terciario = salida máx del secundario
+        cone_ter_feed_max = cone_sec_target_p80 / 0.8
+        cones_ter = _viable_cones(cone_ter_feed_max)
+
+        if cones_sec and cones_ter:
+            for jaw in jaws:
+                css_min_jaw = jaw.get("css_min_mm") or 0
+                css_jaw_est_jccs = max(jaw_target_p80, css_min_jaw)
+                if not _reduction_ratio_ok("jaw", feed_max_material_mm, css_jaw_est_jccs):
+                    continue
+
+                for cone_sec in cones_sec[:_PICK]:
+                    css_min_sec = cone_sec.get("css_min_mm") or 0
+                    css_sec_est = max(cone_sec_target_p80, css_min_sec)
+                    if not _reduction_ratio_ok("cone", cone_sec_feed_max, css_sec_est):
+                        continue
+
+                    for cone_ter in cones_ter[:_PICK]:
+                        css_min_ter = cone_ter.get("css_min_mm") or 0
+                        css_ter_est = max(p80_target, css_min_ter)
+                        if not _reduction_ratio_ok("cone", cone_ter_feed_max, css_ter_est):
+                            continue
+
+                        for scr in screens[:_PICK]:
+                            bn = _bottleneck_cap([jaw, cone_sec, cone_ter, scr])
+                            candidates.append({
+                                "label": "jaw_cone_cone_screen",
+                                "nodes": [
+                                    _make_jaw_node(jaw, jaw_target_p80),
+                                    _make_cone_node(cone_sec, cone_sec_target_p80, "_sec"),
+                                    _make_cone_node(cone_ter, p80_target, "_ter"),
+                                    _make_screen_node(scr, aperture_mm),
+                                ],
+                                "circuit": "closed",
+                                "n_units": 1,
+                                "cap_bottleneck_tph": bn,
+                            })
+
+    # E: cono secundario + cono terciario + seleccionadora (sin mandíbula)
+    # Se propone cuando el tamaño máximo de alimentación cabe directo en un cono secundario.
+    if screens:
+        cones_sec_direct = _viable_cones(feed_max_material_mm)
+        if cones_sec_direct:
+            cone_sec_direct_target = max(p80_target * 2.8, feed_max_material_mm * 0.3)
+            cone_ter_feed_max_e = cone_sec_direct_target / 0.8
+            cones_ter_e = _viable_cones(cone_ter_feed_max_e)
+
+            if cones_ter_e:
+                for cone_sec in cones_sec_direct[:_PICK]:
+                    css_min_sec = cone_sec.get("css_min_mm") or 0
+                    css_sec_est = max(cone_sec_direct_target, css_min_sec)
+                    if not _reduction_ratio_ok("cone", feed_max_material_mm, css_sec_est):
+                        continue
+
+                    for cone_ter in cones_ter_e[:_PICK]:
+                        css_min_ter = cone_ter.get("css_min_mm") or 0
+                        css_ter_est = max(p80_target, css_min_ter)
+                        if not _reduction_ratio_ok("cone", cone_ter_feed_max_e, css_ter_est):
+                            continue
+
+                        for scr in screens[:_PICK]:
+                            bn = _bottleneck_cap([cone_sec, cone_ter, scr])
+                            candidates.append({
+                                "label": "cone_cone_screen",
+                                "nodes": [
+                                    _make_cone_node(cone_sec, cone_sec_direct_target, "_sec"),
+                                    _make_cone_node(cone_ter, p80_target, "_ter"),
+                                    _make_screen_node(scr, aperture_mm),
+                                ],
+                                "circuit": "closed",
+                                "n_units": 1,
+                                "cap_bottleneck_tph": bn,
+                            })
 
     if not candidates:
         # Calcular razón de reducción requerida para el mensaje informativo
@@ -620,6 +704,7 @@ def recommend(
 
             results.append({
                 "config": cand["label"],
+                "circuit": cand["circuit"],
                 "equipos": [
                     _build_equipo_dict(node, sim_node_results.get(node["id"], {}))
                     for node in cand["nodes"]
