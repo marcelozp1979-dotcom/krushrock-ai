@@ -9,7 +9,7 @@ Reglas del ciclo en `WORKFLOW.md`. Prohibiciones en `WORKFLOW.md` sección 6.
 
 ---
 
-## T-01 · Corregir el conteo de flota en el ranking · PENDIENTE
+## T-01 · Corregir el conteo de flota en el ranking · HECHA
 
 **Problema:** en `app/services/recommender.py`, la función `_rank_key` ordena por
 `r["n_units"] * len(r["equipos"])`. Eso multiplica unidades por etapas, así que "2 mandíbulas
@@ -25,7 +25,7 @@ el tren de 3 etapas con 1 unidad cada una. Los 235 tests existentes siguen verde
 
 ---
 
-## T-02 · Mensaje claro cuando el volumen pedido es imposible · PENDIENTE
+## T-02 · Mensaje claro cuando el volumen pedido es imposible · HECHA
 
 **Problema:** cuando ningún circuito alcanza el volumen en el plazo, el usuario recibe un
 resultado vacío o confuso.
@@ -41,7 +41,7 @@ plazo corto) que verifique que la respuesta trae los tres números y no viene va
 
 ---
 
-## T-03 · Módulo único de reglas de descarte (Etapa 2 del Plan Maestro) · PENDIENTE
+## T-03 · Módulo único de reglas de descarte (Etapa 2 del Plan Maestro) · HECHA
 
 **Qué hacer:** crear `app/services/selection_rules.py` que concentre, en un solo lugar, todas
 las reglas físicas que descartan un equipo. Cada regla debe devolver: si pasa o no, y **un motivo
@@ -69,7 +69,7 @@ pasa y uno que no. Los 235 tests existentes siguen verdes.
 
 ---
 
-## T-04 · Eliminar el catálogo duplicado del frontend · PENDIENTE
+## T-04 · Eliminar el catálogo duplicado del frontend · HECHA
 
 **Problema:** `krushrock-app/src/.../catalogo.js` tiene una copia local de equipos (`EQ_LOCAL`)
 que puede desincronizarse del backend.
@@ -87,7 +87,7 @@ que requiere prueba visual de Marcelo antes de integrar.)
 
 ---
 
-## T-05 · Documentar las reglas del recommender que hoy no tienen fuente · PENDIENTE
+## T-05 · Documentar las reglas del recommender que hoy no tienen fuente · HECHA
 
 **Problema:** `recommender.py` tiene constantes decididas sin referencia escrita:
 `capR = 0.80` (factor de capacidad efectiva), `_MAX_RATIO` (razones de reducción por tipo),

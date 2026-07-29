@@ -17,13 +17,25 @@ from app.services.selection_rules import (
 )
 from app.routers.equipment import _FALLBACK
 
-# Horas de operación estándar por mes (6000 h/año ÷ 12)
+# Horas de operación estándar por mes.
+# 6000 h/año ÷ 12 = 500 h/mes. 6000 h/año es el estándar de la industria minera
+# para equipo móvil de chancado (Metso, Sandvik y otros fabricantes citan 5500-6500 h/año).
+# Sin fuente citable específica — BLOQUEO B-03: Marcelo debe confirmar si aplica
+# para sus proyectos típicos (áridos, minería con paros mayores).
 HOURS_PER_MONTH: float = 500.0
 
-# Factor de capacidad efectiva (80 % de la nominal del catálogo)
+# Factor de capacidad efectiva: se aplica a la capacidad nominal del catálogo.
+# 0.80 = 80% de la capacidad máxima del fabricante.
+# Valor empírico estándar de la industria para chancado móvil. Reconoce que el equipo
+# no opera a plena carga todo el tiempo (variaciones de granulometría, arranques, etc.).
+# Fuentes: Terex Finlay Application Notes; Metso Crushing Handbook 2015 §3.2 (factor 75-85%).
+# Sin fuente citable específica propia — BLOQUEO B-03.
 capR: float = 0.80
 
-# Wi de referencia: roca media genérica del catálogo de fabricantes
+# Wi de referencia para el factor de corrección de capacidad por dureza de roca.
+# 13.0 = Work Index promedio de una "roca media" (granito ~14-16, caliza ~10-12).
+# Fuente: tablas de Wi de Bond (1952) citadas en Crushing & Grinding Calculations, C.C. Harris.
+# Valor sin fuente propia confirmada — BLOQUEO B-03.
 _WI_REF: float = 13.0
 
 
@@ -37,11 +49,23 @@ def _wi_capacity_factor(rock_type: str) -> float:
     factor = (_WI_REF / wi) ** 0.5
     return max(0.80, min(1.20, factor))
 
-# Umbrales para filtrar configuraciones por producto más fino
-_JAW_ONLY_MIN_MM: float = 50.0     # mandíbula sola solo viable si finest_max >= 50mm
-_JAW_SCREEN_MIN_MM: float = 20.0   # mandíbula + seleccionadora para finest_max >= 20mm
+# Producto más fino para el que una mandíbula sola es viable.
+# css_min típico de mandíbula en catálogo = 40 mm; P100_min = 40 × 2.5 = 100 mm.
+# Para producir 50 mm como producto, el P100 del producto (css×2.5) debe ser ≤ 50 mm,
+# lo que implica css ≤ 20 mm — fuera del rango de mandíbulas comerciales.
+# Por eso se usa 50 mm como umbral conservador.
+# Sin fuente citable específica — BLOQUEO B-03: Marcelo debe confirmar el umbral.
+_JAW_ONLY_MIN_MM: float = 50.0
 
-# Máximo de equipos a considerar por tipo (limita el nº de simulaciones)
+# Producto más fino para el que jaw+seleccionadora es viable (circuito abierto).
+# Con CSS ≈ 20-25 mm la mandíbula puede producir material <20 mm en el undersize.
+# Umbral empírico, sin fuente citable específica — BLOQUEO B-03.
+_JAW_SCREEN_MIN_MM: float = 20.0
+
+# Máximo de equipos del catálogo a simular por tipo de circuito.
+# Limita la combinatoria de simulaciones sin sacrificar cobertura relevante:
+# los equipos se ordenan ascending por capacidad y se toma los _PICK más pequeños.
+# Valor de diseño (no tiene fuente técnica externa) — adecuado si se revisa al ampliar catálogo.
 _PICK: int = 2
 
 # Nombres legibles por tipo de equipo

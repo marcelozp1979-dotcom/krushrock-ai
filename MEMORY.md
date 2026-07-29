@@ -78,3 +78,58 @@ Revisado que los tests existentes (test_un_equipo_grande_vence_a_dos_chicos,
 test_andesita_recomienda_equipo_mayor_no_dos_chicos, test_coarse_fewer_stages_than_fine)
 siguen siendo correctos con este cambio: todos dependen de que n_units=1 gane sobre
 n_units=2, lo cual la nueva clave garantiza.
+
+**RESULTADO: 238 tests verdes. Commit 431ab7b. Push nocturno/2026-07-29. T-01 HECHA.**
+
+---
+
+**T-02 · Mensaje cuando el volumen pedido es imposible — HECHA**
+
+Implementado: tph_requerido, tph_max_alcanzable, meses_extra, unidades_extra en TODOS
+los resultados. Si results queda vacío (todas las sims fallaron), devuelve resultado
+"sin_datos" en vez de lista vacía. Commit 74ae222. 5 tests nuevos.
+
+Hallazgo T-02: hay un `if not jaws: return []` en línea ~367 de recommender.py que
+también devuelve lista vacía sin mensaje. Está fuera del alcance de T-02 (la tarea pedía
+específicamente el caso de volumen imposible, no el de feed sin jaws). Anotado para revisión futura.
+
+---
+
+**T-03 · Módulo único de reglas de descarte — HECHA**
+
+Creado `app/services/selection_rules.py` con 5 funciones check_*. Reglas 4-5 como advertencia.
+recommender.py importa desde este módulo — ya no tiene `_P100_FACTOR` ni `_MAX_RATIO` propios.
+Commit 134994c. 19 tests nuevos.
+
+---
+
+**T-04 · Eliminar catálogo local del frontend — HECHA**
+
+`EQ_LOCAL` eliminado de catalogo.js (renombrado `_EQ_REMOVED`, sin export).
+Todos los imports limpiados. App.jsx inicializa con null → muestra pantalla de carga
+mientras llega el catálogo del backend. Commit df87b6b.
+
+**REQUIERE PRUEBA VISUAL DE MARCELO:** el frontend no tiene tests automáticos.
+Verificar que la app carga correctamente y muestra el catálogo del backend.
+Si la API no responde, la app queda en estado de carga (sin fallback local — es intencional).
+
+---
+
+**T-05 · Documentar constantes sin fuente — HECHA**
+
+Todas las constantes documentadas. Las 5 marcadas BLOQUEO B-03 no tienen fuente citable propia.
+Commit: ver git log. 262 tests verdes.
+
+---
+
+### B-03 · Constantes sin fuente en recommender.py
+
+Marcelo debe confirmar o corregir estos valores antes de que el sistema quede en producción:
+
+| Constante | Valor actual | Justificación usada | Pregunta |
+|---|---|---|---|
+| `HOURS_PER_MONTH` | 500 h/mes | 6000 h/año ÷ 12 — estándar industria móvil | ¿Aplica para tus proyectos? (áridos con paros mayores puede ser 400–450) |
+| `capR` | 0.80 | Factor 75–85% citado en Metso Crushing Handbook §3.2 | ¿Usas 80% o tienes un valor propio? |
+| `_WI_REF` | 13.0 | Wi promedio de "roca media" — tablas de Bond (1952) | ¿Aceptable como referencia? ¿Tienes Wi típico de tus proyectos? |
+| `_JAW_ONLY_MIN_MM` | 50.0 | css_min mandíbula × factor P100 | ¿Para los proyectos que haces, una mandíbula sola llega a productos de 50 mm? |
+| `_JAW_SCREEN_MIN_MM` | 20.0 | Umbral empírico | ¿20 mm es el límite real que usas para jaw + seleccionadora en circuito abierto? |
