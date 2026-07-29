@@ -11,6 +11,10 @@ import math
 from typing import List, Dict, Optional
 
 from app.services.simulation_engine import simulate, ROCK_DB
+from app.services.selection_rules import (
+    _P100_FACTOR, _MAX_RATIO,
+    check_crusher_feed, check_reduction_ratio, check_screen_decks,
+)
 from app.routers.equipment import _FALLBACK
 
 # Horas de operación estándar por mes (6000 h/año ÷ 12)
@@ -78,31 +82,12 @@ def _build_equipo_dict(node: Dict, node_res: Dict) -> Dict:
 
 
 # ── VALIDACIONES FÍSICAS ─────────────────────────────────────────────────────
-
-# Multiplicador P100_producto / CSS por tipo (curvas normalizadas): jaw≈2.5, cone≈1.9→usamos 1.6 según spec
-_P100_FACTOR: Dict[str, float] = {
-    "jaw": 2.5, "scalper": 2.5,
-    "cone": 1.6,
-    "hsi": 2.0, "vsi": 2.0, "impactor": 2.0,
-}
-# Límite de razón de reducción por etapa aprobado por el usuario
-_MAX_RATIO: Dict[str, float] = {
-    "jaw": 6.0, "scalper": 6.0,
-    "cone": 5.0,
-    "hsi": 8.0, "vsi": 8.0, "impactor": 8.0,
-}
-
+# _P100_FACTOR y _MAX_RATIO importados desde selection_rules (fuente única de verdad)
 
 def _reduction_ratio_ok(crusher_type: str, feed_max_mm: float, css_mm: float) -> bool:
-    """
-    True si la razón de reducción feed_max / (css × factor) ≤ límite por tipo.
-    Usado para descartar configuraciones físicamente inviables.
-    """
-    factor = _P100_FACTOR.get(crusher_type, 2.5)
-    limit  = _MAX_RATIO.get(crusher_type, 6.0)
-    if css_mm <= 0:
-        return False
-    return (feed_max_mm / (css_mm * factor)) <= limit
+    """True si la razón de reducción feed_max / (css × factor) ≤ límite por tipo."""
+    ok, _ = check_reduction_ratio(crusher_type, feed_max_mm, css_mm)
+    return ok
 
 
 # ── FILTROS DE CATÁLOGO ───────────────────────────────────────────────────────
@@ -110,8 +95,7 @@ def _reduction_ratio_ok(crusher_type: str, feed_max_mm: float, css_mm: float) ->
 def _viable_jaws(feed_max_material_mm: float) -> List[Dict]:
     """Mandíbulas cuyo feed_max_mm acepta el tamaño máximo real de partícula."""
     return sorted(
-        [e for e in _FALLBACK["jaw"]
-         if (e.get("feed_max_mm") or 0) >= feed_max_material_mm],
+        [e for e in _FALLBACK["jaw"] if check_crusher_feed(e, feed_max_material_mm)[0]],
         key=lambda e: e["cap_max_tph"],
     )
 
@@ -119,8 +103,7 @@ def _viable_jaws(feed_max_material_mm: float) -> List[Dict]:
 def _viable_cones(jaw_output_p80_mm: float) -> List[Dict]:
     """Conos que pueden recibir la salida estimada de la mandíbula."""
     return sorted(
-        [e for e in _FALLBACK["cone"]
-         if (e.get("feed_max_mm") or 0) >= jaw_output_p80_mm],
+        [e for e in _FALLBACK["cone"] if check_crusher_feed(e, jaw_output_p80_mm)[0]],
         key=lambda e: e["cap_max_tph"],
     )
 
@@ -130,10 +113,8 @@ def _viable_screens(n_products: int) -> List[Dict]:
     Seleccionadoras con decks suficientes para el número de fracciones de producto.
     3 productos → deck triple mínimo; caso general → doble deck.
     """
-    min_decks = 3 if n_products >= 3 else 2
     return sorted(
-        [e for e in _FALLBACK["screen"]
-         if (e.get("decks") or 2) >= min_decks],
+        [e for e in _FALLBACK["screen"] if check_screen_decks(e, n_products)[0]],
         key=lambda e: e["cap_max_tph"],
     )
 
