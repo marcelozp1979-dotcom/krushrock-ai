@@ -56,8 +56,10 @@ def test_no_jaw_screen_closed_granito_fino():
 
 
 def test_hay_config_con_cono_terciario():
-    """Con granito F80=160mm producto 0-25.4mm debe aparecer jaw_cone_cone_screen o cone_cone_screen."""
-    results = _get_candidates(**_GRANITO_FINO)
+    """Con granito F80=160mm producto 0-25.4mm el recomendador debe generar y simular
+    al menos una config con cono terciario (jaw_cone_cone_screen o cone_cone_screen).
+    Se usa _return_all=True para inspeccionar todos los resultados antes del top-2."""
+    results = recommend(_return_all=True, **_GRANITO_FINO)
     configs_terciario = [
         r for r in results
         if r.get("config") in ("jaw_cone_cone_screen", "cone_cone_screen")
@@ -67,8 +69,8 @@ def test_hay_config_con_cono_terciario():
         pytest.skip("Catálogo sin equipos viables para este caso — infeasible esperado")
 
     assert len(configs_terciario) > 0, (
-        f"Ninguna config con cono terciario en resultados. Configs encontradas: "
-        f"{[r.get('config') for r in results]}"
+        f"Ninguna config con cono terciario en resultados simulados. Configs: "
+        f"{sorted(set(r.get('config') for r in results))}"
     )
 
 

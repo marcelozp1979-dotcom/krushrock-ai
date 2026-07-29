@@ -313,6 +313,7 @@ def recommend(
     feed_curve_dict: Optional[Dict] = None,
     horas_dia: Optional[float] = None,
     dias_mes: Optional[float] = None,
+    _return_all: bool = False,
 ) -> List[Dict]:
     """
     Genera las 2 mejores configuraciones de equipo para un proyecto de chancado.
@@ -765,9 +766,12 @@ def recommend(
         )
 
     # Eliminar campo interno antes de retornar
-    top2 = [best] + ([alt] if alt else [])
-    for r in top2:
+    for r in results:
         r.pop("_cap_sum_tph", None)
+    top2 = [best] + ([alt] if alt else [])
+
+    if _return_all:
+        return results
     return top2
 
 
