@@ -59,3 +59,22 @@ más cerrado. Uno de los dos datos está mal. Revisar el manual y decir cuál co
 ---
 
 *(las sesiones autónomas se agregan debajo, la más reciente primero)*
+
+---
+
+### 29-jul-2026 — Sesión autónoma nocturna
+
+**T-01 · Corregir conteo de flota en _rank_key — EN CURSO**
+
+Hipótesis: cambiar la clave de ranking de `(n_units * len(equipos), cap_sum)` a
+`(n_units, len(equipos), cap_sum)`. Esto separa las dos dimensiones: primero se
+prefieren circuitos con menos líneas paralelas (n_units), luego los de menos etapas,
+y como desempate el de menor capacidad total instalada.
+
+Efecto concreto: "1 mandíbula + 1 cono + 1 seleccionadora" con n_units=1 → rank=(1,3,x)
+vence a "2 mandíbulas solas" con n_units=2 → rank=(2,1,x) porque 1 < 2 en el primer campo.
+
+Revisado que los tests existentes (test_un_equipo_grande_vence_a_dos_chicos,
+test_andesita_recomienda_equipo_mayor_no_dos_chicos, test_coarse_fewer_stages_than_fine)
+siguen siendo correctos con este cambio: todos dependen de que n_units=1 gane sobre
+n_units=2, lo cual la nueva clave garantiza.

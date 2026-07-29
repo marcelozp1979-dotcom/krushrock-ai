@@ -731,12 +731,14 @@ def recommend(
         return []
 
     # ── Ranking definitivo por criterio de negocio ────────────────────────────
-    # A: entre configs que cumplen (pct >= 98%), la de menor flota.
+    # A: entre configs que cumplen (pct >= 98%), la que usa menos líneas paralelas
+    #    (n_units), luego menos etapas, luego menor capacidad total instalada.
     # B: la config que NO cumple pero más se acerca por abajo (mayor pct < 98%).
     cumplen = [r for r in results if r["cumple_plazo"]]
 
     def _rank_key(r: Dict) -> tuple:
-        return (r["n_units"] * len(r["equipos"]), r["_cap_sum_tph"])
+        # n_units primero: 1 circuito de 3 etapas < 2 circuitos de 1 etapa
+        return (r["n_units"], len(r["equipos"]), r["_cap_sum_tph"])
 
     if cumplen:
         cumplen.sort(key=_rank_key)
