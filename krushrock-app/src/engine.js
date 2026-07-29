@@ -1,9 +1,9 @@
-import { ROCK_DB, EQ_LOCAL } from "./catalogo.js";
+import { ROCK_DB } from "./catalogo.js";
 import { API_BASE } from "./shared.js";
 
 export async function runSimulation(inp) {
-  // Catálogo de equipos: usa el del componente (remoto) o el fallback local
-  const EQ = inp.eqCatalog || EQ_LOCAL;
+  // Catálogo de equipos: siempre viene del componente (cargado desde el backend)
+  const EQ = inp.eqCatalog || {};
 
   const {
     rockKey, customName, customWi, customDen, customAb,

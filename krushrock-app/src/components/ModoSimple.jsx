@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ROCK_DB, ROCK_CATS, EQ_LOCAL } from "../catalogo.js";
+import { ROCK_DB, ROCK_CATS } from "../catalogo.js";
 import { G, GCSS, API_BASE } from "../shared.js";
 import { Badge } from "./BaseComponents.jsx";
 
@@ -93,7 +93,7 @@ export function LandingScreen({ onSelect }) {
 }
 
 export function SimpleMode({ eqCatalog, onBack }) {
-  const EQ = eqCatalog || EQ_LOCAL;
+  const EQ = eqCatalog || {};
 
   const [rockKey, setRockKey]       = useState("granito");
   const [products, setProducts]     = useState([

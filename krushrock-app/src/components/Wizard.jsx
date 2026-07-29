@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ROCK_DB, ROCK_CATS, EQ_LOCAL, CAT_LABELS } from "../catalogo.js";
+import { ROCK_DB, ROCK_CATS, CAT_LABELS } from "../catalogo.js";
 import {
   G, GCSS, API_BASE,
   EXTRACTION_LABELS, EXTRACTION_UNITS, STANDARD_INCH_VALUES,
@@ -44,7 +44,7 @@ export default function Onboarding({
   initialInp = null,
   initialStep = 0,
   cancelEdit = null,
-  eqCatalog = EQ_LOCAL,
+  eqCatalog = null,
 }) {
   const init = initialInp || {};
   const [step, setStep] = useState(initialStep || 0);
@@ -128,8 +128,8 @@ export default function Onboarding({
   const [overrideTph, setOverrideTph] = useState(null);
   const [aiPrefilled, setAiPrefilled] = useState({});
 
-  // Catálogo de equipos indexado por tipo — usa el prop remoto con fallback local
-  const _EQ = eqCatalog || EQ_LOCAL;
+  // Catálogo de equipos indexado por tipo — siempre viene del backend vía prop
+  const _EQ = eqCatalog || {};
   const EQ_BY_CAT = {
     jaw:       _EQ.jaw       || [],
     cone:      _EQ.cone      || [],

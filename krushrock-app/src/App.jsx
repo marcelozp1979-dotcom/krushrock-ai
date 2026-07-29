@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { EQ_LOCAL } from "./catalogo.js";
 import { G, GCSS, API_BASE } from "./shared.js";
 import { LandingScreen, SimpleMode } from "./components/ModoSimple.jsx";
 import { runSimulation } from "./engine.js";
@@ -15,8 +14,8 @@ export default function App() {
   const [simError, setSimError] = useState(null);
   const [appMode, setAppMode] = useState(null);
 
-  // Catálogo de equipos remoto (Supabase vía backend). Fallback: EQ_LOCAL.
-  const [eqCatalog, setEqCatalog] = useState(EQ_LOCAL);
+  // Catálogo de equipos: se carga desde el backend. null = cargando.
+  const [eqCatalog, setEqCatalog] = useState(null);
   useEffect(() => {
     fetch(`${API_BASE}/equipment`)
       .then((r) => (r.ok ? r.json() : null))
@@ -28,17 +27,17 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  // Alias para usar el catálogo en JSX y funciones dentro del componente
-  const EQ = eqCatalog;
-  const EQ_BY_CAT = {
-    jaw:      EQ.jaw,
-    cone:     EQ.cone,
-    hsi:      EQ.hsi,
-    screen3d: EQ.screen.filter((e) => e.decks === 3),
-    screen2d: EQ.screen.filter((e) => e.decks === 2),
-    screen1d: EQ.screen_1d,
-    screen_hf: EQ.screen_hf,
-  };
+  // Alias para usar el catálogo en JSX. Vacío hasta que llegue la respuesta del backend.
+  const EQ = eqCatalog || {};
+  const EQ_BY_CAT = eqCatalog ? {
+    jaw:      EQ.jaw       || [],
+    cone:     EQ.cone      || [],
+    hsi:      EQ.hsi       || [],
+    screen3d: (EQ.screen || []).filter((e) => e.decks === 3),
+    screen2d: (EQ.screen || []).filter((e) => e.decks === 2),
+    screen1d: EQ.screen_1d || [],
+    screen_hf: EQ.screen_hf || [],
+  } : null;
 
   // Historial en localStorage — máx 50 simulaciones
   const [savedSims, setSavedSims] = useState(() => {
@@ -130,6 +129,20 @@ export default function App() {
 
   if (appMode === null)
     return <LandingScreen onSelect={setAppMode} />;
+  // Estado de carga: el catálogo aún no llegó del backend
+  if (!eqCatalog)
+    return (
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+        minHeight:"100vh",background:G.bg,color:G.text,gap:16,fontFamily:G.font}}>
+        <div style={{fontSize:32,fontWeight:700,color:G.accent}}>KrushRock</div>
+        <div style={{fontSize:15,color:G.muted}}>Cargando catálogo de equipos...</div>
+        <div style={{width:200,height:4,background:G.border,borderRadius:2,overflow:"hidden"}}>
+          <div style={{width:"40%",height:4,background:G.accent,borderRadius:2,
+            animation:"flowDash 1s linear infinite"}}/>
+        </div>
+      </div>
+    );
+
   if (appMode === "simple")
     return <SimpleMode eqCatalog={eqCatalog} onBack={() => setAppMode(null)} />;
 

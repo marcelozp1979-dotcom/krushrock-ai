@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { EQ_LOCAL, CAT_LABELS } from "../catalogo.js";
+import { CAT_LABELS } from "../catalogo.js";
 import { G, GCSS, fromMm, unitLabel, toMm, API_BASE } from "../shared.js";
 import { Badge, Kpi, SectionTitle, B, Info } from "./BaseComponents.jsx";
 import Diagram from "./Diagram.jsx";
 import { buildAnalysis, coneFactor, calcYieldsForCSS, computeCampaign, campaignUnoptTime } from "../engine.js";
 
 // ── RESULTADOS ─────────────────────────────────────────────────────────────
-export default function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = EQ_LOCAL }) {
+export default function Results({ res, unit: initUnit, onReset, onSave, onEdit, eqCatalog = null }) {
   const [tab, setTab] = useState("equipos");
   const [unit, setUnit] = useState(initUnit || "mm");
   const [showSave, setShowSave] = useState(false);
@@ -65,7 +65,7 @@ export default function Results({ res, unit: initUnit, onReset, onSave, onEdit, 
   });
   // Tipo de cambio USD→CLP para convertir OPEX del motor (que sale en USD/t) a CLP
   const [tcUsdClp, setTcUsdClp] = useState(950);
-  const EQ = eqCatalog || EQ_LOCAL;
+  const EQ = eqCatalog || {};
   const analysis = buildAnalysis(res);
   const cc = Number(res.screening.ccLoad);
   const ul = unitLabel(unit);

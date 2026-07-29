@@ -177,10 +177,10 @@ export const ROCK_CATS = {
   roca_blanda: ["caliza", "caliche", "arenisca", "dolomita", "hormigon_demolicion"],
 };
 
-// ── CATÁLOGO DE EQUIPOS (FALLBACK LOCAL) ──────────────────────────────────
-// TODO: eliminar cuando el endpoint /equipment esté estable en producción.
-// El componente App lo sobreescribe con datos de Supabase al montarse.
-export const EQ_LOCAL = {
+// ── CATÁLOGO DE EQUIPOS ────────────────────────────────────────────────────
+// El frontend consume únicamente el catálogo del backend (endpoint /equipment).
+// No hay copia local — si el endpoint no responde, el catálogo queda vacío.
+const _EQ_REMOVED = {
   jaw: [
     {
       brand: "Terex Finlay",
@@ -823,17 +823,7 @@ export const EQ_LOCAL = {
   ],
 };
 
-// EQ_BY_CAT se define dentro del componente App (accede al catálogo remoto vía estado).
-// Esta constante local solo se usa como fallback si el componente no ha cargado aún.
-export const EQ_BY_CAT_LOCAL = {
-  jaw: EQ_LOCAL.jaw,
-  cone: EQ_LOCAL.cone,
-  hsi: EQ_LOCAL.hsi,
-  screen3d: EQ_LOCAL.screen.filter((e) => e.decks === 3),
-  screen2d: EQ_LOCAL.screen.filter((e) => e.decks === 2),
-  screen1d: EQ_LOCAL.screen_1d,
-  screen_hf: EQ_LOCAL.screen_hf,
-};
+// EQ_BY_CAT_LOCAL eliminado — el catálogo se carga únicamente desde el backend.
 
 export const CAT_LABELS = {
   jaw: "Mandíbula",
