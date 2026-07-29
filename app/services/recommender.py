@@ -7,6 +7,7 @@ retorna las 2 mejores opciones rankeadas.
 
 No modifica simulation_engine.py ni granulometry.py.
 """
+import math
 from typing import List, Dict, Optional
 
 from app.services.simulation_engine import simulate, ROCK_DB
@@ -608,6 +609,10 @@ def recommend(
             "horas_adicionales_mes": None,
             "inchancables_recomendado": inchancables,
             "products_detail": [],
+            "tph_requerido": round(tph_required, 1),
+            "tph_max_alcanzable": 0.0,
+            "meses_extra": None,
+            "unidades_extra": None,
         }]
 
     # ── Simular con corte temprano por tipo de configuración ──────────────────
@@ -728,7 +733,45 @@ def recommend(
             })
 
     if not results:
-        return []
+        # Todas las simulaciones fallaron; devolver al menos un resultado informativo
+        return [{
+            "config": "sin_datos",
+            "equipos": [], "n_units": 0,
+            "tph_efectivo": 0.0, "tph_util": 0.0,
+            "product_fit_pct": 0.0, "descarte_pct": 100.0,
+            "circ_load_pct": 0.0, "pct_cumplimiento": 0.0,
+            "meses_requeridos": None, "cumple_plazo": False,
+            "horas_adicionales_mes": None,
+            "inchancables_recomendado": inchancables,
+            "products_detail": [],
+            "tph_requerido": round(tph_required, 1),
+            "tph_max_alcanzable": 0.0,
+            "meses_extra": None,
+            "unidades_extra": None,
+        }]
+
+    # ── Campos informativos en todos los resultados ───────────────────────────
+    # tph_requerido y tph_max_alcanzable permiten al usuario entender la brecha
+    # cuando ningún circuito cumple el volumen en el plazo (RF-8).
+    tph_max_alc = round(max(r["tph_util"] for r in results), 1)
+    hours_total = duracion_meses * hours_per_month
+    for r in results:
+        r["tph_requerido"] = round(tph_required, 1)
+        r["tph_max_alcanzable"] = tph_max_alc
+        if r["cumple_plazo"]:
+            r["meses_extra"] = 0
+            r["unidades_extra"] = 0
+        else:
+            mr = r.get("meses_requeridos")
+            r["meses_extra"] = max(0, math.ceil(mr) - duracion_meses) if mr is not None else None
+            n_u = r.get("n_units", 0)
+            tph_u = r.get("tph_util", 0.0)
+            if n_u > 0 and tph_u > 0 and hours_total > 0:
+                tph_pu = tph_u / n_u
+                n_needed = math.ceil(total_volumen / (tph_pu * hours_total))
+                r["unidades_extra"] = max(0, n_needed - n_u)
+            else:
+                r["unidades_extra"] = None
 
     # ── Ranking definitivo por criterio de negocio ────────────────────────────
     # A: entre configs que cumplen (pct >= 98%), la que usa menos líneas paralelas
