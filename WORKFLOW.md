@@ -71,6 +71,31 @@ Para cada tarea de `TASKS.md`, en orden:
 
 ---
 
+## 4-bis. Cierre de sesión (obligatorio antes de terminar)
+
+Cuando la cola se termina, o cuando todas las tareas quedan bloqueadas, o cuando se agota la
+cuota: **antes de detenerse**, dejar `MEMORY.md` listo para que Marcelo lo lea en 2 minutos.
+
+1. Mover la sesión anterior (sección 1 y 3 del `MEMORY.md` actual) al inicio de
+   `docs/MEMORY_ARCHIVO.md`, bajo su fecha.
+2. Reescribir la sección **1 · PARTE DE LA ÚLTIMA SESIÓN** de `MEMORY.md` con:
+   - fecha, rama y modo;
+   - una frase de resultado (cuántas tareas hechas, cuántos tests verdes);
+   - una tabla: tarea · qué se logró **en lenguaje de negocio** · commit;
+   - la lista numerada de **lo que se necesita de Marcelo**, en orden de importancia;
+   - si algo quedó a medias o bloqueado, decirlo explícitamente.
+3. Actualizar la sección **2 · BLOQUEOS ABIERTOS** con los bloqueos nuevos.
+4. Reescribir la sección **3 · DETALLE** con el paso a paso de esta sesión únicamente.
+5. Commit y push de la rama.
+
+**Regla de oro del parte:** la sección 1 no debe pasar de una pantalla, y debe entenderse sin
+abrir ningún otro archivo ni saber programar. Si Marcelo tiene que buscar para saber qué pasó,
+el parte está mal escrito.
+
+**`MEMORY.md` nunca acumula sesiones.** Solo tiene la última. El histórico vive en el archivo.
+
+---
+
 ## 5. Cuándo detenerse (única condición)
 
 El agente se detiene y deja constancia solo si falta **información crítica que no puede
@@ -111,13 +136,19 @@ Tareas ordenadas, con estado: `PENDIENTE`, `EN CURSO`, `HECHA`, `BLOQUEADA`.
 El agente actualiza el estado y **no reordena** la cola por su cuenta.
 
 ### `MEMORY.md` — memoria de trabajo
-Registro cronológico de lo que va pasando dentro de la noche:
-- hipótesis probadas y descartadas,
-- hallazgos inesperados,
-- tareas nuevas descubiertas (se anotan aquí, no se ejecutan sin estar en `TASKS.md`),
-- bloqueos para Marcelo.
+Es lo primero que Marcelo lee en la mañana, y **solo debe contener la última sesión**.
+Estructura fija de tres secciones, en este orden:
 
-Es lo primero que Marcelo lee en la mañana. Se escribe para que se entienda sin ser programador.
+1. **PARTE DE LA ÚLTIMA SESIÓN** — resumen corto, en lenguaje de negocio, con lo que se necesita
+   de Marcelo. Se reemplaza entero cada sesión.
+2. **BLOQUEOS ABIERTOS** — lo que el agente no pudo resolver solo.
+3. **DETALLE DE LA ÚLTIMA SESIÓN** — hipótesis probadas, hallazgos, tareas nuevas descubiertas.
+
+Durante el trabajo el agente escribe en la sección 3 a medida que avanza. La sección 1 se
+redacta al final, en el cierre de sesión (ver 4-bis).
+
+### `docs/MEMORY_ARCHIVO.md` — histórico
+Sesiones ya cerradas, la más reciente primero. Marcelo no lo lee salvo que necesite auditar algo.
 
 ### `DECISIONS.md` — decisiones firmes
 Solo decisiones de diseño que ya no se vuelven a discutir, con fecha y motivo.

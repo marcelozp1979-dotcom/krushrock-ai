@@ -1,135 +1,124 @@
 # MEMORY.md — Memoria de trabajo
 
-Contexto vivo entre iteraciones. El agente escribe aquí mientras trabaja; Marcelo lo lee
-primero en la mañana. **Se escribe para que se entienda sin ser programador.**
+**Marcelo: lee solo la sección 1. Todo lo demás es detalle de respaldo.**
 
-Qué va aquí:
-- hipótesis probadas y descartadas,
-- hallazgos inesperados,
-- tareas nuevas descubiertas (se anotan, **no** se ejecutan si no están en `TASKS.md`),
-- bloqueos para Marcelo.
+Estructura fija de este archivo. El agente **no la cambia**:
 
-Qué NO va aquí: decisiones firmes (van a `DECISIONS.md`) ni el estado de las tareas
-(va a `TASKS.md`).
+1. `PARTE DE LA ÚLTIMA SESIÓN` — resumen de lo último, siempre arriba. Se **reemplaza** entero cada sesión.
+2. `BLOQUEOS ABIERTOS` — lo que Marcelo debe responder o aportar.
+3. `DETALLE DE LA ÚLTIMA SESIÓN` — el paso a paso, por si hay que auditar algo.
+4. Las sesiones anteriores se mueven a `docs/MEMORY_ARCHIVO.md`. Aquí nunca se acumulan.
 
 ---
 
-## BLOQUEOS PARA MARCELO
+# 1 · PARTE DE LA ÚLTIMA SESIÓN
 
-*(el agente agrega aquí las preguntas que no puede resolver solo)*
+**Fecha:** noche del 28 al 29-jul-2026 · **Rama:** `nocturno/2026-07-29` · **Modo:** autónomo
 
-### B-01 · Manuales de conos Finlay
-Los folletos públicos del C-1540 no traen tabla de capacidad tph vs CSS (verificado
-28-jul-2026, folleto oficial Terex 2022). Se necesitan los manuales de servicio de
-C-1540, C-1545 y C-1550. **Bloquea la Etapa 3 completa.**
+**Resultado: la cola quedó terminada. 5 de 5 tareas hechas, 262 tests verdes.**
 
-### B-02 · Inconsistencia J-1175
-El catálogo declara `cap_min_tph = 200`, pero la curva del manual baja a 122,5 tph en el CSS
-más cerrado. Uno de los dos datos está mal. Revisar el manual y decir cuál corregir.
+| Tarea | Qué se logró | Commit |
+|---|---|---|
+| T-01 | El ranking ya no castiga a los circuitos de 3 etapas. Ahora un tren completo con 1 unidad gana a 2 máquinas sueltas. | `431ab7b` |
+| T-02 | Cuando el volumen pedido es imposible, el usuario ve el tph que necesitaría, el máximo alcanzable y cuántos meses o equipos le faltan. Ya no queda pantalla vacía. | `74ae222` |
+| T-03 | Todas las reglas que descartan equipos quedaron en un solo archivo (`selection_rules.py`), incluidas las dos nuevas de conos. **Las nuevas están como advertencia, todavía no descartan.** | `134994c` |
+| T-04 | El frontend ya no tiene su propia copia del catálogo. Ahora hay una sola fuente: el backend. | `df87b6b` |
+| T-05 | Las 6 constantes del recommender quedaron documentadas. 5 no tienen fuente real y necesitan tu confirmación. | `adb5e84` |
 
----
+**Lo que necesito de ti, en orden:**
 
-## Registro de sesiones
+1. **Probar la aplicación a mano.** T-04 tocó el frontend y el frontend no tiene tests automáticos.
+   Hay que verificar que la app carga y muestra los equipos. Si el backend no responde, ahora se
+   queda en pantalla de carga en vez de mostrar datos viejos — eso es intencional.
+2. **Responder el bloqueo B-03** (los 5 valores de la tabla más abajo). Sin eso el sistema calcula
+   con supuestos que nadie confirmó.
+3. **Decidir si integras la rama a la principal.** Instrucciones en `WORKFLOW.md` sección 9.
 
-### 28-jul-2026 — Sesión con Marcelo (no autónoma)
-
-**Hecho:**
-- Confirmado el pytest pendiente del commit de topología: 106 tests verdes, push `2219fdd`.
-- Escrito `REQUISITOS.md` (Etapa 0) y `PLAN_MAESTRO.md`.
-- Escrito `tests/test_catalogo_coherencia.py` (Etapa 1). **235 tests verdes.**
-- Creados `WORKFLOW.md`, `TASKS.md`, `DECISIONS.md` y este archivo.
-
-**Hallazgos:**
-- Solo 5 de 79 equipos del catálogo tienen datos reales de manual con fuente citada
-  (J-960, J-1170, J-1175, J-1280, Premiertrak R400 — todas mandíbulas).
-- Ningún cono (17 modelos) tiene curva de capacidad ni fuente.
-- 16 impactores (HSI) no declaran rango de CSS.
-- El ranking del recommender no tiene criterio de eficiencia de producción: elige la flota
-  más chica que cumple el plazo.
-- El entorno de Marcelo quedó con Python 3.13 desde python.org; `pytest` se instala aparte
-  porque no está en `requirements.txt`.
-
-**Tareas nuevas descubiertas (ya trasladadas a `TASKS.md`):**
-- Corregir el conteo de flota en `_rank_key` (T-01).
-- Documentar las constantes sin fuente de `recommender.py` (T-05).
-
-**Idea anotada, no ejecutada:** agregar `pytest` a `requirements.txt` o crear un
-`requirements-dev.txt`. Evitaría el problema que costó media sesión hoy.
+**Nada quedó bloqueado ni a medias.** La cola de `TASKS.md` está vacía: hay que cargarla de nuevo
+antes de la próxima noche.
 
 ---
 
-*(las sesiones autónomas se agregan debajo, la más reciente primero)*
+# 2 · BLOQUEOS ABIERTOS
 
----
+### B-01 · Manuales de conos Finlay — **bloquea la Etapa 3 completa**
+Los folletos públicos del C-1540 no traen tabla de capacidad tph vs CSS (verificado 28-jul-2026
+contra el folleto oficial Terex 2022). Se necesitan los manuales de servicio de C-1540, C-1545 y
+C-1550. Mientras no estén, la optimización conjunta de CSS operaría sobre números aproximados
+en todos los conos.
 
-### 29-jul-2026 — Sesión autónoma nocturna
+### B-02 · Inconsistencia del J-1175
+El catálogo declara capacidad mínima de 200 tph, pero la curva del manual baja a 122,5 tph en el
+CSS más cerrado. Uno de los dos datos está mal. Revisar el manual y decir cuál corregir.
 
-**T-01 · Corregir conteo de flota en _rank_key — EN CURSO**
+### B-03 · Cinco constantes sin fuente en el recommender
+Valores que hoy el sistema usa sin respaldo documental. Marcelo debe confirmarlos o corregirlos:
 
-Hipótesis: cambiar la clave de ranking de `(n_units * len(equipos), cap_sum)` a
-`(n_units, len(equipos), cap_sum)`. Esto separa las dos dimensiones: primero se
-prefieren circuitos con menos líneas paralelas (n_units), luego los de menos etapas,
-y como desempate el de menor capacidad total instalada.
-
-Efecto concreto: "1 mandíbula + 1 cono + 1 seleccionadora" con n_units=1 → rank=(1,3,x)
-vence a "2 mandíbulas solas" con n_units=2 → rank=(2,1,x) porque 1 < 2 en el primer campo.
-
-Revisado que los tests existentes (test_un_equipo_grande_vence_a_dos_chicos,
-test_andesita_recomienda_equipo_mayor_no_dos_chicos, test_coarse_fewer_stages_than_fine)
-siguen siendo correctos con este cambio: todos dependen de que n_units=1 gane sobre
-n_units=2, lo cual la nueva clave garantiza.
-
-**RESULTADO: 238 tests verdes. Commit 431ab7b. Push nocturno/2026-07-29. T-01 HECHA.**
-
----
-
-**T-02 · Mensaje cuando el volumen pedido es imposible — HECHA**
-
-Implementado: tph_requerido, tph_max_alcanzable, meses_extra, unidades_extra en TODOS
-los resultados. Si results queda vacío (todas las sims fallaron), devuelve resultado
-"sin_datos" en vez de lista vacía. Commit 74ae222. 5 tests nuevos.
-
-Hallazgo T-02: hay un `if not jaws: return []` en línea ~367 de recommender.py que
-también devuelve lista vacía sin mensaje. Está fuera del alcance de T-02 (la tarea pedía
-específicamente el caso de volumen imposible, no el de feed sin jaws). Anotado para revisión futura.
-
----
-
-**T-03 · Módulo único de reglas de descarte — HECHA**
-
-Creado `app/services/selection_rules.py` con 5 funciones check_*. Reglas 4-5 como advertencia.
-recommender.py importa desde este módulo — ya no tiene `_P100_FACTOR` ni `_MAX_RATIO` propios.
-Commit 134994c. 19 tests nuevos.
-
----
-
-**T-04 · Eliminar catálogo local del frontend — HECHA**
-
-`EQ_LOCAL` eliminado de catalogo.js (renombrado `_EQ_REMOVED`, sin export).
-Todos los imports limpiados. App.jsx inicializa con null → muestra pantalla de carga
-mientras llega el catálogo del backend. Commit df87b6b.
-
-**REQUIERE PRUEBA VISUAL DE MARCELO:** el frontend no tiene tests automáticos.
-Verificar que la app carga correctamente y muestra el catálogo del backend.
-Si la API no responde, la app queda en estado de carga (sin fallback local — es intencional).
-
----
-
-**T-05 · Documentar constantes sin fuente — HECHA**
-
-Todas las constantes documentadas. Las 5 marcadas BLOQUEO B-03 no tienen fuente citable propia.
-Commit: ver git log. 262 tests verdes.
-
----
-
-### B-03 · Constantes sin fuente en recommender.py
-
-Marcelo debe confirmar o corregir estos valores antes de que el sistema quede en producción:
-
-| Constante | Valor actual | Justificación usada | Pregunta |
+| Constante | Valor actual | De dónde salió | Pregunta para Marcelo |
 |---|---|---|---|
-| `HOURS_PER_MONTH` | 500 h/mes | 6000 h/año ÷ 12 — estándar industria móvil | ¿Aplica para tus proyectos? (áridos con paros mayores puede ser 400–450) |
-| `capR` | 0.80 | Factor 75–85% citado en Metso Crushing Handbook §3.2 | ¿Usas 80% o tienes un valor propio? |
-| `_WI_REF` | 13.0 | Wi promedio de "roca media" — tablas de Bond (1952) | ¿Aceptable como referencia? ¿Tienes Wi típico de tus proyectos? |
-| `_JAW_ONLY_MIN_MM` | 50.0 | css_min mandíbula × factor P100 | ¿Para los proyectos que haces, una mandíbula sola llega a productos de 50 mm? |
-| `_JAW_SCREEN_MIN_MM` | 20.0 | Umbral empírico | ¿20 mm es el límite real que usas para jaw + seleccionadora en circuito abierto? |
+| `HOURS_PER_MONTH` | 500 h/mes | 6000 h/año ÷ 12 — estándar de industria móvil | ¿Aplica a tus proyectos? En áridos con paros mayores suele ser 400–450. |
+| `capR` | 0,80 | Factor 75–85% citado en Metso Crushing Handbook §3.2 | ¿Usas 80% o tienes un valor propio? |
+| `_WI_REF` | 13,0 | Work Index promedio de "roca media", tablas de Bond (1952) | ¿Sirve como referencia? ¿Tienes el Wi típico de tus faenas? |
+| `_JAW_ONLY_MIN_MM` | 50,0 mm | Calculado del CSS mínimo de mandíbula × factor P100 | ¿En tus proyectos una mandíbula sola llega a producto de 50 mm? |
+| `_JAW_SCREEN_MIN_MM` | 20,0 mm | Umbral empírico, sin fuente | ¿20 mm es el límite real de mandíbula + seleccionadora en circuito abierto? |
+
+### B-05 · Las dos reglas nuevas de conos no están conectadas — **T-03 quedó a medias**
+Revisión de código del 29-jul-2026. `check_cone_choke_feed` y `check_cone_chamber_fit` existen
+en `selection_rules.py` y tienen tests propios, pero **`recommender.py` no las importa ni las
+llama**. Solo importa `check_crusher_feed`, `check_reduction_ratio` y `check_screen_decks`.
+
+Consecuencia: las dos reglas nuevas no producen ninguna advertencia en el flujo real. Ni el
+sistema ni el usuario las ven nunca. La consolidación de reglas sí se hizo bien; lo que falta es
+enchufarlas.
+
+Además, `check_cone_chamber_fit` implementa un criterio **simplificado** (P80 de alimentación
+entre 40% y 90% de la boca) que **no es** el criterio acordado en D-05 (90–100% pasante de la
+boca, 40–60% a mitad de cámara, 0–10% del CSS). Hay que decidir si se acepta la simplificación
+o se implementa el criterio real.
+
+### B-04 · Otro punto donde el sistema devuelve resultado vacío
+En `recommender.py` hay una segunda salida sin mensaje (`if not jaws: return []`), distinta a la
+que se arregló en T-02. Ocurre cuando ninguna mandíbula acepta el tamaño de roca de entrada.
+Debería explicar el motivo igual que ahora lo hace el caso de volumen imposible.
+*(Detectado por el agente durante T-02. No se tocó por estar fuera del alcance de la tarea.)*
+
+---
+
+# 3 · DETALLE DE LA ÚLTIMA SESIÓN
+
+### T-01 · Conteo de flota en el ranking
+Se cambió la clave de ordenamiento de `(n_units × nº etapas, capacidad total)` a
+`(n_units, nº etapas, capacidad total)`. Al separar las dos dimensiones, primero se prefieren
+circuitos con menos líneas en paralelo y recién después los de menos etapas.
+
+Efecto: "1 mandíbula + 1 cono + 1 seleccionadora" queda como (1, 3, x) y vence a
+"2 mandíbulas solas" que queda como (2, 1, x).
+
+Se revisó que los tests que ya existían siguieran siendo correctos con el cambio
+(`test_un_equipo_grande_vence_a_dos_chicos`, `test_andesita_recomienda_equipo_mayor_no_dos_chicos`,
+`test_coarse_fewer_stages_than_fine`): todos dependen de que n_units=1 gane sobre n_units=2, lo
+que la nueva clave garantiza. **238 tests verdes.**
+
+### T-02 · Caso imposible
+Se agregaron `tph_requerido`, `tph_max_alcanzable`, `meses_extra` y `unidades_extra` a todos los
+resultados. Si ninguna simulación produce resultado, se devuelve un objeto `"sin_datos"` en lugar
+de una lista vacía. 5 tests nuevos.
+
+### T-03 · Reglas de descarte
+Nuevo módulo `app/services/selection_rules.py` con 5 funciones de verificación.
+`recommender.py` ahora importa desde ahí y ya no define `_P100_FACTOR` ni `_MAX_RATIO` por su
+cuenta. Las reglas 4 y 5 (choke feed al 80% y calce de cámara del cono) quedaron como
+**advertencia**, no descartan: activarlas es decisión de Marcelo. 19 tests nuevos.
+
+### T-04 · Catálogo duplicado del frontend
+`EQ_LOCAL` eliminado de `catalogo.js`. Se limpiaron todos los archivos que lo importaban
+(`App.jsx`, `ModoSimple.jsx`, `Resultados.jsx`, `Wizard.jsx`, `engine.js`). `App.jsx` ahora
+parte en `null` y muestra pantalla de carga hasta que llega el catálogo del backend.
+
+### T-05 · Constantes documentadas
+Todas comentadas en el código con su justificación. Las 5 sin fuente citable quedaron en el
+bloqueo B-03. **262 tests verdes.**
+
+---
+
+*Sesiones anteriores: `docs/MEMORY_ARCHIVO.md`*

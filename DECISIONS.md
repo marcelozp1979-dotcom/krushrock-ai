@@ -96,6 +96,49 @@ exactamente lo que CLAUDE.md prohíbe.
 
 ---
 
+## D-12 · 03-ago-2026 · Las horas de operación son dato de entrada, no constante
+`HOURS_PER_MONTH = 500` deja de ser fijo. Pasa a ser un campo que el usuario ingresa en cada
+simulación, con 500 h/mes como valor por defecto.
+**Por qué:** depende del proyecto. Un valor único produce plazos irreales en faenas con paros.
+*Decidió: Marcelo.*
+
+---
+
+## D-13 · 03-ago-2026 · El factor 80% de capacidad debe ser calculado, no supuesto
+`capR = 0.80` es un multiplicador general que hoy tapa la falta de modelo. Debe reemplazarse por
+un cálculo de producción efectiva a partir de las variables reales: CSS, granulometría de la
+alimentación, granulometría de los productos pedidos, aberturas de malla de las seleccionadoras
+y carga circulante.
+**Por qué:** un porcentaje fijo no distingue entre un circuito bien dimensionado y uno mal
+dimensionado; es exactamente la diferencia que el software debería mostrar.
+**Alcance:** es un cambio de motor, no un ajuste de constante. Requiere su propia etapa.
+*Decidió: Marcelo.*
+
+---
+
+## D-14 · 03-ago-2026 · El umbral de mandíbula sola es por modelo, no una constante global
+`_JAW_ONLY_MIN_MM = 50` deja de existir como constante. Cada mandíbula del catálogo declara su
+propio **tamaño mínimo de producto útil** que puede entregar trabajando sola:
+
+| Modelo | Mínimo producto útil | CSS mínimo del catálogo |
+|---|---|---|
+| J-960 | 50 mm | 40 mm |
+| J-1160 | 50 mm | 40 mm |
+| J-1170 | 75 mm | 50 mm |
+| J-1175 | 75 mm | 50 mm |
+| J-1280 | 75 mm | 64 mm |
+| J-1480 | 100 mm | 100 mm |
+
+**Por qué:** con un umbral único de 50 mm el sistema propone mandíbulas grandes trabajando solas
+para productos que en terreno no pueden entregar. La capacidad de producir fino depende del
+tamaño de la cámara, no es igual para todos los modelos.
+
+**Nota:** los valores de J-1280 y J-1480 fueron corregidos por Marcelo respecto de una primera
+versión (eran 75 y 85), para que no queden por debajo del CSS mínimo de la máquina.
+*Decidió: Marcelo.*
+
+---
+
 ## D-11 · anterior · No extraer datos desde AggFlow
 AggFlow se usa solo como referencia de validación, nunca como fuente del catálogo.
 **Por qué:** licencia COMECO.

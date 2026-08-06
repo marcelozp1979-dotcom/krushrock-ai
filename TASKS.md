@@ -106,6 +106,98 @@ existe. Las que **no** tengan fuente identificable se listan en `MEMORY.md` bajo
 
 ---
 
+## T-06 · Conectar las dos reglas de conos al recommender (cierra T-03) · PENDIENTE
+
+**Problema:** `check_cone_choke_feed` y `check_cone_chamber_fit` existen en
+`app/services/selection_rules.py` con sus tests, pero `recommender.py` **no las importa ni las
+llama**. Son código muerto: nunca producen una advertencia en el flujo real.
+
+**Qué hacer:**
+
+1. Importarlas y llamarlas en `recommender.py` donde se evalúa cada cono candidato.
+2. Su resultado **no descarta** el equipo: se acumula el mensaje en una lista de advertencias
+   que viaja con el resultado, para que el usuario pueda verla.
+3. Anotar en `MEMORY.md` cuántos casos de los tests existentes generarían advertencia si las
+   reglas pasaran a descartar. Eso es lo que Marcelo necesita para decidir si las activa.
+
+**Cómo se sabe que quedó bien:** un test que simule un caso con cono sub-alimentado y verifique
+que la advertencia aparece en el resultado. Los 262 tests existentes siguen verdes.
+
+**Referencia:** REQUISITOS.md RF-5 · MEMORY.md B-05.
+
+---
+
+## T-07 · Horas de operación como dato de entrada · PENDIENTE
+
+**Qué hacer:** `HOURS_PER_MONTH = 500` deja de ser constante. Pasa a ser un campo que el usuario
+puede ingresar en la simulación, con 500 h/mes como valor por defecto. El valor usado debe
+aparecer en el PDF de propuesta como supuesto declarado.
+
+**Cómo se sabe que quedó bien:** test que corra el mismo caso con 500 y con 400 h/mes y verifique
+que el plazo calculado cambia en la proporción correcta.
+
+**Referencia:** DECISIONS.md D-12.
+
+---
+
+## T-08 · Revisar el criterio de calce de cámara del cono · PENDIENTE
+
+**Problema:** `check_cone_chamber_fit` implementa un criterio simplificado (P80 de alimentación
+entre 40% y 90% de la boca) que **no es** el acordado en D-05: 90–100% pasante de la boca,
+40–60% a mitad de cámara, 0–10% del CSS.
+
+**Qué hacer:** implementar el criterio real usando la curva granulométrica completa de la
+alimentación, no solo el P80. Si falta el dato de "punto medio de cámara" por modelo, decirlo
+y dejarlo anotado en vez de aproximarlo.
+
+**Referencia:** DECISIONS.md D-05 · MEMORY.md B-05.
+
+---
+
+## T-09 · Umbral de mandíbula sola: de constante global a dato por modelo · PENDIENTE
+
+**Problema:** `_JAW_ONLY_MIN_MM = 50` es una constante única para todas las mandíbulas. En la
+realidad cada modelo tiene un tamaño mínimo de producto útil distinto, según su cámara.
+
+**Qué hacer:**
+
+1. Agregar el campo `min_product_mm` a cada mandíbula del catálogo (`app/routers/equipment.py`),
+   con estos valores confirmados por Marcelo:
+
+   | Modelo | `min_product_mm` |
+   |---|---|
+   | J-960 | 50 |
+   | J-1160 | 50 |
+   | J-1170 | 75 |
+   | J-1175 | 75 |
+   | J-1280 | 75 |
+   | J-1480 | 100 |
+
+2. En `recommender.py`, reemplazar el uso de `_JAW_ONLY_MIN_MM` por el campo del equipo.
+3. Para las mandíbulas del catálogo que **no** tienen este dato (las 14 restantes, sin manual),
+   no inventar un valor: dejar el campo en `None` y aplicar el comportamiento actual, anotando
+   en `MEMORY.md` cuáles quedaron sin dato.
+
+**Cómo se sabe que quedó bien:** test que verifique que un J-1480 no se propone solo para un
+producto de 60 mm, y que un J-960 sí. Los 262 tests existentes siguen verdes.
+
+**Cuidado:** esta tarea toca el catálogo. Los valores de la tabla son de Marcelo y no se
+modifican ni se extrapolan a otros modelos.
+
+**Referencia:** DECISIONS.md D-14.
+
+---
+
+## Fuera del alcance nocturno — requiere diseño con Marcelo
+
+### Reemplazar el factor 80% por producción calculada
+`capR = 0.80` es un multiplicador general que tapa la falta de modelo. Debe calcularse la
+producción efectiva desde CSS, granulometría de alimentación, granulometría de los productos,
+aberturas de malla y carga circulante. **Es un cambio de motor, necesita su propia etapa en el
+Plan Maestro.** Ver DECISIONS.md D-13.
+
+---
+
 ## Tareas fuera del alcance nocturno
 
 Estas **no** se ejecutan sin supervisión. Están aquí para que no se pierdan.
