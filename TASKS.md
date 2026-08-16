@@ -188,6 +188,69 @@ modifican ni se extrapolan a otros modelos.
 
 ---
 
+## T-10 · Corregir los datos del C-1540 en el catálogo · PENDIENTE · PRIORIDAD ALTA
+
+**Problema:** el catálogo declara valores que no coinciden con el manual oficial. El software
+sobreestima la capacidad de la máquina hasta en un 36% y permite cerrar el cono al doble de lo
+que admite.
+
+**Qué hacer:** en `app/routers/equipment.py`, entrada `C-1540`, reemplazar por los valores del
+manual (configuración excéntrico largo, cóncavo Medium Coarse — ver DECISIONS.md D-15):
+
+| Campo | Valor actual | Valor correcto |
+|---|---|---|
+| `css_min_mm` | 10 | **19** |
+| `css_max_mm` | 44 | **32** |
+| `cap_min_tph` | 150 | **125** |
+| `cap_max_tph` | 300 | **220** |
+| `feed_max_mm` | 215 | **160** |
+
+Agregar además la curva real de capacidad:
+
+```
+"curves": {"css": [19, 22, 25, 28, 32], "tph": [135.0, 160.0, 170.0, 180.0, 190.0]}
+```
+
+(punto medio de cada rango de la Tabla 3.4, mismo criterio que se usó con las mandíbulas)
+
+Y la fuente:
+
+```
+"capacity_source": "Manual Terex Finlay C-1540 Rev 2.7 (16-04-2025), Tabla 3.4 p.3-14 — excéntrico largo, cóncavo Medium Coarse; punto medio de rangos"
+```
+
+**Cuidado:** este cambio va a alterar qué equipos recomienda el sistema en casos que hoy usan
+el C-1540. Es lo correcto, pero hay que revisar qué tests de validación cambian de resultado y
+**no ajustar los casos de validación para que calcen** — si un caso se rompe, se reporta.
+
+**Cómo se sabe que quedó bien:** los tests de coherencia del catálogo siguen verdes y el C-1540
+aparece con `capacity_source`. Anotar en `MEMORY.md` qué casos cambiaron de resultado.
+
+**Referencia:** `docs/DATOS_MANUAL_C-1540.md` · DECISIONS.md D-15 · REQUISITOS.md RF-10.
+
+---
+
+## T-11 · Digitalizar las curvas de producto del C-1540 · PENDIENTE
+
+**Problema:** las curvas de producto del manual (Tablas 3.5, 3.8, 3.11, 3.14) son **gráficos**,
+no tablas. Las lecturas que hay en `docs/DATOS_MANUAL_C-1540.md` son aproximadas (±5 puntos) y
+**no deben cargarse al catálogo tal cual**.
+
+**Qué hacer:** digitalizar la curva de la Tabla 3.5 (excéntrico largo) leyendo el % pasante de
+cada una de las 5 curvas en los tamaños de tamiz del eje: 1,18 · 1,70 · 2,36 · 3,35 · 5,0 · 6,3 ·
+10 · 14 · 20 · 28 · 40 · 50 · 63 · 75 mm.
+
+**No estimar ni interpolar valores que no se puedan leer del gráfico.** Si un punto no es
+legible, dejarlo fuera y anotarlo.
+
+**Hallazgo a verificar:** la razón P80/CSS crece de ~0,98 (CSS 19) a ~1,46 (CSS 32). Si la
+digitalización lo confirma, significa que la curva normalizada única del motor pierde precisión
+al abrir el CSS, y hay que anotarlo en `PENDIENTES_PRECISION.md`.
+
+**Referencia:** `docs/DATOS_MANUAL_C-1540.md` sección 3.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada

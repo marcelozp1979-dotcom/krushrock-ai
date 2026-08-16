@@ -139,6 +139,26 @@ versión (eran 75 y 85), para que no queden por debajo del CSS mínimo de la má
 
 ---
 
+## D-15 · 16-ago-2026 · El C-1540 del catálogo es excéntrico largo, cóncavo Medium Coarse
+El manual describe cuatro configuraciones distintas de la misma máquina. La entrada del catálogo
+representa **excéntrico largo con cóncavo Medium Coarse**: CSS 19–32 mm, 125–220 tph,
+alimentación máxima 160 mm.
+**Por qué:** es la configuración estándar de áridos y la más representativa del uso como cono
+secundario.
+**Descartado:** cargar las cuatro variantes como equipos separados — complica la elección para
+un usuario que no sabe qué excéntrico tiene su máquina.
+**Pendiente:** si más adelante se necesita, se agregan las otras configuraciones como variantes.
+*Decidió: Marcelo.*
+
+---
+
+## D-16 · 16-ago-2026 · Los manuales no se suben al repositorio
+Los PDF de manuales viven en `manuales/`, ignorada por git. Los datos técnicos que contienen sí
+se usan y se citan con página exacta; el documento completo no se redistribuye.
+**Por qué:** son material con derechos de autor del fabricante, y además pesan decenas de MB.
+
+---
+
 ## D-11 · anterior · No extraer datos desde AggFlow
 AggFlow se usa solo como referencia de validación, nunca como fuente del catálogo.
 **Por qué:** licencia COMECO.
