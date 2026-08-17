@@ -7,6 +7,25 @@ Orden: la más reciente primero.
 
 ---
 
+## 16-ago-2026 — Sesión autónoma (trabajo/2026-08-16) — T-06 a T-11
+
+**Resultado: 5 de 6 tareas hechas. T-11 bloqueada. 284 tests verdes + 1 regresión reportada.**
+
+| Tarea | Qué se logró | Commit |
+|---|---|---|
+| T-06 | Advertencias de cono choke-feed y chamber-fit conectadas al flujo real. Antes eran código muerto. | `f0f4397` |
+| T-07 | `hours_per_month_input` como dato de entrada. Antes fijo en 500 h/mes. | `49dd4f4` |
+| T-08 | `check_cone_chamber_fit` usa curva granulométrica real cuando está disponible (C1, C2, C3). | `8ec9dec` |
+| T-09 | `min_product_mm` por modelo de mandíbula (6 modelos Finlay). Reemplaza constante global. | `a07b86d` |
+| T-10 | C-1540: cap_max 300→220, css_min 10→19, css_max 44→32, feed_max 215→160, según manual. | `592af40` |
+| T-11 | **BLOQUEADA.** Curvas de producto C-1540 son gráficos; entorno Windows sin pdftoppm no puede leerlas. | — |
+
+**Bloqueos abiertos al cierre de esa sesión:**
+- B-07: test `Hierro (circuito cerrado)` falla — tph obtenido 132 vs. 161 esperado. Marcelo decide si actualizar el test.
+- B-08: T-11 bloqueada — necesita digitalización manual de curvas C-1540.
+
+---
+
 ## 29-jul-2026 / 03-ago-2026 — Sesión autónoma (nocturno/2026-07-29)
 
 **Resultado: 5 de 5 tareas hechas. 262 tests verdes.**

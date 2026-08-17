@@ -13,37 +13,33 @@ Estructura fija de este archivo. El agente **no la cambia**:
 
 # 1 · PARTE DE LA ÚLTIMA SESIÓN
 
-**Fecha:** 16-ago-2026 · **Rama:** `trabajo/2026-08-16` · **Modo:** autónomo
+**Fecha:** 17-ago-2026 · **Rama:** `trabajo/2026-08-17` · **Modo:** autónomo
 
-**Resultado: 5 de 6 tareas hechas. T-11 bloqueada. 284 tests verdes + 1 regresión reportada.**
+**Resultado: T-13 parcialmente completada. 285 tests verdes, 2 omitidos. Sin commit aún.**
 
-| Tarea | Qué se logró | Commit |
+| Familia | Archivo creado | Estado |
 |---|---|---|
-| T-06 | Las advertencias de "cono sub-alimentado" y "cámara mal calzada" ahora llegan al resultado del usuario. Antes eran código muerto. | `f0f4397` |
-| T-07 | Las horas de operación por mes ahora son un dato que el usuario puede ingresar. Antes estaba fija en 500 h/mes. Afecta el plazo calculado. | `49dd4f4` |
-| T-08 | La revisión de calce de cámara ahora usa la curva granulométrica real cuando está disponible, no solo el P80. | `8ec9dec` |
-| T-09 | Cada mandíbula tiene su propio umbral de producto mínimo (antes era 50 mm para todas). J-1480 no se propone sola para producto fino; J-960 sí puede hasta 50 mm. | `a07b86d` |
-| T-10 | Los datos del C-1540 en el catálogo estaban inflados. Corregidos según manual oficial: capacidad real 220 tph (antes 300), CSS mínimo real 19 mm (antes 10). **Genera una alerta que Marcelo debe resolver.** | `592af40` |
-| T-11 | **BLOQUEADA.** Las curvas de producto del C-1540 son gráficos en el PDF. El entorno no puede leer el PDF automáticamente. Opciones abajo. | — |
+| Seleccionadoras | `docs/DATOS_MANUALES_SELECCIONADORAS.md` | ✓ Completo (5 modelos) |
+| Mandíbulas | `docs/DATOS_MANUALES_MANDIBULAS.md` | ✓ Completo (J-1280 sin manual) |
+| Impactores | `docs/DATOS_MANUALES_IMPACTORES.md` | ✓ Parcial (IC-100, I-110RS; faltan I-120, I-130RS, I-140) |
+| Scalpers | `docs/DATOS_MANUALES_SCALPERS.md` | ✓ Parcial (863+, 873+, 883+; falta 893+) |
+| Conveyor | `docs/DATOS_MANUALES_CONVEYOR.md` | ✓ Completo (TC-80) |
 
 **Lo que necesito de ti, en orden:**
 
-1. **Resolver la alerta del test de validación (T-10).** El test `test_caso_real[Mina El Pleito Fase 3 - Hierro]`
-   falla: el sistema ahora predice **132 tph**, el test esperaba **161 tph** (basado en el catálogo incorrecto anterior).
-   Pregunta: ¿el valor 161 tph viene de una medición real de campo, o era un número calculado con el catálogo viejo?
-   - Si es de campo real → el sistema tiene un error de modelo que hay que investigar.
-   - Si era del catálogo viejo → el test debe actualizarse al valor correcto (132 tph) y ya.
-   No se toca el test hasta que respondas.
+1. **Resolver B-07 (regresión test Hierro).** El test `test_caso_real[Mina El Pleito Fase 3 - Hierro]`
+   sigue fallando: sistema predice **132 tph**, test espera **161 tph**.
+   ¿El 161 era de campo real o fue calculado con el catálogo antiguo (incorrecto)?
 
-2. **Desbloquear T-11 (curvas de producto del C-1540).** Dos opciones:
-   - Opción A: abrir el PDF `manuales/Conos/C-1540 Operations Manual Rev 2 (en).pdf`, ir al gráfico
-     de la Tabla 3.5 y leer los % pasantes a ojo en cada tamaño de tamiz. Pasarme esos números y yo
-     los cargo al catálogo.
-   - Opción B: aceptar las lecturas aproximadas (±5 puntos) que ya están en `docs/DATOS_MANUAL_C-1540.md`
-     y cargarlas con esa imprecisión declarada. El sistema mejoraría igual; solo sería menos exacto.
+2. **Resolver B-08 (curvas C-1540).** Leer los gráficos del manual (Tabla 3.5) y pasarme los números,
+   o autorizar las lecturas aproximadas de `docs/DATOS_MANUAL_C-1540.md`.
 
-3. **Decidir si integras la rama a la principal.** Instrucciones en `WORKFLOW.md` sección 9.
-   La rama se llama `trabajo/2026-08-16`.
+3. **Resolver B-SC01 (873+ / "Rinser 873").** El catálogo tiene cap_max=200 tph; el manual dice 450 tph.
+   ¿Actualizo el catálogo con los datos del manual 873+?
+
+4. **Resolver B-IM01 (I-110RS feed_max).** Catálogo: 750 mm. Manual: 304–500 mm. ¿Cuál es el valor correcto?
+
+5. **Integrar la rama a main.** Ver `WORKFLOW.md` sección 9. Rama: `trabajo/2026-08-17`.
 
 ---
 
@@ -82,65 +78,119 @@ Los 6 modelos Terex Finlay ya tienen el dato (T-09). Las 14 restantes (Powerscre
 Sandvik, Metso) usan el criterio teórico (css_min × 2.5 ≥ finest_max). Sin manual verificado
 no se puede asignar el dato correcto.
 
+### B-SL01 · tph de seleccionadoras sin fuente de manual
+Los valores cap_min/cap_max de todas las seleccionadoras del catálogo no tienen fuente de manual.
+Los manuales Terex Finlay no publican tph (depende del material y la malla instalada).
+Origen de los valores actual desconocido. Se marcan como sin verificar hasta conseguir
+fuente alternativa (hojas de ventas, AggFlow, ficha técnica impresa).
+
+### B-SL02 · 595 no está en el catálogo — requiere decisión de categoría
+La 595 es una rejilla vibratoria de 2 pisos (scalper primario). Su estructura no encaja bien en
+`screen`. Requiere que Marcelo decida: ¿se agrega como `screen` o como nueva categoría `scalper`?
+Hay además una inconsistencia métrica/imperial en el manual (2.7m vs 6'-1"=1.85m en una dimensión).
+
+### B-SL03 · Área del 683 en catálogo no coincide con manual
+Catálogo: 10.1 m². Manual: 10.95 m² (3.65×1.5×2). Diferencia: 8.4%. Posible uso de área efectiva
+vs. bruta. No se puede corregir sin aclaración del fabricante.
+
+### B-MJ01 · J-960 Rev 5.2: tabla de capacidad no encontrada
+En Rev 5.2 la sección 3.7 tiene curvas de producto (imágenes), no tabla de tph. Los valores
+de css_min, css_max, feed_max y cap del catálogo no pudieron verificarse con la revisión disponible.
+La Rev 4.9 (citada en el catálogo) no está en la carpeta de manuales.
+
+### B-MJ02 · J-1160 Rev 4.8: tph no publicado
+Rev 4.8 tiene curvas de granulometría por CSS (no tph). El catálogo cita cap_min=150, cap_max=280
+sin fuente identificada. Posiblemente provienen de una revisión anterior o hoja de producto.
+
+### B-MJ03 · J-1170 css_max: 125mm (Rev 1.0) vs. 150mm (catálogo de Rev 6.5)
+No es discrepancia, sino diferencia de revisiones. La extensión a 150mm fue añadida en versiones
+posteriores. Los 6 puntos de la tabla de Rev 1.0 sí coinciden con el catálogo.
+
+### B-MJ04 · J-1480 Rev 291116-10: tph no publicado
+Manual disponible tiene curvas de granulometría pero no tabla de tph. El catálogo cita cap_min=400,
+cap_max=600 de Rev 1.9 p.3-10. Esa revisión no está disponible en la carpeta de manuales.
+
+### B-MJ05 · J-1280: manual no disponible
+No hay manual de J-1280 en `manuales/Mandíbulas/`. No se puede completar T-13 para este modelo.
+
+### B-MJ06 · J-1175 feed_max: probablemente en imagen de tabla
+feed_max=790mm del catálogo probablemente está en Tabla 3.1, que pypdf no pudo extraer (imagen/gráfico).
+No se puede confirmar sin digitalización manual o renderizado del PDF.
+
+### B-IM01 · I-110RS feed_max: catálogo 750mm vs. manual 304–500mm — ver ítem 4 arriba
+El catálogo cita 750mm; el manual dice "Tamaño de alimentación máximo: 304–500mm (12"–20")".
+Apertura física del chasis: 990×1020mm. Ninguno de los tres valores coincide entre sí.
+Requiere verificación con Terex/distribuidor antes de corregir.
+
+### B-IM02 · Capacidades HSI sin fuente de manual
+Los valores cap_min/cap_max de impactores HSI del catálogo no tienen fuente en ningún manual.
+Los manuales no publican tablas de tph (solo curvas de producto orientativas para caliza).
+Son estimaciones comerciales sin fuente verificada.
+
+### B-IM03 · I-120, I-130RS, I-140: manuales no leídos en T-13
+Manuales disponibles (163 MB, 98 MB, 133 MB) pero no procesados por límite de sesión.
+Pendientes para próxima sesión o T-13b.
+
+### B-SC01 · "Rinser 873" del catálogo = 873+ con datos muy distintos — ver ítem 3 arriba
+Catálogo: nombre "Rinser 873", screen_1d, cap_max 200 tph. Manual 873+: 3 salidas de producto,
+cap_max 450 tph, feed_max 500mm. Nombre y capacidad no coinciden. Requiere decisión de Marcelo
+antes de cualquier modificación al catálogo.
+
+### B-SC02 · 883+ feed_max no encontrado
+feed_max del 883+ no apareció en las páginas leídas del manual (sección 3-1 a 3-6).
+La entrada del catálogo "883 HF" tampoco tiene feed_max. Pendiente de leer páginas adicionales.
+
+### B-SC03 · 863+ motor Tier 3 sin potencia explícita
+El manual menciona "Motor CAT 4.4 Tier 3" sin dar kW en las páginas leídas. Probable que sea
+83 kW (igual al 873+ y 883+ que usan la misma plataforma). No confirmado.
+
+### B-SC04 · 893+ manual no leído
+Manual disponible (83 MB, Rev 2) pero no leído en T-13 por límite de sesión. No está en catálogo.
+Pendiente.
+
+### B-CO01 · TC-80 no está en el catálogo y no hay tipo "conveyor" definido
+El catálogo no tiene tipo "conveyor". Agregar el TC-80 requiere: (1) crear nuevo tipo de equipo,
+(2) definir qué campos aplican (¿aporta tph al circuito?), (3) decidir si el conveyor participa
+en la simulación o es solo logística. Requiere decisión de Marcelo.
+
 ---
 
 # 3 · DETALLE DE LA ÚLTIMA SESIÓN
 
-### T-06 · Conectar advertencias de conos al flujo real — HECHA
+### T-13 · Extracción de datos de manuales — PARCIALMENTE COMPLETA
 
-Importadas `check_cone_choke_feed` y `check_cone_chamber_fit`. Campo `cone_feeds_p80` en
-cada candidato (P80 estimada de alimentación al cono). En el bucle de simulación se acumulan
-advertencias y viajan en `"advertencias": [...]` en todos los resultados. 5 tests nuevos.
-**267 tests verdes. Commit f0f4397.**
+**Herramienta usada:** pypdf (único método que funciona en este entorno Windows; pdftotext/pdftoppm causan segfault).
+**Técnica:** script por lote de 2–8 páginas para evitar timeout (cada página tarda 1–2 segundos).
+**Páginas objetivo:** índice de la sección 3 "Datos técnicos" para encontrar los números, luego páginas específicas.
 
-Nota: el choke feed warning aparece en prácticamente TODOS los circuitos con cono cuando el cuello
-de botella es la mandíbula (cap_per_unit ≈ jaw_cap × 0.80 < 80% cone_cap_max). Activarlo como
-descarte eliminaría casi todos los resultados jaw_cone_screen del catálogo actual. Decisión de Marcelo.
+#### Seleccionadoras (5 manuales, completo)
+- 595 Rev 1.7: rejilla scalper 2 pisos, 21,500 kg, motor 53–56 kW. No en catálogo.
+- 683 Rev 15: área 10.95 m² (catálogo 10.1 m²), motor 97 kW Tier3 / 82 kW Tier4, peso 24.8 t.
+- 684 Rev (varios): área 14.62 m² (2p) / 21.93 m² (3p), motor 83/82 kW, peso 28.75–30.5 t.
+- 694+ Rev (varios): área 27.87 m², motor 90/93 kW, peso 35.9–42.75 t.
+- 696 Rev (varios): área 31.1 m² ✓, motor 90/93 kW, peso 36.8 t, feed_max=100 mm.
+- Hallazgo clave: ningún manual de seleccionadora publica tph.
 
-### T-07 · Horas de operación como dato de entrada — HECHA
+#### Mandíbulas (5 manuales disponibles, J-1280 sin manual)
+- J-960 Rev 5.2: peso 28,000 kg, mandíbula 900×600 mm, motor CAT C4.4/JD 4045. Tabla de tph no encontrada en esta revisión.
+- J-1160 Rev 4.8: css_min=40 ✓, css_max=145 ✓, feed_max=600 ✓, peso=32 t. Sin tabla de tph.
+- J-1170 Rev 1.0: tabla completa de tph en p.3-14 (PDF p.62). 6 puntos CSS 50–125 mm, todos coinciden con catálogo ✓.
+- J-1175 Rev 8.8: 11 puntos CSS confirmados ✓. feed_max probable en imagen.
+- J-1480 Rev 291116-10: mandíbula 1397×762 mm (54"×30"), CSS 100–200 mm ✓, peso 73 t. Sin tabla de tph.
 
-`hours_per_month_input` agregado a `recommend()` y `run_config()`. Prioridad:
-input directo > horas_dia×dias_mes > constante HOURS_PER_MONTH.
-Campo `hours_per_month_used` en todos los resultados. test_compare_configs actualizado.
-5 tests nuevos. **272 tests verdes. Commit 49dd4f4.**
+#### Impactores (2 de 5 leídos)
+- IC-100 Rev 1.0: apertura 860×610 mm, rotor 860 mm, rampas A 20–55 mm / B 40–170 mm, motor JD 194 kW / Volvo 210–235 kW, peso 23,700 kg. No en catálogo.
+- I-110RS Rev 020915-06: apertura 990×1020 mm, rotor 1000 mm, max feed 304–500 mm, motor CAT C9 223 kW, peso 34 t. feed_max catálogo (750 mm) no coincide con manual.
+- I-120, I-130RS, I-140: disponibles, no leídos.
 
-### T-08 · Criterio real de calce de cámara del cono — HECHA
+#### Scalpers (3 de 4 leídos)
+- 863+ Rev 2.1: 18,000 kg, criba 1220×2770 mm (3.38 m²), motor 55 kW Tier4. No en catálogo.
+- 873+ Rev 4.1: 26,300 kg, criba 3.66×1.52 m, motor 83/82 kW CAT, feed_max 500 mm, cap_max 450 tph. Catálogo "Rinser 873" dice 200 tph — gran discrepancia.
+- 883+ Rev 5.1: 31,000–32,500 kg, criba 4.8×1.53×2 pisos (14.4 m²), motor 83/82 kW CAT. Catálogo "883 HF" cap 80–200 tph sin fuente.
+- 893+: disponible, no leído.
 
-`check_cone_chamber_fit` acepta `feed_curve_dict` opcional (D-05). Con curva verifica C1
-(≥90% pasa boca); C2 y C3 documentados como no verificables (falta mid_chamber_mm y CSS).
-Sin curva: criterio simplificado previo (backward-compat). 7 tests nuevos.
-**279 tests verdes. Commit 8ec9dec.**
-
-### T-09 · Umbral de mandíbula sola: constante → dato por modelo — HECHA
-
-`min_product_mm` agregado a 6 mandíbulas Terex Finlay (D-14): J-960=50, J-1160=50,
-J-1170=75, J-1175=75, J-1280=75, J-1480=100. Section A de recommender.py reemplaza
-gate global + P100_min por check per-jaw. Sin dato → criterio teórico previo.
-Test previo actualizado (40mm < mínimo 50mm del catálogo). 4 tests nuevos.
-**283 tests verdes. Commit a07b86d.**
-
-Nota técnica: min_product_mm REEMPLAZA el P100_min check para jaws con dato (dato real del
-manual supera al cálculo teórico css_min×2.5). J-960 puede proponer jaw_only para ≥50mm.
-
-### T-10 · Corregir datos del C-1540 en el catálogo — HECHA (regresión reportada)
-
-Datos corregidos según Manual Terex Finlay C-1540 Rev 2.7, Tabla 3.4 p.3-14
-(excéntrico largo, cóncavo Medium Coarse, punto medio de rangos):
-  css_min_mm: 10→19 · css_max_mm: 44→32
-  cap_min_tph: 150→125 · cap_max_tph: 300→220 · feed_max_mm: 215→160
-Curva de capacidad real y capacity_source agregados.
-
-**REGRESIÓN:** test_caso_real[Mina El Pleito Fase 3 - Hierro (circuito cerrado)] FALLA:
-  tph_util obtenido: 132.4 tph · esperado: 161 tph · diferencia: 28.6 (tolerancia 15%=24.2)
-Causa: cap_max_tph 300→220 reduce el tph_util calculado. El 161 esperado fue calculado con
-datos incorrectos. No se toca el test sin respuesta de Marcelo (ver B-07). **Commit 592af40.**
-
-### T-11 · Digitalizar curvas de producto del C-1540 — BLOQUEADA
-
-El PDF `manuales/Conos/C-1540 Operations Manual Rev 2 (en).pdf` existe en el repositorio
-pero el entorno (Windows, sin pdftoppm) no puede renderizarlo para leer los gráficos.
-Las lecturas aproximadas (±5 puntos) en `docs/DATOS_MANUAL_C-1540.md` existen pero
-la tarea prohíbe cargarlas sin digitalización cuidadosa. Opciones en B-08 / ítem 2 sección 1.
+#### Conveyor (1 de 1 leído)
+- TC-80 Rev 3.6: cinta 1050 mm, longitud 23.5 m, cap hasta 600 t/h, peso 16,750 kg, motor Deutz 36.4/45 kW. No en catálogo; no existe tipo "conveyor".
 
 ---
 
