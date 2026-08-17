@@ -140,7 +140,7 @@ que el plazo calculado cambia en la proporción correcta.
 
 ---
 
-## T-08 · Revisar el criterio de calce de cámara del cono · PENDIENTE
+## T-08 · Revisar el criterio de calce de cámara del cono · HECHA
 
 **Problema:** `check_cone_chamber_fit` implementa un criterio simplificado (P80 de alimentación
 entre 40% y 90% de la boca) que **no es** el acordado en D-05: 90–100% pasante de la boca,

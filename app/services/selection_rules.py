@@ -10,7 +10,29 @@ Reglas 4 y 5 (choke feed y calce de cámara) son ADVERTENCIAS:
 siempre retornan ok=True pero motivo describe la situación.
 La decisión de activarlas como descarte la toma Marcelo.
 """
-from typing import Dict, Tuple
+import math
+from typing import Dict, Optional, Tuple
+
+
+def _interp_passing_at(curve_dict: Dict, size_mm: float) -> Optional[float]:
+    """Interpola % pasante en size_mm desde una curva {mm: pct_pasante}. Log-lineal."""
+    if not curve_dict:
+        return None
+    pairs = sorted((float(k), float(v)) for k, v in curve_dict.items())
+    sizes = [p[0] for p in pairs]
+    pcts  = [p[1] for p in pairs]
+    if size_mm <= sizes[0]:
+        return pcts[0]
+    if size_mm >= sizes[-1]:
+        return pcts[-1]
+    for i in range(len(sizes) - 1):
+        if sizes[i] <= size_mm <= sizes[i + 1]:
+            log0 = math.log(sizes[i])
+            log1 = math.log(sizes[i + 1])
+            logm = math.log(max(size_mm, 1e-9))
+            t = (logm - log0) / (log1 - log0)
+            return pcts[i] + t * (pcts[i + 1] - pcts[i])
+    return pcts[-1]
 
 # Multiplicador P100_producto / CSS por tipo de chancador
 # Fuente: curvas normalizadas de fabricante (jaw≈2.5, cone≈1.6 según spec de Terex Finlay)
@@ -113,13 +135,25 @@ def check_cone_choke_feed(cone: Dict, feed_tph: float) -> Tuple[bool, str]:
     )
 
 
-def check_cone_chamber_fit(cone: Dict, feed_p80_mm: float) -> Tuple[bool, str]:
+def check_cone_chamber_fit(
+    cone: Dict,
+    feed_p80_mm: float,
+    feed_curve_dict: Optional[Dict] = None,
+) -> Tuple[bool, str]:
     """
-    Regla 5 (ADVERTENCIA): la alimentación al cono debe calzar con su cámara.
-    Criterio simplificado: el P80 de alimentación debe estar entre el 40% y el 90%
-    del diámetro de boca del cono.
-    Si el P80 es muy pequeño relativo a la boca, la cámara está sobredimensionada.
-    Si el P80 es mayor al 90% de la boca, hay riesgo de atasco.
+    Regla 5 (ADVERTENCIA): calce de alimentación con la cámara del cono.
+
+    Criterio acordado D-05:
+      C1. 90–100 % del material pasa por la boca (feed_max_mm).
+      C2. 40–60 % del material pasa a mitad de cámara — requiere campo
+          `mid_chamber_mm` por modelo (ningún cono del catálogo lo tiene todavía).
+      C3. 0–10 % del material está bajo el CSS — requiere CSS del equipo, que no
+          llega a esta función; debe verificarse por separado.
+
+    Si feed_curve_dict está disponible se verifica C1 con la curva real.
+    Si no, se usa el criterio simplificado anterior: P80 debe estar entre
+    40 % y 90 % de la boca (backward-compat con los tests existentes).
+
     Retorna ok=True siempre — es advertencia, no descarte.
     Fuente: D-05 DECISIONS.md; Pit&Quarry "Tips to maximize crushing efficiency".
     """
@@ -127,11 +161,40 @@ def check_cone_chamber_fit(cone: Dict, feed_p80_mm: float) -> Tuple[bool, str]:
     modelo = cone.get("model", "Cono")
     if boca <= 0:
         return True, f"{modelo}: sin datos de boca de cámara — no se verifica calce"
+
+    if feed_curve_dict:
+        pct_boca = _interp_passing_at(feed_curve_dict, boca)
+        if pct_boca is None:
+            return True, f"{modelo}: curva de alimentación vacía — no se verifica calce"
+
+        partes = [
+            f"{modelo}: {pct_boca:.1f}% del material pasa la boca de {boca:.0f} mm"
+        ]
+        if pct_boca < 90.0:
+            partes.insert(0, f"ADVERTENCIA {modelo}:")
+            partes.append(
+                f"(C1: debe ser ≥90%; hay {100-pct_boca:.1f}% de material "
+                "que no cabe — revisar granulometría de entrada)"
+            )
+        else:
+            partes.append("(C1 OK)")
+
+        # C2: se necesita mid_chamber_mm por modelo de cono — dato no disponible
+        partes.append(
+            "C2 no verificable: falta campo 'mid_chamber_mm' en catálogo de conos."
+        )
+        # C3: se necesita CSS del equipo — no se pasa a esta función
+        partes.append("C3 no verificable: CSS no disponible en esta comprobación.")
+
+        return True, " ".join(partes)
+
+    # ── Criterio simplificado (backward-compat, sin curva) ────────────────────
     ratio_boca = feed_p80_mm / boca
     if 0.40 <= ratio_boca <= 0.90:
         return True, (
             f"{modelo}: P80 de alimentación {feed_p80_mm:.0f} mm "
-            f"({ratio_boca*100:.0f}% de boca {boca:.0f} mm) — calce de cámara adecuado"
+            f"({ratio_boca*100:.0f}% de boca {boca:.0f} mm) — calce aproximado OK "
+            "(criterio simplificado; pasar feed_curve_dict para verificación real D-05)"
         )
     if ratio_boca > 0.90:
         return True, (

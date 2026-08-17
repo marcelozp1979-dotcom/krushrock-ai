@@ -603,6 +603,9 @@ def recommend(
                                 "n_units": 1,
                                 "cap_bottleneck_tph": bn,
                                 "cone_feeds_p80": [f80_mm, cone_sec_direct_target],
+                                # Sección E: el primer cono recibe la alimentación original
+                                # (curva completa disponible); el segundo no tiene curva.
+                                "cone_feeds_curve": [feed_curve_dict, None],
                             })
 
     if not candidates:
@@ -702,15 +705,17 @@ def recommend(
             n_units = 1
             advertencias: List[str] = []
             cone_idx = 0
+            cfp80 = cand.get("cone_feeds_p80", [])
+            cfc   = cand.get("cone_feeds_curve", [])
             for node in cand["nodes"]:
                 if node.get("type") == "cone":
                     cone_eq = node["equipment"]
                     _, msg_choke = check_cone_choke_feed(cone_eq, cap_per_unit)
                     if "ADVERTENCIA" in msg_choke:
                         advertencias.append(msg_choke)
-                    cfp80 = cand.get("cone_feeds_p80", [])
                     if cone_idx < len(cfp80):
-                        _, msg_cam = check_cone_chamber_fit(cone_eq, cfp80[cone_idx])
+                        curve = cfc[cone_idx] if cone_idx < len(cfc) else None
+                        _, msg_cam = check_cone_chamber_fit(cone_eq, cfp80[cone_idx], curve)
                         if "ADVERTENCIA" in msg_cam:
                             advertencias.append(msg_cam)
                     cone_idx += 1

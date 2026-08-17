@@ -100,11 +100,18 @@ como descarte eliminaría casi todos los resultados jaw_cone_screen del catálog
 solo quedarían casos donde el cono es el cuello de botella (cono más chico que la mandíbula).
 La decisión de activarlo como descarte es de Marcelo.
 
-### T-07 · Horas de operación como dato de entrada — EN CURSO
+### T-07 · Horas de operación como dato de entrada — HECHA
 
-Hipótesis: agregar parámetro opcional `hours_per_month_input` a `recommend()` y `run_config()`.
-Si se pasa, tiene prioridad sobre `horas_dia × dias_mes` y sobre `HOURS_PER_MONTH`.
-El valor usado viaja en el campo `"hours_per_month_used"` de cada resultado.
+`hours_per_month_input` agregado a `recommend()` y `run_config()`. Prioridad:
+input directo > horas_dia×dias_mes > constante HOURS_PER_MONTH.
+Campo `hours_per_month_used` en todos los resultados. test_compare_configs actualizado.
+5 tests nuevos. **272 tests verdes. Commit 49dd4f4.**
+
+### T-08 · Criterio real de calce de cámara del cono — EN CURSO
+
+Hipótesis: actualizar `check_cone_chamber_fit` en selection_rules.py para aceptar
+`feed_curve_dict` opcional y verificar el criterio D-05 (90-100% pasa la boca).
+Criterio 2 (mitad de cámara) y 3 (CSS) quedan anotados como no verificables por falta de datos.
 
 
 
