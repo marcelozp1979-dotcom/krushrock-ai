@@ -318,7 +318,7 @@ de verdad; si un caso falla con equipos reales, el error está en el motor.
 
 ---
 
-## T-15 · Capacidad de seleccionadoras por método VSMA — Etapa 1 · PENDIENTE · PRIORIDAD ALTA
+## T-15 · Capacidad de seleccionadoras por método VSMA — Etapa 1 · HECHA
 
 **Problema:** los campos `cap_min_tph` y `cap_max_tph` de las cinco seleccionadoras del catálogo
 no tienen fuente. Ningún manual publica tph porque la capacidad no es una propiedad del equipo:

@@ -13,33 +13,33 @@ Estructura fija de este archivo. El agente **no la cambia**:
 
 # 1 · PARTE DE LA ÚLTIMA SESIÓN
 
-**Fecha:** 17-ago-2026 · **Rama:** `trabajo/2026-08-17` · **Modo:** autónomo
+**Fecha:** 17-ago-2026 · **Rama:** `trabajo/2026-08-18` · **Modo:** autónomo
 
-**Resultado: T-13 parcialmente completada. 285 tests verdes, 2 omitidos. Sin commit aún.**
+**Resultado: T-15 completada. 299 tests verdes, 2 omitidos. Commit `d41b278`.**
 
-| Familia | Archivo creado | Estado |
-|---|---|---|
-| Seleccionadoras | `docs/DATOS_MANUALES_SELECCIONADORAS.md` | ✓ Completo (5 modelos) |
-| Mandíbulas | `docs/DATOS_MANUALES_MANDIBULAS.md` | ✓ Completo (J-1280 sin manual) |
-| Impactores | `docs/DATOS_MANUALES_IMPACTORES.md` | ✓ Parcial (IC-100, I-110RS; faltan I-120, I-130RS, I-140) |
-| Scalpers | `docs/DATOS_MANUALES_SCALPERS.md` | ✓ Parcial (863+, 873+, 883+; falta 893+) |
-| Conveyor | `docs/DATOS_MANUALES_CONVEYOR.md` | ✓ Completo (TC-80) |
+| Qué cambió | Detalle |
+|---|---|
+| Nuevo: `app/services/screen_capacity.py` | Fórmula VSMA (factores B a F). Calibrada sobre anclas del paper T-JCI-201. |
+| Nuevo: `tests/test_t15_screen_capacity.py` | 14 tests — 8 anclas de texto + 2 ejemplo del paper (13.16 y 3.97 tph/ft², error < 1%) |
+| `app/routers/equipment.py` | Eliminados cap_min/max_tph de los 26 equipos screen/screen_1d/screen_hf. Agregado `area_m2_per_deck`. Área 683 corregida: 10.1 → 10.95 m². |
+| `app/services/recommender.py` | `_bottleneck_cap` y `_make_screen_node` usan `nominal_tph()` VSMA en vez del 80% fijo. |
+| `tests/test_equipment_endpoint.py` | `capR` puede ser `[None, None]` para seleccionadoras (VSMA). |
 
 **Lo que necesito de ti, en orden:**
 
 1. **Resolver B-07 (regresión test Hierro).** El test `test_caso_real[Mina El Pleito Fase 3 - Hierro]`
-   sigue fallando: sistema predice **132 tph**, test espera **161 tph**.
-   ¿El 161 era de campo real o fue calculado con el catálogo antiguo (incorrecto)?
+   sigue en estado SKIPPED. ¿El 161 tph era de campo real o fue calculado con el catálogo antiguo?
 
 2. **Resolver B-08 (curvas C-1540).** Leer los gráficos del manual (Tabla 3.5) y pasarme los números,
    o autorizar las lecturas aproximadas de `docs/DATOS_MANUAL_C-1540.md`.
 
-3. **Resolver B-SC01 (873+ / "Rinser 873").** El catálogo tiene cap_max=200 tph; el manual dice 450 tph.
-   ¿Actualizo el catálogo con los datos del manual 873+?
+3. **Resolver B-SC01 (873+ / "Rinser 873").** El catálogo tenía cap_max=200 tph (eliminado en T-15);
+   el manual dice 450 tph. ¿Actualizo el nombre y datos con el manual 873+?
 
 4. **Resolver B-IM01 (I-110RS feed_max).** Catálogo: 750 mm. Manual: 304–500 mm. ¿Cuál es el valor correcto?
 
-5. **Integrar la rama a main.** Ver `WORKFLOW.md` sección 9. Rama: `trabajo/2026-08-17`.
+5. **Integrar las ramas a main.** Ramas: `trabajo/2026-08-17` (T-13) y `trabajo/2026-08-18` (T-15).
+   Ver `WORKFLOW.md` sección 9.
 
 ---
 
@@ -157,7 +157,36 @@ en la simulación o es solo logística. Requiere decisión de Marcelo.
 
 # 3 · DETALLE DE LA ÚLTIMA SESIÓN
 
-### T-13 · Extracción de datos de manuales — PARCIALMENTE COMPLETA
+### T-15 · Capacidad de seleccionadoras (VSMA Etapa 1) — COMPLETA · Commit d41b278
+
+**Verificación del paper:** el ejemplo "Comparison of screen sizing" (T-JCI-201, pp. 38-40)
+reproduce exactamente dentro de ±1 %:
+- Piso 1: malla 1" (25.4 mm), 75 % área abierta, 15 % oversize, 69 % halfsize, 95 % eff → **13.16 tph/ft²** (calculado 13.17)
+- Piso 2: malla ½" (12.7 mm), 65 % área abierta, 18.8 % oversize, 35.3 % halfsize, 95 % eff → **3.97 tph/ft²** (calculado 3.95)
+
+**Factores calibrados:**
+- B: fórmula exponencial B_MAX×(1−e^(−k×mm)), calibrada en 2 anclas: 12.7 mm→3.80, 25.4 mm→5.50
+- D: diccionario {1:1.00, 2:0.90, 3:0.80, 4:0.70}
+- V: (25/pct_oversize)^0.437
+- H: (pct_halfsize/40)^0.804
+- O: (pct_open/50)^0.65 (error 1.3 % en ancla 65 %, no impacta en A)
+- F: piecewise — (90/eff)^0.948 para eff ≥ 90 %; (90/eff)^0.726 para eff < 90 %
+
+**Catálogo seleccionadoras (area_m2_per_deck):**
+- 683: 5.475 m² (manual 3.65×1.50; total 10.95 — catálogo tenía 10.1, corregido)
+- 684 2-deck: 7.31 m² (manual 4.30×1.70)
+- 684 3-deck: 7.31 m² (manual 4.30×1.70)
+- 694+: 9.296 m² (manual 6.10×1.524)
+- 696 3-deck: 10.37 m² (manual 6.10×1.70)
+- Otras 11 marcas: area_m2_per_deck = area_m2 / decks (sin manual verificado)
+- screen_1d y screen_hf: area_m2_per_deck = None (sin datos de área en el catálogo)
+
+**Impacto en circuitos:** los circuitos con seleccionadora ahora tienen capacidad calculada
+por VSMA en vez del 80 % fijo. La capacidad efectiva de una 683 a malla 1" es ~270 tph
+(58.9 ft² × 5.50 × 0.90 [piso 2]). El anterior cap_max era 250 tph. Cambio pequeño en
+valores absolutos, pero ahora depende de la apertura de malla.
+
+### T-13 · Extracción de datos de manuales — (sesión 17-ago-2026, rama trabajo/2026-08-17)
 
 **Herramienta usada:** pypdf (único método que funciona en este entorno Windows; pdftotext/pdftoppm causan segfault).
 **Técnica:** script por lote de 2–8 páginas para evitar timeout (cada página tarda 1–2 segundos).
