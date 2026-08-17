@@ -318,6 +318,53 @@ de verdad; si un caso falla con equipos reales, el error está en el motor.
 
 ---
 
+## T-15 · Capacidad de seleccionadoras por método VSMA — Etapa 1 · PENDIENTE · PRIORIDAD ALTA
+
+**Problema:** los campos `cap_min_tph` y `cap_max_tph` de las cinco seleccionadoras del catálogo
+no tienen fuente. Ningún manual publica tph porque la capacidad no es una propiedad del equipo:
+depende de la malla, del material y de la eficiencia exigida.
+
+**Qué hacer — solo los factores clásicos B a F en esta tarea:**
+
+1. Crear `app/services/screen_capacity.py` con la fórmula del método
+   (`docs/METODO_CAPACIDAD_SELECCIONADORAS.md`), calculando la capacidad **por piso**.
+2. Digitalizar del paper los factores B, S, D, V, H, T, K, O, W, F. Verificar la digitalización
+   contra los puntos exactos que el paper da en texto: B = 5,50 tph/ft² para malla 1" y 3,80
+   para ½"; D = 1,0 / 0,9 / 0,8; V = 1,00 al 25% retenido; H = 1,00 al 40% bajo media abertura;
+   F = 1,00 al 90% de eficiencia.
+3. En el catálogo de seleccionadoras: **eliminar** `cap_min_tph` y `cap_max_tph`, y dejar área
+   por piso, número de pisos y rpm de cribado (ya extraídos de los manuales Finlay).
+4. Conectar `screen()` en el motor para que use la capacidad calculada en vez del 80% fijo.
+
+**Fuera de alcance de esta tarea:** los factores NEA, BED, TYP, STR, TIM y RPM. Van en T-16.
+
+**Cómo se sabe que quedó bien:** reproducir el ejemplo trabajado del paper (sección 
+"Comparison of screen sizing") y obtener 13,16 tph/ft² en el piso superior y 3,97 en el
+inferior, dentro de ±5%. Ese ejemplo es la prueba de que la digitalización quedó bien.
+Los 285 tests existentes siguen verdes.
+
+**Cuidado:** este cambio altera la capacidad de todos los circuitos con seleccionadora, que son
+casi todos. Anotar en `MEMORY.md` qué casos cambian. **No ajustar ningún caso de validación.**
+
+**Referencia:** `docs/METODO_CAPACIDAD_SELECCIONADORAS.md` · PENDIENTES_PRECISION.md punto 1.
+
+---
+
+## T-16 · Factores NEA y BED — Etapa 2 · PENDIENTE
+
+Los dos factores que más cambian el resultado en circuito cerrado, que es el caso habitual de
+KrushRock. En el ejemplo del paper, `NEA` = 0,59 redujo la capacidad del piso inferior de
+476 a 215 tph.
+
+- **NEA** (material de tamaño cercano, ±25% de la abertura): se calcula desde la curva de
+  alimentación, que el motor ya propaga completa. No requiere datos nuevos.
+- **BED** (espesor de cama): requiere ancho de piso y velocidad de transporte.
+  El ancho está en los manuales; la velocidad se estima desde rpm, carrera e inclinación.
+
+**Referencia:** `docs/METODO_CAPACIDAD_SELECCIONADORAS.md` sección 2.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada
