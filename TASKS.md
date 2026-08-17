@@ -251,6 +251,51 @@ al abrir el CSS, y hay que anotarlo en `PENDIENTES_PRECISION.md`.
 
 ---
 
+## T-12 · Corregir los tres conos Finlay con datos de manual · PENDIENTE · PRIORIDAD ALTA
+
+Reemplaza y amplía T-10, que cubría solo el C-1540.
+
+**Qué hacer:** actualizar en `app/routers/equipment.py` las entradas C-1540, C-1545 y C-1550
+con los valores de `docs/DATOS_MANUALES_CONOS.md`, cada uno con su `capacity_source`.
+
+Cargar además la curva de capacidad del C-1550+ (15 puntos de CSS, la tabla más completa que
+hay) y la del C-1540 (5 puntos). El **C-1545 no tiene tabla tph vs CSS** en su manual: solo
+rangos globales. No inventarle una curva.
+
+Marcar el **C-1554** como sin fuente: no hay manual.
+
+**Cuidado:** los errores van en las dos direcciones. El C-1550+ pasa de 180–370 a 250–589 tph;
+eso puede cambiar qué equipo gana en varios casos. Anotar en `MEMORY.md` cuáles cambiaron y
+**no ajustar ningún caso de validación** para que calce.
+
+**Referencia:** `docs/DATOS_MANUALES_CONOS.md` · `docs/PROCEDIMIENTO_EXTRACCION_MANUALES.md`.
+
+---
+
+## T-13 · Extraer datos de mandíbulas, seleccionadoras, scalpers, impactores y conveyor · PENDIENTE
+
+**Qué hacer:** aplicar `docs/PROCEDIMIENTO_EXTRACCION_MANUALES.md` a los 20 manuales restantes
+de `manuales/`, generando un documento por familia en `docs/`, igual que se hizo con los conos.
+**No modificar el catálogo en esta tarea** — solo extraer y documentar, con la tabla
+comparativa "catálogo actual vs manual" para cada modelo.
+
+Orden sugerido por impacto:
+
+1. **Seleccionadoras** (595, 683, 684, 694+, 696) — hoy ningún modelo tiene fuente, y es la
+   mayor fuente de imprecisión según `PENDIENTES_PRECISION.md`.
+2. **Mandíbulas** (J-960, J-1160, J-1170, J-1175, J-1480) — verificar los datos ya cargados y
+   resolver la inconsistencia del J-1175 (bloqueo B-02).
+3. **Impactores** (I-110RS, I-120, I-130RS, I-140, IC-100) — los 16 del catálogo no declaran CSS.
+4. **Scalpers** (863+, 873+, 883+, 893+) — no existen en el catálogo.
+5. **Conveyor** (TC-80) — no existe la categoría.
+
+**Regla que no se rompe:** si un dato no está en el manual, no se carga. Se anota qué falta.
+
+**Nota de rendimiento:** son ~2 GB de PDF. Conviene ejecutarlo en el computador de Marcelo
+(Claude Code), no en un entorno remoto.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada
