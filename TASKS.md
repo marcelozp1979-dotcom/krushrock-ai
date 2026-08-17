@@ -154,7 +154,7 @@ y dejarlo anotado en vez de aproximarlo.
 
 ---
 
-## T-09 · Umbral de mandíbula sola: de constante global a dato por modelo · PENDIENTE
+## T-09 · Umbral de mandíbula sola: de constante global a dato por modelo · HECHA
 
 **Problema:** `_JAW_ONLY_MIN_MM = 50` es una constante única para todas las mandíbulas. En la
 realidad cada modelo tiene un tamaño mínimo de producto útil distinto, según su cámara.

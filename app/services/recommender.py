@@ -403,13 +403,27 @@ def recommend(
     # se hace en el bucle de simulación si la producción real no cumple.
     # Así 1 equipo grande siempre gana a 2 equipos chicos en el ranking.
 
-    # A: mandíbula sola (solo para productos gruesos — jaw no puede producir <50mm útil)
-    if finest_max >= _JAW_ONLY_MIN_MM:
-        for jaw in jaws:
-            css_min_jaw = jaw.get("css_min_mm") or 0
-            css_jaw_est = max(p80_target, css_min_jaw)
+    # A: mandíbula sola — umbral mínimo de producto por modelo (min_product_mm) o criterio teórico
+    for jaw in jaws:
+        css_min_jaw = jaw.get("css_min_mm") or 0
+        css_jaw_est = max(p80_target, css_min_jaw)
 
-            # Regla d: P100_min de mandíbula = css_min × 2.5; debe ser ≤ finest_max
+        jaw_min_product = jaw.get("min_product_mm")
+        if jaw_min_product is not None:
+            # Dato real del manual: es el mínimo de producto útil confirmado (D-14)
+            if finest_max < jaw_min_product:
+                rejected_reasons.append(
+                    f"{jaw['model']} jaw_only: producto {finest_max:.0f} mm < "
+                    f"mínimo {jaw_min_product:.0f} mm para mandíbula sola"
+                )
+                continue
+        else:
+            # Sin dato de manual: criterio teórico (umbral global + P100_min de css_min)
+            if finest_max < _JAW_ONLY_MIN_MM:
+                rejected_reasons.append(
+                    f"{jaw['model']} jaw_only: producto {finest_max:.0f} mm < umbral {_JAW_ONLY_MIN_MM:.0f} mm"
+                )
+                continue
             p100_min_jaw = css_min_jaw * _P100_FACTOR["jaw"]
             if p100_min_jaw > finest_max:
                 rejected_reasons.append(
@@ -417,37 +431,37 @@ def recommend(
                 )
                 continue
 
-            # Regla a: razón de reducción ≤ 6:1
-            if not _reduction_ratio_ok("jaw", feed_max_material_mm, css_jaw_est):
-                ratio = feed_max_material_mm / (css_jaw_est * _P100_FACTOR["jaw"])
-                rejected_reasons.append(
-                    f"{jaw['model']} jaw_only: razón {ratio:.1f}:1 > 6:1"
-                )
-                continue
+        # Regla a: razón de reducción ≤ 6:1
+        if not _reduction_ratio_ok("jaw", feed_max_material_mm, css_jaw_est):
+            ratio = feed_max_material_mm / (css_jaw_est * _P100_FACTOR["jaw"])
+            rejected_reasons.append(
+                f"{jaw['model']} jaw_only: razón {ratio:.1f}:1 > 6:1"
+            )
+            continue
 
-            # Regla c: css_min_recomendado_mm (cuando exista)
-            css_min_rec = jaw.get("css_min_recomendado_mm")
-            if css_min_rec and css_jaw_est < css_min_rec:
-                rejected_reasons.append(
-                    f"{jaw['model']} jaw_only: CSS objetivo {css_jaw_est:.0f} mm < recomendado {css_min_rec} mm"
-                )
-                continue
+        # Regla c: css_min_recomendado_mm (cuando exista)
+        css_min_rec = jaw.get("css_min_recomendado_mm")
+        if css_min_rec and css_jaw_est < css_min_rec:
+            rejected_reasons.append(
+                f"{jaw['model']} jaw_only: CSS objetivo {css_jaw_est:.0f} mm < recomendado {css_min_rec} mm"
+            )
+            continue
 
-            # Regla c: producto_min_p80_mm (cuando exista)
-            prod_min = jaw.get("producto_min_p80_mm")
-            if prod_min and p80_target < prod_min:
-                rejected_reasons.append(
-                    f"{jaw['model']}: no puede producir P80 {p80_target:.0f} mm (mín {prod_min} mm)"
-                )
-                continue
+        # Regla c: producto_min_p80_mm (cuando exista)
+        prod_min = jaw.get("producto_min_p80_mm")
+        if prod_min and p80_target < prod_min:
+            rejected_reasons.append(
+                f"{jaw['model']}: no puede producir P80 {p80_target:.0f} mm (mín {prod_min} mm)"
+            )
+            continue
 
-            candidates.append({
-                "label": "jaw_only",
-                "nodes": [_make_jaw_node(jaw, p80_target)],
-                "circuit": "open",
-                "n_units": 1,
-                "cap_bottleneck_tph": jaw["cap_max_tph"],
-            })
+        candidates.append({
+            "label": "jaw_only",
+            "nodes": [_make_jaw_node(jaw, p80_target)],
+            "circuit": "open",
+            "n_units": 1,
+            "cap_bottleneck_tph": jaw["cap_max_tph"],
+        })
 
     # B: mandíbula + seleccionadora
     if finest_max >= _JAW_SCREEN_MIN_MM and screens:

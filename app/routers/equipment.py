@@ -33,6 +33,7 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "css_min_mm": 40, "css_max_mm": 140,
             "cap_min_tph": 60, "cap_max_tph": 175,
             "feed_max_mm": 580, "decks": None,
+            "min_product_mm": 50,  # D-14: confirmado por Marcelo
             "extra_specs": {"palanca": "doble", "rpm": 320},
             "notes": "Compacta, orugas",
             "curves": {
@@ -46,6 +47,7 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "css_min_mm": 40, "css_max_mm": 145,
             "cap_min_tph": 150, "cap_max_tph": 280,
             "feed_max_mm": 600, "decks": None,
+            "min_product_mm": 50,  # D-14: confirmado por Marcelo
             "extra_specs": {"palanca": "simple", "rpm": 260},
             "notes": "Orugas, hidrostático, boca 1000x600; rpm 220-300",
             "specs_source": "Manual Terex J-1160 Rev 4.2, datos técnicos",
@@ -73,6 +75,7 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "css_min_mm": 50, "css_max_mm": 150,
             "cap_min_tph": 90, "cap_max_tph": 290,
             "feed_max_mm": 700, "decks": None,
+            "min_product_mm": 75,  # D-14: confirmado por Marcelo
             "extra_specs": {"palanca": "simple"},
             "notes": "Orugas, hidrostático, boca 1100x700; CSS mín 75 en cantera",
             "curves": {
@@ -95,6 +98,7 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "css_min_mm": 50, "css_max_mm": 175,
             "cap_min_tph": 200, "cap_max_tph": 452,
             "feed_max_mm": 790, "decks": None,
+            "min_product_mm": 75,  # D-14: confirmado por Marcelo
             "extra_specs": {"palanca": "doble", "rpm": 290},
             "notes": "Orugas, C13 ACERT",
             # Curva de capacidad — Manual Terex Finlay J-1175 Rev 8.8 p.3-10
@@ -128,6 +132,7 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "css_min_mm": 64, "css_max_mm": 200,
             "cap_min_tph": 115, "cap_max_tph": 460,
             "feed_max_mm": 1070, "decks": None,
+            "min_product_mm": 75,  # D-14: confirmado por Marcelo
             "extra_specs": {"palanca": "doble", "rpm": 270},
             "notes": "Orugas, alta capacidad",
             "curves": {
@@ -150,6 +155,7 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "css_min_mm": 100, "css_max_mm": 200,
             "cap_min_tph": 400, "cap_max_tph": 600,
             "feed_max_mm": 1400, "decks": None,
+            "min_product_mm": 100,  # D-14: confirmado por Marcelo
             "extra_specs": {"palanca": "simple", "rpm": 250},
             "notes": "Orugas, gran formato",
             "product_curve": {

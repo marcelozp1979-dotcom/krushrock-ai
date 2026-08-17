@@ -107,11 +107,24 @@ input directo > horas_dia×dias_mes > constante HOURS_PER_MONTH.
 Campo `hours_per_month_used` en todos los resultados. test_compare_configs actualizado.
 5 tests nuevos. **272 tests verdes. Commit 49dd4f4.**
 
-### T-08 · Criterio real de calce de cámara del cono — EN CURSO
+### T-08 · Criterio real de calce de cámara del cono — HECHA
 
-Hipótesis: actualizar `check_cone_chamber_fit` en selection_rules.py para aceptar
-`feed_curve_dict` opcional y verificar el criterio D-05 (90-100% pasa la boca).
-Criterio 2 (mitad de cámara) y 3 (CSS) quedan anotados como no verificables por falta de datos.
+`check_cone_chamber_fit` acepta `feed_curve_dict` opcional (D-05). Con curva verifica C1
+(≥90% pasa boca); C2 y C3 documentados como no verificables (falta mid_chamber_mm y CSS).
+Sin curva: criterio simplificado previo (backward-compat). 7 tests nuevos.
+**279 tests verdes. Commit 8ec9dec.**
+
+**Dato faltante (BLOQUEO B-06):** ningún cono del catálogo tiene campo `mid_chamber_mm`.
+Sin ese dato, el criterio C2 de D-05 no se puede verificar. Marcelo debe decidir si:
+a) se agrega como campo a los conos que tienen manual (C-1540 primero), o
+b) C2 queda excluido del criterio definitivo.
+
+### T-09 · Umbral de mandíbula sola: constante → dato por modelo — EN CURSO
+
+Hipótesis: agregar `min_product_mm` a los 6 modelos con datos (D-14). En recommender.py,
+reemplazar el gate global `if finest_max >= _JAW_ONLY_MIN_MM:` por check per-jaw
+`if finest_max < jaw.min_product_mm: rechazar`. Fallback al global para jaws sin dato.
+
 
 
 

@@ -437,29 +437,29 @@ def test_andesita_recomienda_equipo_mayor_no_dos_chicos():
 
 # ── Tests de validaciones físicas ─────────────────────────────────────────────
 
-def test_500mm_a_50mm_no_recomienda_mandibula_sola():
+def test_500mm_a_40mm_no_recomienda_mandibula_sola():
     """
-    Test a: alimentación ROM con partículas hasta 500mm y producto 0-50mm no debe
+    Test a: alimentación ROM con partículas hasta 500mm y producto 0-40mm no debe
     recomendar mandíbula sola (jaw_only).
-    Regla d: P100_min de cualquier mandíbula del catálogo (css_min × 2.5 ≥ 100 mm)
-    supera el tamaño máximo del producto (50 mm) → jaw_only descartada.
-    El resultado puede ser jaw_screen o jaw_cone_screen — cualquiera con más de
-    1 etapa de procesamiento es correcto.
+    Con el umbral por modelo (D-14): el min_product_mm más bajo del catálogo es 50 mm
+    (J-960 y J-1160). Un producto de 40 mm queda por debajo de ese umbral, por lo que
+    ninguna mandíbula puede ser propuesta sola.
+    El resultado debe ser jaw_screen o jaw_cone_screen.
     """
     feed_curve = {100: 20, 250: 55, 400: 80, 500: 100}
     results = recommend(
         rock_type="granito",
         f80_mm=350.0,
-        products=[{"name": "triturado", "min_mm": 0.0, "max_mm": 50.0, "volumen_ton": 30_000.0}],
+        products=[{"name": "triturado", "min_mm": 0.0, "max_mm": 40.0, "volumen_ton": 30_000.0}],
         duracion_meses=3,
         inchancables=False,
         feed_curve_dict=feed_curve,
     )
     assert results, "Debe retornar al menos 1 resultado"
     configs = [r["config"] for r in results]
-    # jaw_only está descartada por regla d (css_min×2.5 ≥ 100mm > 50mm para toda mandíbula)
+    # jaw_only descartada: min_product_mm mínimo del catálogo es 50 mm > 40 mm
     assert "jaw_only" not in configs, (
-        f"jaw_only no debe aparecer con producto 0-50mm y feed hasta 500mm. "
+        f"jaw_only no debe aparecer con producto 0-40mm y feed hasta 500mm. "
         f"Configs: {configs}"
     )
     # Debe haber al menos un resultado con más de 1 tipo de equipo
