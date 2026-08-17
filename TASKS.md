@@ -230,7 +230,7 @@ aparece con `capacity_source`. Anotar en `MEMORY.md` qué casos cambiaron de res
 
 ---
 
-## T-11 · Digitalizar las curvas de producto del C-1540 · PENDIENTE
+## T-11 · Digitalizar las curvas de producto del C-1540 · BLOQUEADA
 
 **Problema:** las curvas de producto del manual (Tablas 3.5, 3.8, 3.11, 3.14) son **gráficos**,
 no tablas. Las lecturas que hay en `docs/DATOS_MANUAL_C-1540.md` son aproximadas (±5 puntos) y

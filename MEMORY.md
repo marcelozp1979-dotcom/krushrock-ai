@@ -13,29 +13,30 @@ Estructura fija de este archivo. El agente **no la cambia**:
 
 # 1 · PARTE DE LA ÚLTIMA SESIÓN
 
-**Fecha:** noche del 28 al 29-jul-2026 · **Rama:** `nocturno/2026-07-29` · **Modo:** autónomo
+**Fecha:** 16-ago-2026 · **Rama:** `trabajo/2026-08-16` · **Modo:** autónomo
 
-**Resultado: la cola quedó terminada. 5 de 5 tareas hechas, 262 tests verdes.**
+**Resultado: 5 de 6 tareas hechas. T-11 bloqueada. 282 tests verdes + 1 regresión reportada.**
 
 | Tarea | Qué se logró | Commit |
 |---|---|---|
-| T-01 | El ranking ya no castiga a los circuitos de 3 etapas. Ahora un tren completo con 1 unidad gana a 2 máquinas sueltas. | `431ab7b` |
-| T-02 | Cuando el volumen pedido es imposible, el usuario ve el tph que necesitaría, el máximo alcanzable y cuántos meses o equipos le faltan. Ya no queda pantalla vacía. | `74ae222` |
-| T-03 | Todas las reglas que descartan equipos quedaron en un solo archivo (`selection_rules.py`), incluidas las dos nuevas de conos. **Las nuevas están como advertencia, todavía no descartan.** | `134994c` |
-| T-04 | El frontend ya no tiene su propia copia del catálogo. Ahora hay una sola fuente: el backend. | `df87b6b` |
-| T-05 | Las 6 constantes del recommender quedaron documentadas. 5 no tienen fuente real y necesitan tu confirmación. | `adb5e84` |
+| T-06 | Advertencias de choke feed y calce de cámara conectadas al flujo real. | `f0f4397` |
+| T-07 | Horas de operación como dato de entrada (hours_per_month_input). | `49dd4f4` |
+| T-08 | Criterio real D-05 de calce de cámara con curva granulométrica. | `8ec9dec` |
+| T-09 | min_product_mm por modelo reemplaza la constante global _JAW_ONLY_MIN_MM. | `a07b86d` |
+| T-10 | Datos del C-1540 corregidos según manual Rev 2.7. **Regresión en test_caso_real[Hierro].** | `592af40` |
+| T-11 | **BLOQUEADA:** el entorno no puede renderizar el PDF del manual (pdftoppm no disponible en Windows). Las curvas de producto son gráficos, no tablas — no se pueden digitalizar sin acceso visual al PDF. | — |
 
 **Lo que necesito de ti, en orden:**
 
-1. **Probar la aplicación a mano.** T-04 tocó el frontend y el frontend no tiene tests automáticos.
-   Hay que verificar que la app carga y muestra los equipos. Si el backend no responde, ahora se
-   queda en pantalla de carga en vez de mostrar datos viejos — eso es intencional.
-2. **Responder el bloqueo B-03** (los 5 valores de la tabla más abajo). Sin eso el sistema calcula
-   con supuestos que nadie confirmó.
+1. **Decidir sobre la regresión de T-10.** El test `test_caso_real[Mina El Pleito Fase 3 - Hierro]`
+   falla: el sistema predice 132.4 tph, el test espera 161 tph. Opciones en MEMORY.md sección 3.
+2. **Decidir sobre T-11.** Dos caminos:
+   a) Abrir el PDF del manual (`manuales/Conos/C-1540 Operations Manual Rev 2 (en).pdf`) y
+      leer manualmente los % pasantes del gráfico de la Tabla 3.5 en cada tamaño de tamiz.
+      Luego cargarlos al catálogo en el formato que usa J-1175.
+   b) Usar las lecturas aproximadas (±5 puntos) de `docs/DATOS_MANUAL_C-1540.md` sección 3
+      y aceptar esa imprecisión — anotada en PENDIENTES_PRECISION.md.
 3. **Decidir si integras la rama a la principal.** Instrucciones en `WORKFLOW.md` sección 9.
-
-**Nada quedó bloqueado ni a medias.** La cola de `TASKS.md` está vacía: hay que cargarla de nuevo
-antes de la próxima noche.
 
 ---
 
