@@ -23,73 +23,66 @@ from app.services.recommender import run_config
 from app.routers.equipment import _FALLBACK
 
 # ── Resolución de equipos ─────────────────────────────────────────────────────
+#
+# REGLA 9 de CLAUDE.md: nunca crear un alias, mapeo o sustituto que haga pasar
+# un equipo por otro.
+#
+# Antes existían tres mecanismos de sustitución silenciosa que violaban esa regla:
+#   1. _FULL_NAME_ALIASES mapeaba equipos Minyu y MEKA a equipos Terex/Sandvik/Kleemann.
+#   2. _MODEL_ALIASES mapeaba la seleccionadora 883+ a una 694+.
+#   3. Un fallback "por convención de nombres" elegía el equipo de mayor capacidad
+#      de la marca cuando no encontraba el modelo.
+#
+# Con eso, un caso de validación podía pasar usando equipos que no eran los del
+# reporte AggFlow original. El caso "Mina El Pleito" venía pasando por casualidad:
+# los datos equivocados del C-1540 (300 tph en vez de 220) se parecían al cono
+# Minyu real. Al corregir el catálogo con el manual oficial, la coincidencia se
+# rompió — que es el resultado correcto.
+#
+# Hoy: si un equipo del caso no está en el catálogo con su marca y modelo reales,
+# el caso NO se ejecuta. Se salta con un mensaje que dice qué falta.
 
-# Nombres completos que no se pueden parsear con rsplit(" ", 1) porque la marca
-# tiene varias palabras (ej. "Minyu MS 4230" → marca="Minyu MS", modelo="4230").
-# Mapeados al sustituto equivalente del catálogo.
-_FULL_NAME_ALIASES: dict = {
-    "Minyu MS 4230":             ("jaw",    "Terex Finlay", "J-1175"),
-    "Minyu MSP 300 F":           ("cone",   "Terex Finlay", "C-1540"),
-    "Minyu MOP2460D":            ("cone",   "Sandvik",      "QH332"),
-    "MEKA 90/2000 ROS":          ("screen", "Kleemann",     "MS 703i"),
-    "Powerscreen Premiertrak R400":  ("jaw",    "Powerscreen", "Premiertrak R400"),
+# Marcas de varias palabras que rsplit(" ", 1) no puede separar.
+# Cada entrada apunta al MISMO equipo, no a un sustituto: esto es solo parsing.
+_PARSING_ONLY: dict = {
+    "Powerscreen Premiertrak R400": ("jaw",    "Powerscreen", "Premiertrak R400"),
     "Powerscreen XH320SR":          ("hsi",    "Powerscreen", "XH320SR"),
     "Powerscreen XH320SR Screen":   ("screen", "Powerscreen", "XH320SR Screen"),
 }
 
-# Modelos reales no presentes en catálogo → sustituto de misma capacidad y tipo.
-# La seleccionadora 883+ (3-deck, ~350 tph) se mapea a 694+ que tiene las mismas
-# características relevantes; con la mandíbula J-1175 como cuello de botella
-# el TPH del circuito no cambia.
-_MODEL_ALIASES = {
-    "883+":    ("screen", "Terex Finlay", "694+"),
-    "MS 703i": ("screen", "Kleemann",     "MS 703i"),
-}
+
+def _existe_en_catalogo(etapa: str, marca: str, modelo: str) -> bool:
+    """True si el catálogo contiene exactamente esa marca y modelo en esa etapa."""
+    return any(
+        eq.get("brand") == marca and eq.get("model") == modelo
+        for eq in _FALLBACK.get(etapa, [])
+    )
 
 
-def _resolve_equipo(nombre_completo: str) -> dict:
+def _resolve_equipo(nombre_completo: str) -> Optional[dict]:
     """
-    'Terex Finlay J-1175' → {etapa, marca, modelo} buscando en catálogo.
-    Si no se encuentra exacto, intenta _FULL_NAME_ALIASES, _MODEL_ALIASES;
-    luego infiere por tipo.
+    'Terex Finlay J-1175' → {etapa, marca, modelo} si está en el catálogo.
+
+    Devuelve None si el equipo real no existe en el catálogo. NO sustituye por
+    otro equipo bajo ninguna circunstancia.
     """
-    # Alias de nombre completo (marcas multi-palabra que rsplit no puede parsear)
-    if nombre_completo in _FULL_NAME_ALIASES:
-        etapa, marca_cat, modelo_cat = _FULL_NAME_ALIASES[nombre_completo]
-        return {"etapa": etapa, "marca": marca_cat, "modelo": modelo_cat}
+    if nombre_completo in _PARSING_ONLY:
+        etapa, marca, modelo = _PARSING_ONLY[nombre_completo]
+        if _existe_en_catalogo(etapa, marca, modelo):
+            return {"etapa": etapa, "marca": marca, "modelo": modelo}
+        return None
 
     partes = nombre_completo.rsplit(" ", 1)
     if len(partes) != 2:
-        raise ValueError(f"No se puede parsear equipo: {nombre_completo!r}")
+        return None
     marca, modelo = partes
 
-    # Búsqueda exacta en catálogo
     for etapa, equipos in _FALLBACK.items():
         for eq in equipos:
             if eq.get("model", "") == modelo and eq.get("brand", "") == marca:
                 return {"etapa": etapa, "marca": eq["brand"], "modelo": eq["model"]}
 
-    # Alias documentados para modelos no en catálogo
-    if modelo in _MODEL_ALIASES:
-        etapa, marca_cat, modelo_cat = _MODEL_ALIASES[modelo]
-        return {"etapa": etapa, "marca": marca_cat, "modelo": modelo_cat}
-
-    # Inferencia por convención de nombres
-    if modelo.startswith("J-"):
-        tipo = "jaw"
-    elif modelo.startswith("C-"):
-        tipo = "cone"
-    elif modelo.startswith("I-"):
-        tipo = "hsi"
-    else:
-        tipo = "screen"
-
-    candidatos = [eq for eq in _FALLBACK.get(tipo, []) if eq.get("brand", "") == marca]
-    if candidatos:
-        mejor = max(candidatos, key=lambda e: e.get("cap_max_tph", 0))
-        return {"etapa": tipo, "marca": mejor["brand"], "modelo": mejor["model"]}
-
-    raise ValueError(f"Equipo no resuelto en catálogo ni en aliases: {nombre_completo!r}")
+    return None
 
 
 # ── Carga de casos ────────────────────────────────────────────────────────────
@@ -122,7 +115,19 @@ def test_caso_real(caso, request):
     duracion = caso["plazo_meses"]
     esperado = caso["esperado"]
 
-    equipos = [_resolve_equipo(nombre) for nombre in caso["equipos"]]
+    # Resolver equipos SIN sustituciones. Si falta alguno, el caso no se ejecuta.
+    resueltos = [(n, _resolve_equipo(n)) for n in caso["equipos"]]
+    faltantes = sorted({n for n, r in resueltos if r is None})
+    if faltantes:
+        pytest.skip(
+            f"[{caso['nombre']}] no se ejecuta: estos equipos del reporte original "
+            f"no están en el catálogo con sus especificaciones reales: "
+            f"{', '.join(faltantes)}. "
+            f"Cargar sus specs de fabricante para reactivar el caso. "
+            f"NO sustituir por otros equipos (CLAUDE.md regla 9)."
+        )
+
+    equipos = [r for _, r in resueltos]
     products = [
         {
             "name": caso["producto_objetivo"].get("name", "producto"),
@@ -183,3 +188,29 @@ def test_caso_real(caso, request):
         f"  meses_requeridos= {meses_obt}\n"
         f"  duracion_meses  = {duracion}"
     )
+
+
+# ── Guardia contra la reintroducción de sustituciones ─────────────────────────
+
+def test_no_existen_sustituciones_de_equipos():
+    """
+    CLAUDE.md regla 9: nunca hacer pasar un equipo por otro.
+
+    Este test falla si alguien vuelve a agregar un mapeo que apunte a un equipo
+    distinto del que nombra el caso de validación. Las entradas de _PARSING_ONLY
+    solo existen para separar marcas de varias palabras y deben apuntar al mismo
+    modelo que aparece en su clave.
+    """
+    for nombre_completo, (etapa, marca, modelo) in _PARSING_ONLY.items():
+        assert nombre_completo == f"{marca} {modelo}", (
+            f"Sustitución detectada: el caso nombra '{nombre_completo}' pero el "
+            f"mapeo apunta a '{marca} {modelo}'. Un equipo no puede hacerse pasar "
+            f"por otro. Si el equipo real no está en el catálogo, cargar sus "
+            f"especificaciones de fabricante o dejar que el caso se salte."
+        )
+
+
+def test_resolver_equipo_inexistente_devuelve_none():
+    """Un equipo que no está en el catálogo no debe resolverse a ningún sustituto."""
+    assert _resolve_equipo("MarcaInventada Modelo-999") is None
+    assert _resolve_equipo("Minyu MSP 300 F") is None

@@ -159,6 +159,27 @@ se usan y se citan con página exacta; el documento completo no se redistribuye.
 
 ---
 
+## D-17 · 16-ago-2026 · Un caso de validación con equipos sustituidos no se ejecuta
+Se eliminaron los tres mecanismos de sustitución que existían en `tests/test_casos_reales.py`:
+la tabla de alias de nombre completo (Minyu y MEKA mapeados a Terex, Sandvik y Kleemann), el
+alias de modelo (883+ → 694+) y el fallback que elegía el equipo de mayor capacidad de la marca.
+
+Ahora, si un equipo del caso no está en el catálogo con su marca y modelo reales, el caso se
+**salta** con un mensaje que dice qué falta. No se sustituye por ningún equipo.
+
+**Por qué:** el caso "Mina El Pleito" venía pasando por casualidad. Los datos equivocados del
+C-1540 (300 tph en vez de los 220 del manual) se parecían al cono Minyu real que sustituía. Al
+corregir el catálogo, la coincidencia se rompió. Un caso que valida con equipos falsos no
+valida nada.
+
+**Consecuencia asumida:** de tres casos de validación real, hoy solo se ejecuta uno
+(KR-AF-003 Lincom). Es preferible a tener tres verdes que no significan nada.
+
+**Se agregó un test de guardia** que falla si alguien vuelve a introducir una sustitución.
+*Decidió: Marcelo.*
+
+---
+
 ## D-11 · anterior · No extraer datos desde AggFlow
 AggFlow se usa solo como referencia de validación, nunca como fuente del catálogo.
 **Por qué:** licencia COMECO.

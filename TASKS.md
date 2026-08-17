@@ -296,6 +296,28 @@ Orden sugerido por impacto:
 
 ---
 
+## T-14 · Reactivar los casos de validación que quedaron sin ejecutar · PENDIENTE
+
+**Contexto:** se eliminaron las sustituciones de equipos del archivo de tests (violaban la
+regla 9 de CLAUDE.md). Como consecuencia, dos de los tres casos de validación real ya no se
+ejecutan: sus equipos no están en el catálogo con especificaciones reales.
+
+| Caso | Equipos que faltan | Cómo reactivarlo |
+|---|---|---|
+| ROM Botadero Argentina | Terex Finlay **883+** | Marcelo ya aportó el manual: `manuales/Scalpers/883+ Operations Manual Revision 5.1 (Spanish).pdf`. Cargar sus specs reales. |
+| Mina El Pleito Fase 3 | **Minyu MS 4230**, **Minyu MSP 300 F**, **Minyu MOP2460D**, **MEKA 90/2000 ROS** | No hay manuales. Marcelo debe conseguirlos o el caso queda archivado. |
+
+**Qué hacer:** cargar el 883+ al catálogo desde su manual, siguiendo
+`docs/PROCEDIMIENTO_EXTRACCION_MANUALES.md`. Eso reactiva el primer caso.
+
+**Prohibido:** sustituir el 883+ por una 694+ ni por ninguna otra seleccionadora, y
+**prohibido ajustar los valores esperados** de los casos. Los números del JSON son la fuente
+de verdad; si un caso falla con equipos reales, el error está en el motor.
+
+**Referencia:** CLAUDE.md regla 9 · `tests/test_casos_reales.py`.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada
