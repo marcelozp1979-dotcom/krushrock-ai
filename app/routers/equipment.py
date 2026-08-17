@@ -208,7 +208,16 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
         {"brand": "Astec",         "model": "GT165",            "type": "jaw", "css_min_mm": 65,  "css_max_mm": 175, "cap_min_tph": 200, "cap_max_tph": 380,  "feed_max_mm": 1050, "decks": None, "extra_specs": {"palanca": "doble",  "rpm": 285}, "notes": "Orugas, estándar"},
     ],
     "cone": [
-        {"brand": "Terex Finlay",  "model": "C-1540",      "type": "cone", "css_min_mm": 10, "css_max_mm": 44, "cap_min_tph": 150, "cap_max_tph": 300, "feed_max_mm": 215, "decks": None, "extra_specs": {"rpm": 280}, "notes": "Cono secundario estándar"},
+        {
+            "brand": "Terex Finlay", "model": "C-1540", "type": "cone",
+            "css_min_mm": 19, "css_max_mm": 32,
+            "cap_min_tph": 125, "cap_max_tph": 220,
+            "feed_max_mm": 160, "decks": None,
+            "extra_specs": {"rpm": 280},
+            "notes": "Cono secundario — excéntrico largo, cóncavo Medium Coarse",
+            "curves": {"css": [19, 22, 25, 28, 32], "tph": [135.0, 160.0, 170.0, 180.0, 190.0]},
+            "capacity_source": "Manual Terex Finlay C-1540 Rev 2.7 (16-04-2025), Tabla 3.4 p.3-14 — excéntrico largo, cóncavo Medium Coarse; punto medio de rangos",
+        },
         {"brand": "Terex Finlay",  "model": "C-1545",      "type": "cone", "css_min_mm": 10, "css_max_mm": 48, "cap_min_tph": 160, "cap_max_tph": 320, "feed_max_mm": 240, "decks": None, "extra_specs": {"rpm": 285}, "notes": "Cono alta eficiencia"},
         {"brand": "Terex Finlay",  "model": "C-1550",      "type": "cone", "css_min_mm": 10, "css_max_mm": 50, "cap_min_tph": 180, "cap_max_tph": 370, "feed_max_mm": 280, "decks": None, "extra_specs": {"rpm": 290}, "notes": "Alta capacidad, orugas"},
         {"brand": "Terex Finlay",  "model": "C-1554",      "type": "cone", "css_min_mm": 8,  "css_max_mm": 50, "cap_min_tph": 200, "cap_max_tph": 400, "feed_max_mm": 280, "decks": None, "extra_specs": {"rpm": 295}, "notes": "Recorrido largo, alto rendimiento"},

@@ -188,7 +188,7 @@ modifican ni se extrapolan a otros modelos.
 
 ---
 
-## T-10 · Corregir los datos del C-1540 en el catálogo · PENDIENTE · PRIORIDAD ALTA
+## T-10 · Corregir los datos del C-1540 en el catálogo · HECHA · regresión en test_casos_reales reportada en MEMORY.md
 
 **Problema:** el catálogo declara valores que no coinciden con el manual oficial. El software
 sobreestima la capacidad de la máquina hasta en un 36% y permite cerrar el cono al doble de lo

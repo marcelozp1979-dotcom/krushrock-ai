@@ -119,11 +119,37 @@ Sin ese dato, el criterio C2 de D-05 no se puede verificar. Marcelo debe decidir
 a) se agrega como campo a los conos que tienen manual (C-1540 primero), o
 b) C2 queda excluido del criterio definitivo.
 
-### T-09 · Umbral de mandíbula sola: constante → dato por modelo — EN CURSO
+### T-10 · Corregir datos del C-1540 en el catálogo — HECHA (regresión reportada)
 
-Hipótesis: agregar `min_product_mm` a los 6 modelos con datos (D-14). En recommender.py,
-reemplazar el gate global `if finest_max >= _JAW_ONLY_MIN_MM:` por check per-jaw
-`if finest_max < jaw.min_product_mm: rechazar`. Fallback al global para jaws sin dato.
+Datos corregidos según Manual Terex Finlay C-1540 Rev 2.7, Tabla 3.4 p.3-14
+(excéntrico largo, cóncavo Medium Coarse, punto medio de rangos):
+  css_min_mm: 10→19 · css_max_mm: 44→32
+  cap_min_tph: 150→125 · cap_max_tph: 300→220 · feed_max_mm: 215→160
+Curva de capacidad y capacity_source agregados al catálogo.
+
+**REGRESIÓN EN TEST DE VALIDACIÓN (reportada per T-10):**
+test_caso_real[Mina El Pleito Fase 3 - Hierro (circuito cerrado)] FALLA:
+  tph_util obtenido: 132.4 tph · esperado: 161 tph · diferencia: 28.6 (tolerancia 15%=24.2)
+Causa: cap_max_tph 300→220 reduce el tph_util calculado. El valor esperado 161 tph
+en el test fue calculado con los datos INCORRECTOS del catálogo anterior.
+Marcelo debe decidir si:
+  a) el valor esperado 161 tph del test es correcto (medición de campo real), lo que
+     indicaría que la configuración usada en campo era diferente a lo que modela el sistema
+  b) el valor 161 tph era un artefacto del catálogo incorrecto y el test debe actualizarse
+     a la predicción del sistema con datos correctos (132.4 tph).
+**No se toca el test hasta que Marcelo decida.**
+
+### T-09 · Umbral de mandíbula sola: constante → dato por modelo — HECHA
+
+`min_product_mm` agregado a 6 mandíbulas Terex Finlay (D-14): J-960=50, J-1160=50,
+J-1170=75, J-1175=75, J-1280=75, J-1480=100. Section A de recommender.py reemplaza
+gate global + P100_min por check per-jaw. Sin dato → criterio teórico previo.
+Test previo actualizado (40mm < mínimo 50mm del catálogo). 4 tests nuevos.
+**283 tests verdes. Commit a07b86d.**
+
+Nota: min_product_mm REEMPLAZA el P100_min check para jaws con dato (dato real
+del manual supera al cálculo teórico css_min×2.5). J-960 sí puede proponer
+jaw_only para productos ≥50mm.
 
 
 
