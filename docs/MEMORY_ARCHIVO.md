@@ -7,6 +7,25 @@ Orden: la más reciente primero.
 
 ---
 
+## 29-jul-2026 / 03-ago-2026 — Sesión autónoma (nocturno/2026-07-29)
+
+**Resultado: 5 de 5 tareas hechas. 262 tests verdes.**
+
+| Tarea | Qué se logró | Commit |
+|---|---|---|
+| T-01 | Ranking corregido: circuito de 1 unidad con 3 etapas gana a 2 mandíbulas sueltas. | `431ab7b` |
+| T-02 | Caso imposible: mensaje con tph requerido, máximo alcanzable y opciones (meses/horas/unidades). | `74ae222` |
+| T-03 | Módulo único de reglas de descarte (`selection_rules.py`). Reglas de conos como advertencia. | `134994c` |
+| T-04 | Catálogo eliminado del frontend; única fuente en el backend. Frontend en pantalla de carga hasta recibir API. | `df87b6b` |
+| T-05 | Constantes del recommender documentadas; 5 sin fuente marcadas en B-03. | `adb5e84` |
+
+**Bloqueos abiertos en ese momento:**
+- B-03: 5 constantes sin fuente — HOURS_PER_MONTH, capR, _WI_REF, _JAW_ONLY_MIN_MM, _JAW_SCREEN_MIN_MM
+- B-04: segundo punto de retorno vacío en recommender.py (`if not jaws: return []`)
+- B-05: reglas de conos no conectadas al recommender → resuelto en T-06
+
+---
+
 ## 28-jul-2026 — Sesión con Marcelo (no autónoma)
 
 **Hecho:**
