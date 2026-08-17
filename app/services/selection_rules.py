@@ -143,10 +143,8 @@ def check_cone_chamber_fit(
     """
     Regla 5 (ADVERTENCIA): calce de alimentación con la cámara del cono.
 
-    Criterio acordado D-05:
+    Criterio acordado D-05 (C2 eliminado por D-18):
       C1. 90–100 % del material pasa por la boca (feed_max_mm).
-      C2. 40–60 % del material pasa a mitad de cámara — requiere campo
-          `mid_chamber_mm` por modelo (ningún cono del catálogo lo tiene todavía).
       C3. 0–10 % del material está bajo el CSS — requiere CSS del equipo, que no
           llega a esta función; debe verificarse por separado.
 
@@ -179,10 +177,6 @@ def check_cone_chamber_fit(
         else:
             partes.append("(C1 OK)")
 
-        # C2: se necesita mid_chamber_mm por modelo de cono — dato no disponible
-        partes.append(
-            "C2 no verificable: falta campo 'mid_chamber_mm' en catálogo de conos."
-        )
         # C3: se necesita CSS del equipo — no se pasa a esta función
         partes.append("C3 no verificable: CSS no disponible en esta comprobación.")
 

@@ -59,11 +59,6 @@ def _wi_capacity_factor(rock_type: str) -> float:
 # Sin fuente citable específica — BLOQUEO B-03: Marcelo debe confirmar el umbral.
 _JAW_ONLY_MIN_MM: float = 50.0
 
-# Producto más fino para el que jaw+seleccionadora es viable (circuito abierto).
-# Con CSS ≈ 20-25 mm la mandíbula puede producir material <20 mm en el undersize.
-# Umbral empírico, sin fuente citable específica — BLOQUEO B-03.
-_JAW_SCREEN_MIN_MM: float = 20.0
-
 # Máximo de equipos del catálogo a simular por tipo de circuito.
 # Limita la combinatoria de simulaciones sin sacrificar cobertura relevante:
 # los equipos se ordenan ascending por capacidad y se toma los _PICK más pequeños.
@@ -475,7 +470,7 @@ def recommend(
         })
 
     # B: mandíbula + seleccionadora
-    if finest_max >= _JAW_SCREEN_MIN_MM and screens:
+    if screens:
         for jaw in jaws:
             css_min_jaw = jaw.get("css_min_mm") or 0
             css_jaw_est = max(p80_target, css_min_jaw)
@@ -744,6 +739,15 @@ def recommend(
                         if "ADVERTENCIA" in msg_cam:
                             advertencias.append(msg_cam)
                     cone_idx += 1
+
+            # Advertencia de aprovechamiento bajo en jaw+seleccionadora (T-17)
+            if cand["label"] == "jaw_screen" and pf < 70.0:
+                advertencias.append(
+                    f"ADVERTENCIA aprovechamiento bajo: {pf:.0f}% del material procesado "
+                    f"cae en el rango del producto pedido ({finest_max:.0f} mm). "
+                    "Agregar un cono secundario puede aumentar el rendimiento granulométrico."
+                )
+
             prods_detail, meses_req, _ = _per_product_detail(
                 products, product_yields, n_units, duracion_meses, hours_per_month
             )

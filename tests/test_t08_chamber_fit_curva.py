@@ -44,14 +44,16 @@ def test_c1_advertencia_cuando_70pct_pasa_boca():
     assert "ADVERTENCIA" in msg
 
 
-def test_c2_y_c3_no_verificables_por_falta_de_datos():
+def test_c3_no_verificable_por_falta_de_datos():
     """
-    C2 (mitad de cámara) y C3 (CSS) no se pueden verificar.
-    La función debe decirlo explícitamente en el mensaje.
+    C2 eliminado (D-18). C3 (CSS) no se puede verificar — la función
+    debe decirlo explícitamente en el mensaje.
     """
     _, msg = check_cone_chamber_fit(_CONO, feed_p80_mm=150.0, feed_curve_dict=_CURVA_BIEN_GRADUADA)
-    assert "mid_chamber_mm" in msg or "C2" in msg
     assert "C3" in msg or "CSS" in msg
+    # C2 ya no debe aparecer (eliminado por D-18)
+    assert "mid_chamber_mm" not in msg
+    assert "C2" not in msg
 
 
 def test_retorna_ok_true_siempre_con_curva():
