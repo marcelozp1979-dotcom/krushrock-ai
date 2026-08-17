@@ -180,6 +180,53 @@ valida nada.
 
 ---
 
+## D-18 · 17-ago-2026 · Se elimina el criterio de "mitad de cámara" del cono
+El criterio C2 de D-05 (40–60% del material pasa a mitad de cámara) requiere un dato geométrico
+que ningún manual publica. Se elimina. El calce de cámara se verifica solo con los otros dos:
+90–100% pasante de la boca y 0–10% del CSS.
+**Por qué:** preferible verificar con dos criterios reales que con tres, uno de ellos inventado.
+**Descartado:** estimar la abertura a mitad de cámara como promedio entre boca y CSS.
+*Decidió: Marcelo.*
+
+---
+
+## D-19 · 17-ago-2026 · El límite de mandíbula + seleccionadora es de aprovechamiento, no de tamaño
+`_JAW_SCREEN_MIN_MM = 20` se elimina. No existe un tamaño bajo el cual el tren deje de servir:
+una mandíbula con seleccionadora puede producir cualquier malla, pero al bajar el tamaño casi
+todo queda como sobretamaño y el aprovechamiento se desploma.
+
+En circuito abierto la seleccionadora **no hace el material más fino**: solo separa lo que la
+mandíbula ya produjo. Una mandíbula al CSS mínimo entrega como máximo material bajo 2,5"
+(≈63 mm), así que todo lo que esté entre la malla elegida y ese tope queda como sobretamaño.
+
+**Nuevo criterio:** el motor ya propaga la curva completa, así que calcula el porcentaje real de
+material que cae bajo la malla pedida. Si el aprovechamiento queda **bajo 70%**, no se descarta
+la configuración: se muestra una advertencia con el número real y la comparación contra el mismo
+tren con un cono agregado.
+
+**El 70% es un umbral de advertencia, no de descarte.** La decisión la toma el usuario viendo
+los números.
+*Decidió: Marcelo.*
+
+---
+
+## D-20 · 17-ago-2026 · El software no incorpora costos en la decisión de selección
+Se evaluó comparar alternativas por costo de operación por tonelada útil, usando la potencia de
+motor de los manuales y el módulo `app/routers/opex.py` que ya existe. **Se descartó.**
+
+El software sigue mostrando solo magnitudes físicas: porcentaje de aprovechamiento, producción y
+cantidad de equipos. El cliente hace su propio cálculo económico.
+
+**Por qué:** mantiene el alcance definido en REQUISITOS.md sección 3.2 ("No cotiza"), evita
+sostener una base de precios que envejece, y no compromete a KrushRock con cifras económicas
+en una propuesta de licitación.
+
+**Nota:** `app/routers/opex.py` y su `COST_DB` siguen existiendo como módulo aparte. Queda
+pendiente decidir si se mantienen, se marcan como experimentales o se retiran.
+*Decidió: Marcelo.*
+
+---
+
 ## D-11 · anterior · No extraer datos desde AggFlow
 AggFlow se usa solo como referencia de validación, nunca como fuente del catálogo.
 **Por qué:** licencia COMECO.

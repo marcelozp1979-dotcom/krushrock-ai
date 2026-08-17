@@ -365,6 +365,29 @@ KrushRock. En el ejemplo del paper, `NEA` = 0,59 redujo la capacidad del piso in
 
 ---
 
+## T-17 · Aprovechamiento en vez de umbral de tamaño · PENDIENTE
+
+**Qué hacer:**
+
+1. Eliminar la constante `_JAW_SCREEN_MIN_MM = 20` de `recommender.py`.
+2. En su lugar, calcular desde la curva el porcentaje real de material que cae dentro del
+   producto pedido para esa configuración.
+3. Si el aprovechamiento queda **bajo 70%**, no descartar: devolver una advertencia con el
+   número real y, si existe una configuración con cono que lo mejore, la comparación.
+   Ejemplo del texto esperado: *"Esta configuración aprovecha solo el 12% del material.
+   Agregando un cono terciario subiría al 80%."*
+4. Eliminar también el criterio C2 de `check_cone_chamber_fit` (mitad de cámara).
+
+**Cómo se sabe que quedó bien:** test con un caso de mandíbula + seleccionadora pidiendo
+producto fino, que verifique que la configuración **no** se descarta y que la advertencia trae
+el porcentaje real. Los tests existentes siguen verdes.
+
+**No agregar costos.** El software no cotiza (DECISIONS.md D-20).
+
+**Referencia:** DECISIONS.md D-18 y D-19.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada
