@@ -127,7 +127,7 @@ que la advertencia aparece en el resultado. Los 262 tests existentes siguen verd
 
 ---
 
-## T-07 · Horas de operación como dato de entrada · PENDIENTE
+## T-07 · Horas de operación como dato de entrada · HECHA
 
 **Qué hacer:** `HOURS_PER_MONTH = 500` deja de ser constante. Pasa a ser un campo que el usuario
 puede ingresar en la simulación, con 500 h/mes como valor por defecto. El valor usado debe

@@ -320,6 +320,7 @@ def recommend(
     feed_curve_dict: Optional[Dict] = None,
     horas_dia: Optional[float] = None,
     dias_mes: Optional[float] = None,
+    hours_per_month_input: Optional[float] = None,
     _return_all: bool = False,
 ) -> List[Dict]:
     """
@@ -340,7 +341,12 @@ def recommend(
       product_fit_pct, circ_load_pct, cumple_plazo, inchancables_recomendado,
       products_detail
     """
-    hours_per_month = horas_dia * dias_mes if (horas_dia and dias_mes) else HOURS_PER_MONTH
+    if hours_per_month_input is not None:
+        hours_per_month = float(hours_per_month_input)
+    elif horas_dia and dias_mes:
+        hours_per_month = horas_dia * dias_mes
+    else:
+        hours_per_month = HOURS_PER_MONTH
     total_volumen = sum(float(p.get("volumen_ton") or 0) for p in products)
     tph_required = total_volumen / max(duracion_meses, 1) / hours_per_month
 
@@ -619,6 +625,7 @@ def recommend(
             "inchancables_recomendado": inchancables,
             "products_detail": [],
             "advertencias": [],
+            "hours_per_month_used": round(hours_per_month, 1),
             "tph_requerido": round(tph_required, 1),
             "tph_max_alcanzable": 0.0,
             "meses_extra": None,
@@ -752,6 +759,7 @@ def recommend(
                 "inchancables_recomendado": inchancables,
                 "products_detail": prods_detail,
                 "advertencias": advertencias,
+                "hours_per_month_used": round(hours_per_month, 1),
                 "_cap_sum_tph": sum(
                     node["equipment"].get("cap_max_tph", 0) for node in cand["nodes"]
                 ),
@@ -770,6 +778,7 @@ def recommend(
             "inchancables_recomendado": inchancables,
             "products_detail": [],
             "advertencias": [],
+            "hours_per_month_used": round(hours_per_month, 1),
             "tph_requerido": round(tph_required, 1),
             "tph_max_alcanzable": 0.0,
             "meses_extra": None,
@@ -922,6 +931,7 @@ def run_config(
     horas_dia: Optional[float] = None,
     dias_mes: Optional[float] = None,
     alimentacion_tph: Optional[float] = None,
+    hours_per_month_input: Optional[float] = None,
 ) -> Dict:
     """
     Corre el motor sobre una configuración de planta y devuelve sus métricas.
@@ -931,7 +941,12 @@ def run_config(
       n_equipos_total, costo_arriendo_mes_usd, cumple_plazo, products_detail
     O lanza ValueError/RuntimeError si la config es inválida.
     """
-    hours_per_month = horas_dia * dias_mes if (horas_dia and dias_mes) else HOURS_PER_MONTH
+    if hours_per_month_input is not None:
+        hours_per_month = float(hours_per_month_input)
+    elif horas_dia and dias_mes:
+        hours_per_month = horas_dia * dias_mes
+    else:
+        hours_per_month = HOURS_PER_MONTH
     total_volumen = sum(float(p.get("volumen_ton") or 0) for p in products)
     tph_required = total_volumen / max(duracion_meses, 1) / hours_per_month
     valid_rock = rock_type if rock_type in ROCK_DB else "desconocida"
@@ -1031,4 +1046,5 @@ def run_config(
         "meses_requeridos": meses_req,
         "cumple_plazo": cumple,
         "products_detail": prods_detail,
+        "hours_per_month_used": round(hours_per_month, 1),
     }

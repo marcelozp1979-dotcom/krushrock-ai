@@ -86,12 +86,26 @@ Debería explicar el motivo igual que ahora lo hace el caso de volumen imposible
 
 # 3 · DETALLE DE LA ÚLTIMA SESIÓN
 
-### T-06 · Conectar advertencias de conos al flujo real — EN CURSO
+### T-06 · Conectar advertencias de conos al flujo real — HECHA
 
-Hipótesis: agregar `check_cone_choke_feed` y `check_cone_chamber_fit` al import de
-`recommender.py`, pasar la P80 de alimentación estimada en cada candidato (`cone_feeds_p80`),
-y recolectar advertencias en el bucle de simulación. Campo `"advertencias"` viaja en todos
-los resultados.
+Importadas `check_cone_choke_feed` y `check_cone_chamber_fit`. Campo `cone_feeds_p80` en
+cada candidato (P80 estimada de alimentación al cono). En el bucle de simulación se acumulan
+advertencias y viajan en `"advertencias": [...]` en todos los resultados. 5 tests nuevos.
+**267 tests verdes. Commit f0f4397.**
+
+Nota sobre activación como descarte (T-06 requería anotar):
+El choke feed warning aparece en prácticamente TODOS los circuitos con cono cuando el cuello
+de botella es la mandíbula (cap_per_unit ≈ jaw_cap × 0.80 < 80% cone_cap_max). Activarlo
+como descarte eliminaría casi todos los resultados jaw_cone_screen del catálogo actual —
+solo quedarían casos donde el cono es el cuello de botella (cono más chico que la mandíbula).
+La decisión de activarlo como descarte es de Marcelo.
+
+### T-07 · Horas de operación como dato de entrada — EN CURSO
+
+Hipótesis: agregar parámetro opcional `hours_per_month_input` a `recommend()` y `run_config()`.
+Si se pasa, tiene prioridad sobre `horas_dia × dias_mes` y sobre `HOURS_PER_MONTH`.
+El valor usado viaja en el campo `"hours_per_month_used"` de cada resultado.
+
 
 
 

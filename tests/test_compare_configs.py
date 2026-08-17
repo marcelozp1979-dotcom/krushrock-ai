@@ -42,6 +42,7 @@ def test_run_config_campos_y_tipos():
         "tph_efectivo", "tph_util", "product_fit_pct", "descarte_pct",
         "circ_load_pct", "n_equipos_total", "costo_arriendo_mes_usd",
         "meses_requeridos", "cumple_plazo", "products_detail",
+        "hours_per_month_used",
     }
     assert campos == result.keys(), (
         f"Campos inesperados: {result.keys() - campos} | "
