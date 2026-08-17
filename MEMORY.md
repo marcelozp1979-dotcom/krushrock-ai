@@ -86,6 +86,15 @@ Debería explicar el motivo igual que ahora lo hace el caso de volumen imposible
 
 # 3 · DETALLE DE LA ÚLTIMA SESIÓN
 
+### T-06 · Conectar advertencias de conos al flujo real — EN CURSO
+
+Hipótesis: agregar `check_cone_choke_feed` y `check_cone_chamber_fit` al import de
+`recommender.py`, pasar la P80 de alimentación estimada en cada candidato (`cone_feeds_p80`),
+y recolectar advertencias en el bucle de simulación. Campo `"advertencias"` viaja en todos
+los resultados.
+
+
+
 ### T-01 · Conteo de flota en el ranking
 Se cambió la clave de ordenamiento de `(n_units × nº etapas, capacidad total)` a
 `(n_units, nº etapas, capacidad total)`. Al separar las dos dimensiones, primero se prefieren

@@ -106,7 +106,7 @@ existe. Las que **no** tengan fuente identificable se listan en `MEMORY.md` bajo
 
 ---
 
-## T-06 · Conectar las dos reglas de conos al recommender (cierra T-03) · PENDIENTE
+## T-06 · Conectar las dos reglas de conos al recommender (cierra T-03) · HECHA
 
 **Problema:** `check_cone_choke_feed` y `check_cone_chamber_fit` existen en
 `app/services/selection_rules.py` con sus tests, pero `recommender.py` **no las importa ni las

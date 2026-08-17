@@ -14,6 +14,7 @@ from app.services.simulation_engine import simulate, ROCK_DB
 from app.services.selection_rules import (
     _P100_FACTOR, _MAX_RATIO,
     check_crusher_feed, check_reduction_ratio, check_screen_decks,
+    check_cone_choke_feed, check_cone_chamber_fit,
 )
 from app.routers.equipment import _FALLBACK
 
@@ -509,6 +510,7 @@ def recommend(
                         "circuit": "closed",
                         "n_units": 1,
                         "cap_bottleneck_tph": bn,
+                        "cone_feeds_p80": [jaw_target_p80],
                     })
 
     # D: mandíbula + cono secundario + cono terciario + seleccionadora (circuito cerrado)
@@ -557,6 +559,7 @@ def recommend(
                                 "circuit": "closed",
                                 "n_units": 1,
                                 "cap_bottleneck_tph": bn,
+                                "cone_feeds_p80": [jaw_target_p80, cone_sec_target_p80],
                             })
 
     # E: cono secundario + cono terciario + seleccionadora (sin mandíbula)
@@ -593,6 +596,7 @@ def recommend(
                                 "circuit": "closed",
                                 "n_units": 1,
                                 "cap_bottleneck_tph": bn,
+                                "cone_feeds_p80": [f80_mm, cone_sec_direct_target],
                             })
 
     if not candidates:
@@ -614,6 +618,7 @@ def recommend(
             "horas_adicionales_mes": None,
             "inchancables_recomendado": inchancables,
             "products_detail": [],
+            "advertencias": [],
             "tph_requerido": round(tph_required, 1),
             "tph_max_alcanzable": 0.0,
             "meses_extra": None,
@@ -688,6 +693,20 @@ def recommend(
         # Construir resultados desde cache; escalar n=2..4 solo si ningún n=1 cumplió
         for cand, cap_per_unit, pf, cc, tph_eff_per_unit, product_yields, descarte_pct, sim_node_results in cached:
             n_units = 1
+            advertencias: List[str] = []
+            cone_idx = 0
+            for node in cand["nodes"]:
+                if node.get("type") == "cone":
+                    cone_eq = node["equipment"]
+                    _, msg_choke = check_cone_choke_feed(cone_eq, cap_per_unit)
+                    if "ADVERTENCIA" in msg_choke:
+                        advertencias.append(msg_choke)
+                    cfp80 = cand.get("cone_feeds_p80", [])
+                    if cone_idx < len(cfp80):
+                        _, msg_cam = check_cone_chamber_fit(cone_eq, cfp80[cone_idx])
+                        if "ADVERTENCIA" in msg_cam:
+                            advertencias.append(msg_cam)
+                    cone_idx += 1
             prods_detail, meses_req, _ = _per_product_detail(
                 products, product_yields, n_units, duracion_meses, hours_per_month
             )
@@ -732,6 +751,7 @@ def recommend(
                 "horas_adicionales_mes": horas_adicionales_mes,
                 "inchancables_recomendado": inchancables,
                 "products_detail": prods_detail,
+                "advertencias": advertencias,
                 "_cap_sum_tph": sum(
                     node["equipment"].get("cap_max_tph", 0) for node in cand["nodes"]
                 ),
@@ -749,6 +769,7 @@ def recommend(
             "horas_adicionales_mes": None,
             "inchancables_recomendado": inchancables,
             "products_detail": [],
+            "advertencias": [],
             "tph_requerido": round(tph_required, 1),
             "tph_max_alcanzable": 0.0,
             "meses_extra": None,
