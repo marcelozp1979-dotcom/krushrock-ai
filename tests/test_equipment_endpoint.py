@@ -88,7 +88,11 @@ class TestEquipmentEndpointFallback:
             assert "cssR" not in item, f"HSI no debería tener cssR: {item['model']}"
 
     def test_all_records_have_required_fields(self):
-        """Todos los equipos deben tener brand, model y capR."""
+        """
+        Todos los equipos deben tener brand, model y capR.
+        Para seleccionadoras (screen*), capR puede ser [None, None] porque la
+        capacidad se calcula con el método VSMA (T-15 — B-SL01).
+        """
         resp = client.get("/api/v1/equipment")
         assert resp.status_code == 200
         data = resp.json()
@@ -99,7 +103,8 @@ class TestEquipmentEndpointFallback:
                 assert "model" in item, f"Sin model en {tipo}: {item}"
                 assert "capR" in item, f"Sin capR en {tipo}: {item}"
                 cap = item["capR"]
-                assert cap[0] < cap[1], f"capR min >= max en {tipo}/{item['model']}"
+                if cap[0] is not None and cap[1] is not None:
+                    assert cap[0] < cap[1], f"capR min >= max en {tipo}/{item['model']}"
 
     def test_jaw_count_matches_seed(self):
         """El endpoint debe devolver exactamente 18 mandíbulas (igual que EQ_LOCAL)."""

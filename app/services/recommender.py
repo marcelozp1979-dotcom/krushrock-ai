@@ -17,6 +17,7 @@ from app.services.selection_rules import (
     check_cone_choke_feed, check_cone_chamber_fit,
 )
 from app.routers.equipment import _FALLBACK
+from app.services.screen_capacity import nominal_tph as screen_nominal_tph
 
 # Horas de operación estándar por mes.
 # 6000 h/año ÷ 12 = 500 h/mes. 6000 h/año es el estándar de la industria minera
@@ -133,22 +134,32 @@ def _viable_cones(jaw_output_p80_mm: float) -> List[Dict]:
     )
 
 
-def _viable_screens(n_products: int) -> List[Dict]:
+def _viable_screens(n_products: int, aperture_mm: float = 25.4) -> List[Dict]:
     """
     Seleccionadoras con decks suficientes para el número de fracciones de producto.
     3 productos → deck triple mínimo; caso general → doble deck.
+    Ordenadas por capacidad nominal VSMA ascendente (la más chica primero).
     """
     return sorted(
         [e for e in _FALLBACK["screen"] if check_screen_decks(e, n_products)[0]],
-        key=lambda e: e["cap_max_tph"],
+        key=lambda e: screen_nominal_tph(e, aperture_mm),
     )
 
 
 # ── CAPACIDAD Y PARALELO ──────────────────────────────────────────────────────
 
-def _bottleneck_cap(eq_list: List[Dict]) -> float:
-    """Capacidad mínima (cap_max_tph) del conjunto de equipos — el cuello de botella."""
-    caps = [e["cap_max_tph"] for e in eq_list if "cap_max_tph" in e]
+def _bottleneck_cap(eq_list: List[Dict], aperture_mm: float = 0.0) -> float:
+    """
+    Capacidad mínima del conjunto de equipos (el cuello de botella).
+    Para chancadores: usa cap_max_tph del catálogo.
+    Para seleccionadoras sin cap_max_tph: calcula la capacidad nominal VSMA.
+    """
+    caps = []
+    for e in eq_list:
+        if "cap_max_tph" in e:
+            caps.append(e["cap_max_tph"])
+        elif e.get("type") in ("screen", "screen_1d", "screen_hf") and aperture_mm > 0:
+            caps.append(screen_nominal_tph(e, aperture_mm))
     return min(caps) if caps else 0.0
 
 
@@ -232,7 +243,7 @@ def _make_screen_node(eq: Dict, aperture_mm: float) -> Dict:
         "brand": eq["brand"],
         "model": eq["model"],
         "type": "screen",
-        "cap_max_tph": eq.get("cap_max_tph", 0),
+        "cap_max_tph": screen_nominal_tph(eq, aperture_mm),
         "decks": eq.get("decks") or 2,
         "specs": {},
         "curves": eq.get("curves", {}),
@@ -375,7 +386,7 @@ def recommend(
     jaws = _viable_jaws(feed_max_material_mm)
     # Partícula máxima a la salida de la mandíbula ≈ P80/0.8 (P80 es percentil 80, no máximo)
     cones = _viable_cones(jaw_target_p80 / 0.8)
-    screens = _viable_screens(len(products))
+    screens = _viable_screens(len(products), aperture_mm)
 
     if not jaws:
         return []
@@ -478,7 +489,7 @@ def recommend(
                 continue
 
             for scr in screens:
-                bn = _bottleneck_cap([jaw, scr])
+                bn = _bottleneck_cap([jaw, scr], aperture_mm)
                 candidates.append({
                     "label": "jaw_screen",
                     "nodes": [
@@ -519,7 +530,7 @@ def recommend(
                     continue
 
                 for scr in screens:
-                    bn = _bottleneck_cap([jaw, cone, scr])
+                    bn = _bottleneck_cap([jaw, cone, scr], aperture_mm)
                     candidates.append({
                         "label": "jaw_cone_screen",
                         "nodes": [
@@ -567,7 +578,7 @@ def recommend(
                             continue
 
                         for scr in screens[:_PICK]:
-                            bn = _bottleneck_cap([jaw, cone_sec, cone_ter, scr])
+                            bn = _bottleneck_cap([jaw, cone_sec, cone_ter, scr], aperture_mm)
                             candidates.append({
                                 "label": "jaw_cone_cone_screen",
                                 "nodes": [
@@ -605,7 +616,7 @@ def recommend(
                             continue
 
                         for scr in screens[:_PICK]:
-                            bn = _bottleneck_cap([cone_sec, cone_ter, scr])
+                            bn = _bottleneck_cap([cone_sec, cone_ter, scr], aperture_mm)
                             candidates.append({
                                 "label": "cone_cone_screen",
                                 "nodes": [
@@ -980,11 +991,12 @@ def run_config(
     nodes = build_nodes_from_config(equipos, f80_mm, products)
 
     # Capacidad real por unidad = cuello de botella del catálogo × capR
+    aperture_mm_rc = finest_max  # apertura de seleccionadora = tamaño del producto más fino
     equipos_catalog = [
         _find_equipment(e.get("etapa", ""), e.get("marca", ""), e.get("modelo", ""))
         for e in equipos
     ]
-    bottleneck = _bottleneck_cap([eq for eq in equipos_catalog if eq])
+    bottleneck = _bottleneck_cap([eq for eq in equipos_catalog if eq], aperture_mm_rc)
     wi_factor = _wi_capacity_factor(valid_rock)
     cap_per_unit = (bottleneck * capR * wi_factor) if bottleneck > 0 else tph_required
 
