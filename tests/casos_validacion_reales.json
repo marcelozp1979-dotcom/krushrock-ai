@@ -9,6 +9,7 @@
       "f80_mm": 233.22,
       "equipos": ["Terex Finlay J-1175", "Terex Finlay 883+"],
       "css_mm": 75,
+      "alimentacion_tph": 250,
       "producto_objetivo": {"min_mm": 0, "max_mm": 100, "volumen_ton": 110000},
       "plazo_meses": 3,
       "horas_dia": 6,
