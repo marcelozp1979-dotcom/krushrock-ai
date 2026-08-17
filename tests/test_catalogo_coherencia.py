@@ -40,10 +40,7 @@ _FEED_REF = Stream(100.0, {1: 5, 10: 20, 50: 45, 100: 62, 200: 85, 400: 100})
 # declarado de capacidad. Sirven de "trinquete": el test falla si aparece una
 # discrepancia NUEVA, no por las ya documentadas.
 _DISCREPANCIAS_CONOCIDAS = {
-    "jaw/Terex Finlay J-1175":
-        "La curva del manual baja a 122.5 tph en el CSS mínimo, por debajo del "
-        "cap_min_tph declarado (200). Revisar contra el manual: probablemente el "
-        "rango comercial declarado no cubre el CSS más cerrado.",
+    # J-1175 corregido en T-13: cap_min_tph 200 → 122 (D-21/B-02), ya no es discrepancia
 }
 
 # Nº de equipos con fuente de capacidad documentada al cerrar la Etapa 1.

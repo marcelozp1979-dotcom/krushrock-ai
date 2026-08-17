@@ -96,7 +96,7 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
         {
             "brand": "Terex Finlay", "model": "J-1175", "type": "jaw",
             "css_min_mm": 50, "css_max_mm": 175,
-            "cap_min_tph": 200, "cap_max_tph": 452,
+            "cap_min_tph": 122, "cap_max_tph": 452,
             "feed_max_mm": 790, "decks": None,
             "min_product_mm": 75,  # D-14: confirmado por Marcelo
             "extra_specs": {"palanca": "doble", "rpm": 290},
@@ -265,7 +265,7 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
         {"brand": "Astec",         "model": "GT550",       "type": "cone", "css_min_mm": 10, "css_max_mm": 50, "cap_min_tph": 180, "cap_max_tph": 380, "feed_max_mm": 230, "decks": None, "extra_specs": {"rpm": 278}, "notes": "Orugas, alta capacidad"},
     ],
     "hsi": [
-        {"brand": "Terex Finlay",  "model": "I-110RS",       "type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 130, "cap_max_tph": 250, "feed_max_mm": 750,  "decks": None, "extra_specs": {}, "notes": "Primario/secundario, orugas"},
+        {"brand": "Terex Finlay",  "model": "I-110RS",       "type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 130, "cap_max_tph": 250, "feed_max_mm": 500,  "decks": None, "extra_specs": {}, "notes": "Primario/secundario, orugas — feed_max corregido per D-21 (manual IT-7: 304-500mm)"},
         {"brand": "Terex Finlay",  "model": "I-120RS",       "type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 160, "cap_max_tph": 300, "feed_max_mm": 850,  "decks": None, "extra_specs": {}, "notes": "Con seleccionadora integrada"},
         {"brand": "Terex Finlay",  "model": "I-140RS",       "type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 250, "cap_max_tph": 400, "feed_max_mm": 900,  "decks": None, "extra_specs": {}, "notes": "Alta capacidad, orugas"},
         {"brand": "Terex Finlay",  "model": "I-1312RS",      "type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 300, "cap_max_tph": 500, "feed_max_mm": 1100, "decks": None, "extra_specs": {}, "notes": "Primario, roca blanda-media"},
@@ -306,7 +306,7 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
         {"brand": "Astec",         "model": "M6x20-3D",        "type": "screen", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 3, "area_m2": None, "area_m2_per_deck": None,  "extra_specs": {}, "notes": "3 deck"},
     ],
     "screen_1d": [
-        {"brand": "Terex Finlay",  "model": "Rinser 873", "type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 1, "area_m2_per_deck": None, "extra_specs": {}, "notes": "1 deck lavado/descascarado"},
+        {"brand": "Terex Finlay",  "model": "873+", "type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": 500, "decks": 1, "area_m2_per_deck": 5.56, "extra_specs": {}, "notes": "1 deck lavado/descascarado — manual 873+ Rev 4.1: cap 450 tph, feed_max 500mm, crib 3.66×1.52m (D-21/B-SC01)"},
         {"brand": "Powerscreen",   "model": "Warrior 600","type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 1, "area_m2_per_deck": None, "extra_specs": {}, "notes": "1 deck, compacta"},
         {"brand": "Kleemann",      "model": "MS 402i",    "type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 1, "area_m2_per_deck": None, "extra_specs": {}, "notes": "1 deck eléctrico"},
         {"brand": "Metso Outotec", "model": "ST1.5",      "type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 1, "area_m2_per_deck": None, "extra_specs": {}, "notes": "1 deck"},
