@@ -227,6 +227,31 @@ pendiente decidir si se mantienen, se marcan como experimentales o se retiran.
 
 ---
 
+## D-21 · 17-ago-2026 · Cierre de bloqueos pendientes del catálogo
+
+Estos cuatro se preguntaban en cada sesión. Quedan resueltos; no volver a plantearlos.
+
+**B-02 · J-1175.** Manda el manual: la capacidad mínima real es **113–132 tph** en CSS 50, no
+los 200 tph del catálogo. Corregir el catálogo.
+
+**B-07 · Caso "Mina El Pleito".** Los 161 tph son un dato real de reporte AggFlow con equipos
+Minyu y MEKA. **No se toca.** El caso aparece como SKIPPED a propósito, porque esos equipos no
+están en el catálogo y ya no se permite sustituirlos (D-17). No es una regresión: es el
+comportamiento correcto. Se reactiva cuando existan las specs reales de esos equipos.
+
+**B-SC01 · "Rinser 873" vs "873+".** Son la **misma máquina**, con distinto nombre entre la hoja
+de ventas y el manual de operación. Renombrar la entrada del catálogo a `873+` y cargar los datos
+del manual, incluida la capacidad real de 450 tph.
+
+**B-IM01 · I-110RS.** Manda el manual: alimentación máxima **304–500 mm**, no los 750 mm del
+catálogo.
+
+**Regla general que resuelve casos futuros:** ante discrepancia entre catálogo y manual, **manda
+el manual**. No es una decisión que haya que consultar cada vez.
+*Decidió: Marcelo.*
+
+---
+
 ## D-11 · anterior · No extraer datos desde AggFlow
 AggFlow se usa solo como referencia de validación, nunca como fuente del catálogo.
 **Por qué:** licencia COMECO.
