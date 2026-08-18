@@ -388,6 +388,47 @@ el porcentaje real. Los tests existentes siguen verdes.
 
 ---
 
+## T-18 · Optimización conjunta de CSS (Etapa 3 del Plan Maestro) · PENDIENTE · PRIORIDAD ALTA
+
+Es la función central que pidió Marcelo. Hasta ahora el CSS se deriva del producto pedido y
+queda fijo; nunca se busca la mejor combinación.
+
+**Principio (DECISIONS.md D-06):** el óptimo **no** es cerrar cada chancador al mínimo. Cerrar
+la mandíbula fuerza su razón de reducción al máximo, hunde su producción y crea el cuello de
+botella, aunque el cono siguiente quede holgado. Hay que evaluar el **tren completo**.
+
+**Qué hacer:**
+
+1. Crear `app/services/css_optimizer.py`.
+2. Para un tren de equipos ya elegido, recorrer una grilla de valores de CSS por etapa, dentro
+   del rango real de cada modelo (`css_min_mm` a `css_max_mm` del catálogo). Sugerencia de paso:
+   2 mm, o 10 puntos por etapa, lo que dé menos combinaciones.
+3. Para cada combinación, simular el tren completo con el motor de curvas existente y medir los
+   **tph de los productos pedidos** (no el tph total: el material fuera de rango no cuenta).
+4. Devolver la combinación que maximiza esos tph, más las siguientes mejores como alternativas.
+5. Descartar combinaciones que violen las reglas de `selection_rules.py` (boca de entrada,
+   razón de reducción). Las advertencias de cono no descartan, se acumulan.
+
+**Restricciones:**
+
+- Usar el motor de curvas existente. **No** tocar `granulometry.py` ni `equipment_models.py`.
+- Si el número de combinaciones se dispara, reducir la grilla, no simplificar el modelo.
+- El resultado debe traer el CSS elegido por etapa y el porqué en lenguaje simple, para poder
+  mostrarlo al usuario y ponerlo en el PDF.
+
+**Cómo se sabe que quedó bien:**
+
+1. Test que arme un tren mandíbula + cono + seleccionadora y verifique que la combinación
+   elegida produce **más tph que cerrar ambos chancadores al mínimo**. Ese es el caso que
+   justifica la tarea entera.
+2. Test que verifique que el CSS elegido está dentro del rango del catálogo en cada etapa.
+3. Los casos de validación real siguen dentro de ±15%. **No ajustar ningún caso.**
+4. Los 306 tests existentes siguen verdes.
+
+**Referencia:** DECISIONS.md D-06 · REQUISITOS.md RF-6 · PLAN_MAESTRO.md Etapa 3.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada
