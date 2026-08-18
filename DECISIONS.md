@@ -252,6 +252,36 @@ el manual**. No es una decisión que haya que consultar cada vez.
 
 ---
 
+## D-22 · 17-ago-2026 · Bloqueos que ya estaban decididos y se siguen preguntando
+
+Estos aparecen en `MEMORY.md` sesión tras sesión aunque ya tienen respuesta. **No volver a
+plantearlos.** Si un agente los encuentra abiertos en `MEMORY.md`, debe cerrarlos citando esta
+entrada.
+
+**B-03 · las cuatro constantes:**
+
+- `HOURS_PER_MONTH` → resuelto en **D-12**: deja de ser constante, es dato de entrada del usuario
+  con 500 h/mes por defecto.
+- `capR = 0,80` → resuelto en **D-13**: debe reemplazarse por producción calculada. Es un cambio
+  de motor con etapa propia, no un ajuste de valor. Mientras tanto se mantiene en 0,80 y se
+  declara como supuesto.
+- `_JAW_SCREEN_MIN_MM` → resuelto en **D-19**: se elimina. Se reemplaza por criterio de
+  aprovechamiento con advertencia bajo 70%.
+- `_WI_REF = 13,0` → **se mantiene**. Es solo el valor de referencia para el factor de capacidad
+  por dureza; el usuario elige el tipo de roca en cada simulación, así que el impacto es marginal.
+  Queda documentado como supuesto, no como bloqueo.
+
+**B-07 · caso "Mina El Pleito"** → resuelto en **D-21**. Los 161 tph son dato real de AggFlow con
+equipos Minyu y MEKA. El caso está SKIPPED a propósito. No es una regresión.
+
+**B-08 · curvas de producto del C-1540** → el motivo del bloqueo es incorrecto. Las curvas **sí
+se pueden leer**: están renderizadas y transcritas en `docs/DATOS_MANUAL_C-1540.md` sección 3,
+con precisión declarada de ±5 puntos. Lo que falta no es capacidad de lectura sino una
+digitalización punto por punto. Si el entorno de Claude Code no tiene `pdftoppm`, la tarea se
+deriva a Claude en Cowork, que sí puede renderizar el PDF.
+
+---
+
 ## D-11 · anterior · No extraer datos desde AggFlow
 AggFlow se usa solo como referencia de validación, nunca como fuente del catálogo.
 **Por qué:** licencia COMECO.
