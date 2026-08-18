@@ -429,6 +429,33 @@ botella, aunque el cono siguiente quede holgado. Hay que evaluar el **tren compl
 
 ---
 
+## T-19 · Cargar la curva de producto real del C-1540 · PENDIENTE
+
+**Desbloquea T-11.** Las curvas ya están digitalizadas en `docs/DATOS_MANUAL_C-1540.md`,
+sección "Curvas digitalizadas", con precisión declarada de ±3 puntos.
+
+**Qué hacer:**
+
+1. Convertir la tabla a curva normalizada `product_curve` del C-1540, en el formato del catálogo
+   `{d/CSS: % pasante}`, usando la columna de **CSS 19 mm** como referencia — es la abertura
+   donde más se opera y donde el modelo del motor es más exacto.
+2. Cargarla en la entrada `C-1540` de `app/routers/equipment.py` con su fuente:
+   `"product_curve_source": "Manual Terex Finlay C-1540 Rev 2.7, Tabla 3.5 p.3-14, digitalizado ±3 puntos"`.
+3. **No extrapolar la curva a otros modelos de cono.** Solo el C-1540.
+
+**Cuidado:** hoy todos los conos usan `CONE_PRODUCT_NORMALIZED`, calibrada desde un reporte
+AggFlow. La curva del manual es **más gruesa en los finos**. Cambiar el C-1540 puede mover
+resultados de casos de validación. Anotar cuáles cambian y **no ajustar ningún caso**.
+
+**Hallazgo a documentar en `PENDIENTES_PRECISION.md`:** la razón P80/CSS del C-1540 crece de
+~0,98 en CSS 19 a ~1,46 en CSS 32. La suposición de una curva normalizada única por tipo de
+equipo pierde precisión al abrir el CSS. No es un error del motor, es una limitación conocida
+del enfoque.
+
+**Referencia:** `docs/DATOS_MANUAL_C-1540.md`.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada

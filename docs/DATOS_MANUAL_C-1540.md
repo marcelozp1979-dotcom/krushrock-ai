@@ -110,6 +110,37 @@ digitalización cuidadosa.**
 | 28 mm | ~34,3 mm | 1,22 | ~47 mm | 1,68 |
 | 32 mm | ~46,7 mm | 1,46 | ~57 mm | 1,80 |
 
+### Curvas digitalizadas (Tabla 3.5 — excéntrico largo)
+
+Digitalización del 17-ago-2026: el gráfico se renderizó a 600 dpi, se detectaron por píxel las
+líneas de grilla y las curvas, y se verificó visualmente cada lectura.
+**Precisión estimada ±3 puntos porcentuales.**
+
+Porcentaje pasante acumulado, por tamaño de malla y por CSS:
+
+| Malla (mm) | CSS 19 | CSS 22 | CSS 25 | CSS 28 | CSS 32 | Alimentación típica |
+|---|---|---|---|---|---|---|
+| 1,70 | 17 | 15 | 11 | 9 | 7 | — |
+| 2,36 | 21 | 18 | 14 | 12 | 9 | — |
+| 3,35 | 26 | 23 | 18 | 15 | 12 | — |
+| 5,0 | 34 | 29 | 25 | 20 | 15 | — |
+| 6,3 | 39 | 35 | 30 | 24 | 18 | — |
+| 10 | 54 | 48 | 41 | 33 | 25 | 5 |
+| 14 | 68 | 61 | 53 | 42 | 32 | 8 |
+| 20 | 86 | 78 | 68 | 57 | 43 | 13 |
+| 28 | 100 | 94 | 86 | 77 | 61 | 20 |
+| 40 | — | 100 | 100 | 94 | 85 | 32 |
+| 50 | — | — | — | 100 | 95 | 45 |
+| 63 | — | — | — | — | 100 | 63 |
+| 75 | — | — | — | — | — | 78 |
+| 150 | — | — | — | — | — | 100 |
+
+Las celdas con "—" son tamaños donde la curva ya alcanzó el 100% o donde aún no existe
+(la curva de alimentación parte en ~6 mm).
+
+**Verificación de coherencia:** las cinco curvas son monótonas crecientes, y para cada tamaño
+el porcentaje baja al abrir el CSS. Ambas condiciones se cumplen sin excepción.
+
 ### Dos hallazgos que importan
 
 **a) La relación P80/CSS del motor se confirma en el CSS cerrado.** El diagnóstico original
