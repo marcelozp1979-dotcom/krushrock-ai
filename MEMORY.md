@@ -13,37 +13,38 @@ Estructura fija de este archivo. El agente **no la cambia**:
 
 # 1 · PARTE DE LA ÚLTIMA SESIÓN
 
-**Fecha:** 17-ago-2026 · **Rama:** `trabajo/2026-08-18` · **Modo:** autónomo
+**Fecha:** 17-ago-2026 · **Rama:** `trabajo/2026-08-20` · **Modo:** autónomo
 
-**Resultado: T-15 completada. 299 tests verdes, 2 omitidos. Commit `d41b278`.**
+**Resultado: T-18 y T-16 completadas. T-11 sigue BLOQUEADA (confirmado). 322 tests verdes, 1 omitido. Commits `fbc084b` (T-18) y `1a99482` (T-16).**
 
 | Qué cambió | Detalle |
 |---|---|
-| Nuevo: `app/services/screen_capacity.py` | Fórmula VSMA (factores B a F). Calibrada sobre anclas del paper T-JCI-201. |
-| Nuevo: `tests/test_t15_screen_capacity.py` | 14 tests — 8 anclas de texto + 2 ejemplo del paper (13.16 y 3.97 tph/ft², error < 1%) |
-| `app/routers/equipment.py` | Eliminados cap_min/max_tph de los 26 equipos screen/screen_1d/screen_hf. Agregado `area_m2_per_deck`. Área 683 corregida: 10.1 → 10.95 m². |
-| `app/services/recommender.py` | `_bottleneck_cap` y `_make_screen_node` usan `nominal_tph()` VSMA en vez del 80% fijo. |
-| `tests/test_equipment_endpoint.py` | `capR` puede ser `[None, None]` para seleccionadoras (VSMA). |
+| Nuevo: `app/services/css_optimizer.py` | Función `optimize_css()`: busca por grilla el CSS por equipo que maximiza tph de producto. Valida D-06: abrir el CSS de la mandíbula aumenta caudal y supera el CSS mínimo. |
+| Nuevo: `tests/test_t18_css_optimizer.py` | 7 tests: mejora vs mínimo, CSS dentro de rango, campos obligatorios, grilla, interpolación, error sin equipos, límite de alimentación. |
+| Modificado: `app/services/screen_capacity.py` | Agrega `factor_NEA` (material tamaño cercano), `factor_BED` (espesor de cama, stub), `nominal_tph_with_feed` (capacidad con feed real). |
+| Nuevo: `tests/test_t16_nea_bed.py` | 9 tests: NEA=1 sin near-size, monotónica, rango válido, consistente con paper, BED=1 sin datos, BED penaliza cama alta, capacidad reduce con near-size. |
+| T-11: BLOQUEADA | Curvas de producto del C-1540 son gráficos en el PDF. pypdf no extrae valores; pdftoppm no disponible en el entorno. Los datos de capacidad (TPH vs CSS) ya estaban en el catálogo de sesiones anteriores. |
 
 **Lo que necesito de ti, en orden:**
 
-1. **Resolver B-07 (regresión test Hierro).** El test `test_caso_real[Mina El Pleito Fase 3 - Hierro]`
-   sigue en estado SKIPPED. ¿El 161 tph era de campo real o fue calculado con el catálogo antiguo?
+1. **Resolver B-08 (curvas C-1540).** Ver las curvas granulométricas (Tablas 3.5, 3.8, 3.11, 3.14) en el manual C-1540 y pasarme los puntos aproximados (% pasante por tamaño de malla por CSS). Sin eso el C-1540 usa la curva genérica de cono.
 
-2. **Resolver B-08 (curvas C-1540).** Leer los gráficos del manual (Tabla 3.5) y pasarme los números,
-   o autorizar las lecturas aproximadas de `docs/DATOS_MANUAL_C-1540.md`.
+2. **Resolver B-BED01 (datos de pantalla para factor BED).** El factor BED de T-16 necesita: ancho del equipo (m), rpm, stroke (mm) e inclinación de cada seleccionadora del catálogo. Sin esos datos, BED=1.0 (sin penalización). ¿Los tienen en algún manual?
 
-3. **Resolver B-SC01 (873+ / "Rinser 873").** El catálogo tenía cap_max=200 tph (eliminado en T-15);
-   el manual dice 450 tph. ¿Actualizo el nombre y datos con el manual 873+?
+3. **Resolver B-07 (test Hierro SKIPPED).** ¿El 161 tph era de campo real o calculado con catálogo antiguo?
 
-4. **Resolver B-IM01 (I-110RS feed_max).** Catálogo: 750 mm. Manual: 304–500 mm. ¿Cuál es el valor correcto?
-
-5. **Integrar las ramas a main.** Ramas: `trabajo/2026-08-17` (T-13) y `trabajo/2026-08-18` (T-15).
-   Ver `WORKFLOW.md` sección 9.
+4. **Integrar ramas a main.** Ramas acumuladas: `trabajo/2026-08-17`, `trabajo/2026-08-18`, `trabajo/2026-08-20`. Ver `WORKFLOW.md` sección 9.
 
 ---
 
 # 2 · BLOQUEOS ABIERTOS
+
+### B-BED01 · factor_BED necesita datos de pantalla
+
+`factor_BED` en T-16 devuelve 1.0 (sin penalización) hasta tener: ancho (m), rpm,
+stroke (mm) e inclinación de cada seleccionadora del catálogo. Sin esos datos el factor
+no puede calcularse. Los manuales Finlay no publican estos valores de forma sistemática.
+Requiere búsqueda en fichas técnicas o AggFlow para las pantallas del catálogo.
 
 ### B-02 · Inconsistencia del J-1175
 El catálogo declara capacidad mínima de 200 tph, pero la curva del manual baja a 122,5 tph en el
@@ -157,69 +158,45 @@ en la simulación o es solo logística. Requiere decisión de Marcelo.
 
 # 3 · DETALLE DE LA ÚLTIMA SESIÓN
 
-### T-15 · Capacidad de seleccionadoras (VSMA Etapa 1) — COMPLETA · Commit d41b278
+### T-18 · Optimizador de CSS — COMPLETA · Commits `fbc084b`
 
-**Verificación del paper:** el ejemplo "Comparison of screen sizing" (T-JCI-201, pp. 38-40)
-reproduce exactamente dentro de ±1 %:
-- Piso 1: malla 1" (25.4 mm), 75 % área abierta, 15 % oversize, 69 % halfsize, 95 % eff → **13.16 tph/ft²** (calculado 13.17)
-- Piso 2: malla ½" (12.7 mm), 65 % área abierta, 18.8 % oversize, 35.3 % halfsize, 95 % eff → **3.97 tph/ft²** (calculado 3.95)
+**Implementación:** `app/services/css_optimizer.py`, función principal `optimize_css()`.
 
-**Factores calibrados:**
-- B: fórmula exponencial B_MAX×(1−e^(−k×mm)), calibrada en 2 anclas: 12.7 mm→3.80, 25.4 mm→5.50
-- D: diccionario {1:1.00, 2:0.90, 3:0.80, 4:0.70}
-- V: (25/pct_oversize)^0.437
-- H: (pct_halfsize/40)^0.804
-- O: (pct_open/50)^0.65 (error 1.3 % en ancla 65 %, no impacta en A)
-- F: piecewise — (90/eff)^0.948 para eff ≥ 90 %; (90/eff)^0.726 para eff < 90 %
+**Algoritmo:**
+1. Genera grilla de CSS por equipo (`_grid_css`: paso mínimo 2 mm, máx 10 puntos)
+2. Para cada combinación (itertools.product): calcula caudal al cuello de botella (`min(cap_at_css para cada chancador, cap_pantalla) × capR × wi_factor`)
+3. Limita por feed disponible y `alimentacion_tph` externo
+4. Crea `Stream(tph_eff, feed_curve)` y simula: `crusher()` × N + `screen()` si hay pantalla
+5. Verifica razón de reducción antes de cada chancador (descarta si viola)
+6. Mide `_product_tph(output, products)` sumando fracciones dentro de rangos pedidos
+7. Retorna mejor combo + hasta 3 alternativas + razón en lenguaje simple + mejora vs CSS mínimo
 
-**Catálogo seleccionadoras (area_m2_per_deck):**
-- 683: 5.475 m² (manual 3.65×1.50; total 10.95 — catálogo tenía 10.1, corregido)
-- 684 2-deck: 7.31 m² (manual 4.30×1.70)
-- 684 3-deck: 7.31 m² (manual 4.30×1.70)
-- 694+: 9.296 m² (manual 6.10×1.524)
-- 696 3-deck: 10.37 m² (manual 6.10×1.70)
-- Otras 11 marcas: area_m2_per_deck = area_m2 / decks (sin manual verificado)
-- screen_1d y screen_hf: area_m2_per_deck = None (sin datos de área en el catálogo)
+**Validación D-06:** con JAW-Test (css_min=50, cap=120 tph) y CONE-Test (css_min=20, cap=250 tph):
+- Al mínimo (jaw=50, cone=20): bottleneck=120 × 0.8 = 96 tph → product ≈ 82 tph
+- Al óptimo (jaw abierta): bottleneck sube → product > 200 tph
+- `mejora_vs_css_minimo_pct > 0` verificado ✓
 
-**Impacto en circuitos:** los circuitos con seleccionadora ahora tienen capacidad calculada
-por VSMA en vez del 80 % fijo. La capacidad efectiva de una 683 a malla 1" es ~270 tph
-(58.9 ft² × 5.50 × 0.90 [piso 2]). El anterior cap_max era 250 tph. Cambio pequeño en
-valores absolutos, pero ahora depende de la apertura de malla.
+**Tests:** 7 tests (mejora vs mínimo, rango, campos, grilla, interpolación, error sin equipos, límite alim).
 
-### T-13 · Extracción de datos de manuales — (sesión 17-ago-2026, rama trabajo/2026-08-17)
+### T-16 · Factores NEA y BED (VSMA Etapa 2) — COMPLETA · Commit `1a99482`
 
-**Herramienta usada:** pypdf (único método que funciona en este entorno Windows; pdftotext/pdftoppm causan segfault).
-**Técnica:** script por lote de 2–8 páginas para evitar timeout (cada página tarda 1–2 segundos).
-**Páginas objetivo:** índice de la sección 3 "Datos técnicos" para encontrar los números, luego páginas específicas.
+**Nuevas funciones en `app/services/screen_capacity.py`:**
 
-#### Seleccionadoras (5 manuales, completo)
-- 595 Rev 1.7: rejilla scalper 2 pisos, 21,500 kg, motor 53–56 kW. No en catálogo.
-- 683 Rev 15: área 10.95 m² (catálogo 10.1 m²), motor 97 kW Tier3 / 82 kW Tier4, peso 24.8 t.
-- 684 Rev (varios): área 14.62 m² (2p) / 21.93 m² (3p), motor 83/82 kW, peso 28.75–30.5 t.
-- 694+ Rev (varios): área 27.87 m², motor 90/93 kW, peso 35.9–42.75 t.
-- 696 Rev (varios): área 31.1 m² ✓, motor 90/93 kW, peso 36.8 t, feed_max=100 mm.
-- Hallazgo clave: ningún manual de seleccionadora publica tph.
+- `factor_NEA(pct_near_aperture)`: penalización por material ±25% de la abertura. Tabla piecewise lineal (0%→1.00, 20%→0.83, 40%→0.65, 60%→0.50, 80%→0.38, 100%→0.28). Consistente con example del paper: NEA≈0.59 en 40–50% near-size.
 
-#### Mandíbulas (5 manuales disponibles, J-1280 sin manual)
-- J-960 Rev 5.2: peso 28,000 kg, mandíbula 900×600 mm, motor CAT C4.4/JD 4045. Tabla de tph no encontrada en esta revisión.
-- J-1160 Rev 4.8: css_min=40 ✓, css_max=145 ✓, feed_max=600 ✓, peso=32 t. Sin tabla de tph.
-- J-1170 Rev 1.0: tabla completa de tph en p.3-14 (PDF p.62). 6 puntos CSS 50–125 mm, todos coinciden con catálogo ✓.
-- J-1175 Rev 8.8: 11 puntos CSS confirmados ✓. feed_max probable en imagen.
-- J-1480 Rev 291116-10: mandíbula 1397×762 mm (54"×30"), CSS 100–200 mm ✓, peso 73 t. Sin tabla de tph.
+- `factor_BED(dm_inches, aperture_mm)`: espesor de cama. Implementado pero devuelve 1.0 cuando no hay datos (dm_inches=0). Fórmula: sin penalización hasta ratio dm/aperture=4, cae linealmente a 0.5 en ratio=8. **Pendiente datos de pantalla (B-BED01).**
 
-#### Impactores (2 de 5 leídos)
-- IC-100 Rev 1.0: apertura 860×610 mm, rotor 860 mm, rampas A 20–55 mm / B 40–170 mm, motor JD 194 kW / Volvo 210–235 kW, peso 23,700 kg. No en catálogo.
-- I-110RS Rev 020915-06: apertura 990×1020 mm, rotor 1000 mm, max feed 304–500 mm, motor CAT C9 223 kW, peso 34 t. feed_max catálogo (750 mm) no coincide con manual.
-- I-120, I-130RS, I-140: disponibles, no leídos.
+- `nominal_tph_with_feed(screen, aperture_mm, feed_stream)`: llama `nominal_tph()` y multiplica por `factor_NEA` calculado desde la curva real del feed. Usar cuando se dispone de la corriente de alimentación.
 
-#### Scalpers (3 de 4 leídos)
-- 863+ Rev 2.1: 18,000 kg, criba 1220×2770 mm (3.38 m²), motor 55 kW Tier4. No en catálogo.
-- 873+ Rev 4.1: 26,300 kg, criba 3.66×1.52 m, motor 83/82 kW CAT, feed_max 500 mm, cap_max 450 tph. Catálogo "Rinser 873" dice 200 tph — gran discrepancia.
-- 883+ Rev 5.1: 31,000–32,500 kg, criba 4.8×1.53×2 pisos (14.4 m²), motor 83/82 kW CAT. Catálogo "883 HF" cap 80–200 tph sin fuente.
-- 893+: disponible, no leído.
+**Tests:** 9 tests (NEA=1 sin material, monotónica, rango, consistente con paper, BED sin datos, BED cama baja, BED cama alta, tph sin near-size ≈ base, tph con near-size < sin near-size).
 
-#### Conveyor (1 de 1 leído)
-- TC-80 Rev 3.6: cinta 1050 mm, longitud 23.5 m, cap hasta 600 t/h, peso 16,750 kg, motor Deutz 36.4/45 kW. No en catálogo; no existe tipo "conveyor".
+### T-11 · Curvas de producto C-1540 — BLOQUEADA (B-08 confirmado)
+
+**Intento 1 (sesión anterior):** pypdf extrae solo texto, no valores de gráficos.
+**Intento 2 (esta sesión):** `pdftoppm` (poppler) no disponible en el entorno Windows → Read tool falla con `pdftoppm failed`.
+**Texto extraíble de páginas 76-79:** solo leyendas de gráficos ("Screen Mesh Size — Inches", "Percentage Passing", nombres de curvas por CSS). Los valores reales de % pasante no están en el texto del PDF.
+**Dato recuperado:** la Tabla 3.4 (cap TPH vs CSS, Long Throw Eccentric) SÍ estaba en texto y ya fue cargada al catálogo en T-10.
+**Conclusión:** para digitalizar las curvas de producto hay que abrir el manual manualmente, leer los gráficos, y pasar los puntos. La tarea queda bloqueada hasta que Marcelo lo haga.
 
 ---
 

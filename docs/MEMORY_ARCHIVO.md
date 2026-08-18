@@ -7,6 +7,22 @@ Orden: la más reciente primero.
 
 ---
 
+## 17-ago-2026 — Sesión autónoma (trabajo/2026-08-18) — T-15
+
+**Resultado: T-15 completada. 299 tests verdes, 2 omitidos. Commit `d41b278`.**
+
+| Tarea | Qué se logró | Commit |
+|---|---|---|
+| T-15 | `screen_capacity.py` con fórmula VSMA (factores B a F). 14 tests calibrados sobre el paper. | `d41b278` |
+
+**Detalle técnico clave:**
+- Factor B: exponencial calibrada en dos anclas (½"→3.80, 1"→5.50)
+- El ejemplo del paper reproduce 13.16 y 3.97 tph/ft² con error < 1%
+- 683 corregida: 10.1 → 10.95 m², catálogo actualizado con area_m2_per_deck para todas las seleccionadoras Finlay
+- recommender.py ahora usa VSMA en vez de 80% fijo para cuellos de botella de pantalla
+
+---
+
 ## 16-ago-2026 — Sesión autónoma (trabajo/2026-08-16) — T-06 a T-11
 
 **Resultado: 5 de 6 tareas hechas. T-11 bloqueada. 284 tests verdes + 1 regresión reportada.**
