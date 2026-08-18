@@ -1,21 +1,25 @@
 """
-Capacidad de seleccionadoras — Método VSMA, Etapa 1 (factores clásicos B a F).
+Capacidad de seleccionadoras — Método VSMA (T-15 clásico + T-16 NEA/BED).
 
 Fuente: Olsen & Carnes, "Screen Capacity Calculation", T-JCI-201, Astec/JCI.
   https://www.911metallurgist.com/wp-content/uploads/2016/07/Screen-Capacity.pdf
 
-Fórmula por piso:
+Fórmula completa por piso:
   tph_piso = área_piso_ft² × A
-  A = B × S × D × V × H × T × K × Y × P × O × W × F
+  A = B × S × D × V × H × T × K × Y × P × O × W × F × NEA × BED
 
-Verificación: el ejemplo "Comparison of screen sizing" del paper reproduce
-  13.16 tph/ft² (piso superior, malla 1") y 3.97 tph/ft² (piso inferior, malla ½")
-  dentro de ±5 %. Ver tests/test_t15_screen_capacity.py.
+T-15 (implementado): factores B a F.
+T-16 (este módulo): factores NEA (material tamaño cercano) y BED (espesor de cama).
 
-Factores NEA, BED, TYP, STR, TIM, RPM → T-16.
+Verificación T-15: ejemplo "Comparison of screen sizing" del paper reproduce
+  13.16 tph/ft² y 3.97 tph/ft² dentro de ±5 %.
+Ver tests/test_t15_screen_capacity.py y tests/test_t16_nea_bed.py.
 """
 import math
-from typing import Dict, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from app.services.granulometry import Stream
 
 M2_TO_FT2: float = 10.7639  # 1 m² = 10.7639 ft²
 
@@ -221,3 +225,100 @@ def nominal_tph(screen: Dict, aperture_mm: float) -> float:
     # Cuello de botella: piso inferior (factor D mínimo)
     area_ft2 = area_per_deck_m2 * M2_TO_FT2
     return area_ft2 * factor_B(aperture_mm) * factor_D(decks)
+
+
+# ── FACTOR NEA — Material de tamaño cercano (T-16) ───────────────────────────
+# Porcentaje del feed entre 0.75× y 1.25× la abertura = "near aperture material".
+# A mayor %, menor capacidad (el material cercano es el más difícil de clasificar).
+#
+# Fuente: Olsen & Carnes T-JCI-201, Figura 7.
+# Tabla aproximada derivada de la curva del paper (interpolación piecewise lineal):
+#   0% → 1.00, 20% → 0.83, 40% → 0.65, 60% → 0.50, 80% → 0.38, 100% → 0.28.
+# Consistente con el ejemplo del paper: NEA ≈ 0.59 cuando el near-size es significativo.
+_NEA_TABLE: List[Tuple[float, float]] = [
+    (0.0,   1.00),
+    (20.0,  0.83),
+    (40.0,  0.65),
+    (60.0,  0.50),
+    (80.0,  0.38),
+    (100.0, 0.28),
+]
+
+def factor_NEA(pct_near_aperture: float) -> float:
+    """
+    Factor de material de tamaño cercano (±25% de la abertura).
+
+    pct_near_aperture: % del feed entre 0.75× y 1.25× la abertura de malla.
+    Retorna: factor entre 0.28 y 1.00 (penaliza capacidad cuando hay near-size).
+    """
+    pct = max(0.0, min(100.0, pct_near_aperture))
+    xs = [p[0] for p in _NEA_TABLE]
+    ys = [p[1] for p in _NEA_TABLE]
+    if pct <= xs[0]:
+        return float(ys[0])
+    if pct >= xs[-1]:
+        return float(ys[-1])
+    for i in range(len(xs) - 1):
+        if xs[i] <= pct <= xs[i + 1]:
+            t = (pct - xs[i]) / (xs[i + 1] - xs[i])
+            return float(ys[i]) + t * (float(ys[i + 1]) - float(ys[i]))
+    return float(ys[-1])
+
+
+# ── FACTOR BED — Espesor de cama (T-16, stub) ────────────────────────────────
+# El factor BED penaliza la capacidad cuando la cama de material en el piso es
+# demasiado profunda respecto a la abertura.
+#
+# Fórmula (METODO_CAPACIDAD_SELECCIONADORAS.md §2):
+#   DM_inches = (TP × KD) / (5.0 × SP × WD)
+#   donde: TP = tph en el piso, KD ≈ 20 ft³/ton (factor de esponjamiento),
+#          SP = velocidad de transporte (ft/min) = f(rpm, stroke, inclinación),
+#          WD = ancho del piso (ft).
+#
+# Pendiente: requiere ancho (m), rpm, stroke (mm) e inclinación por equipo.
+# Hasta que esos datos estén en el catálogo, BED = 1.0 (sin penalización).
+def factor_BED(dm_inches: float, aperture_mm: float) -> float:
+    """
+    Factor de espesor de cama.
+
+    dm_inches:   profundidad de cama (inches). 0.0 = no calculado (stub).
+    aperture_mm: abertura de la malla (mm).
+
+    Retorna 1.0 hasta que se dispongan datos de ancho/velocidad de pantalla
+    (B-BED01 en MEMORY.md). La función es funcional para llamadas futuras.
+    """
+    if dm_inches <= 0 or aperture_mm <= 0:
+        return 1.0
+    aperture_in = aperture_mm / 25.4
+    ratio = dm_inches / aperture_in
+    # Penalización lineal: sin penalización hasta ratio=4, cae linealmente hasta 0.5 en ratio=8
+    if ratio <= 4.0:
+        return 1.0
+    if ratio >= 8.0:
+        return 0.5
+    return 1.0 - 0.5 * (ratio - 4.0) / 4.0
+
+
+# ── FUNCIÓN AUXILIAR PARA NEA DESDE CORRIENTE ─────────────────────────────────
+
+def _pct_near_aperture(feed_stream: "Stream", aperture_mm: float) -> float:
+    """% del feed entre 0.75× y 1.25× la abertura (near aperture material)."""
+    lo = aperture_mm * 0.75
+    hi = aperture_mm * 1.25
+    return max(0.0, feed_stream.passing(hi) - feed_stream.passing(lo))
+
+
+def nominal_tph_with_feed(screen: Dict, aperture_mm: float, feed_stream: "Stream") -> float:
+    """
+    Capacidad nominal (tph) aplicando el factor NEA calculado desde la curva real del feed.
+
+    Equivalent to: nominal_tph(screen, aperture_mm) × factor_NEA(% near-size from feed).
+    Usar cuando se dispone de la curva granulométrica de alimentación.
+    """
+    base = nominal_tph(screen, aperture_mm)
+    if base <= 0 or aperture_mm <= 0:
+        return base
+    pct_near = _pct_near_aperture(feed_stream, aperture_mm)
+    return base * factor_NEA(pct_near)
+
+
