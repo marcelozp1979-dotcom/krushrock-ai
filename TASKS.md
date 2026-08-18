@@ -429,7 +429,7 @@ botella, aunque el cono siguiente quede holgado. Hay que evaluar el **tren compl
 
 ---
 
-## T-19 · Cargar la curva de producto real del C-1540 · PENDIENTE
+## T-19 · Cargar la curva de producto real del C-1540 · HECHA
 
 **Desbloquea T-11.** Las curvas ya están digitalizadas en `docs/DATOS_MANUAL_C-1540.md`,
 sección "Curvas digitalizadas", con precisión declarada de ±3 puntos.
@@ -453,6 +453,75 @@ equipo pierde precisión al abrir el CSS. No es un error del motor, es una limit
 del enfoque.
 
 **Referencia:** `docs/DATOS_MANUAL_C-1540.md`.
+
+---
+
+## T-20 · Eliminar el motor duplicado del frontend · PENDIENTE · PRIORIDAD MÁXIMA
+
+**Esto es corrección, no limpieza.** `krushrock-app/src/engine.js` (672 líneas) contiene lógica
+de simulación que corre en el navegador, en paralelo al backend. **Está en uso:**
+
+- `App.jsx` importa `runSimulation`
+- `components/Resultados.jsx` importa `buildAnalysis`, `coneFactor`, `calcYieldsForCSS`,
+  `computeCampaign` y `campaignUnoptTime`, y los llama en las líneas 69, 127, 137 y 154.
+
+`coneFactor` es la función que `DIAGNOSTICO_MOTOR_KRUSHROCK.md` identificó como errónea: usa
+P80 = CSS × 1,40–1,90 cuando el valor real es ≈ 0,9–1,0. **Sobreestima el P80 hasta en 83%.**
+Es decir, la pantalla de resultados puede estar mostrando números que el backend ya no calcula
+así. El software tiene dos verdades distintas según qué pantalla se mire.
+
+**Qué hacer:**
+
+1. Para cada función de `engine.js` que se use, verificar si el backend ya entrega ese dato en
+   la respuesta de la API. Si lo entrega, usar el dato del backend.
+2. Si el backend **no** lo entrega, **no reimplementarlo en el frontend**: agregar el campo a la
+   respuesta de la API y anotarlo en `MEMORY.md`.
+3. Eliminar `engine.js` por completo.
+4. Verificar que no quede ninguna referencia a `runSimulation`, `buildAnalysis`, `coneFactor`,
+   `calcYieldsForCSS`, `computeCampaign` ni `campaignUnoptTime` en el frontend.
+
+**Cómo se sabe que quedó bien:** no queda ninguna importación desde `engine.js` y el archivo no
+existe. Los tests de backend siguen verdes. **Requiere prueba visual de Marcelo** antes de
+integrar: el frontend no tiene tests automáticos todavía.
+
+**Referencia:** REQUISITOS.md RC-4 · `DIAGNOSTICO_MOTOR_KRUSHROCK.md` punto 4.
+
+---
+
+## T-21 · Red de seguridad mínima para el frontend · PENDIENTE
+
+Hoy el frontend son 10.728 líneas sin un solo test. Es más de la mitad del sistema y está
+completamente descubierto.
+
+**Qué hacer:** montar Playwright y escribir **tres o cuatro** pruebas de extremo a extremo, no
+más. Cada una abre la aplicación, completa un caso y verifica que los números aparezcan:
+
+1. Modo simple: un producto, roca dura, y verificar que aparece una recomendación con tph.
+2. Modo simple: caso imposible (volumen enorme, plazo corto) y verificar que sale el mensaje
+   explicativo, no una pantalla vacía.
+3. Modo avanzado: armar un circuito y verificar que la tabla de resultados se llena.
+4. Descargar el PDF de propuesta y verificar que se genera.
+
+**No escribir tests unitarios de componentes.** El objetivo es detectar "se rompió la app", que
+es el riesgo real, no cubrir líneas.
+
+**Referencia:** REQUISITOS.md RC-5.
+
+---
+
+## T-22 · Dividir los dos archivos gigantes del frontend · PENDIENTE · BLOQUEADA POR T-21
+
+`Wizard.jsx` (3.848 líneas) y `Resultados.jsx` (3.534 líneas) son demasiado grandes para
+modificarlos con seguridad: nadie tiene una vista completa de qué depende de qué.
+
+**No hacer esta tarea antes de T-21.** Dividir sin red de seguridad cambia un riesgo por otro.
+
+**Qué hacer, una vez que existan los tests:** separar por pantalla o por paso del asistente, un
+archivo por bloque funcional. Después de cada división, correr los tests de T-21.
+Objetivo orientativo: ningún archivo sobre 500 líneas.
+
+**Regla:** dividir **sin cambiar comportamiento**. Si aparece un bug durante la división, se
+anota, no se arregla en la misma tarea.
 
 ---
 

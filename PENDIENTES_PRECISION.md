@@ -24,6 +24,29 @@ granulometrías distintas. Hoy el simulador no distingue.
 - Qué falta: cargar una curva granulométrica propia por cada modelo del
   catálogo, calibrada con datos del fabricante o reportes reales.
 - Impacto: alto para productos finos; medio para gruesos.
+- **Avance T-19 (17-ago-2026):** el C-1540 ya tiene su curva real (Tabla 3.5,
+  excéntrico largo). Es el primer modelo del catálogo con `product_curve` propio.
+
+### 2a. Limitación conocida: curva normalizada única no escala bien con el CSS
+
+**Hallazgo confirmado (T-19, Manual C-1540 Tabla 3.5):**
+La razón P80/CSS del C-1540 no es constante: crece de **0,98** en CSS 19 mm
+a **1,46** en CSS 32 mm. El motor asume que la misma curva normalizada aplica
+para cualquier CSS del mismo equipo (escalado simple d/CSS). Esto introduce
+error creciente a medida que se abre el CSS.
+
+| CSS (mm) | P80 manual (mm) | P80/CSS |
+|---|---|---|
+| 19 | ~18,6 | 0,98 |
+| 22 | ~22,3 | 1,01 |
+| 25 | ~27,2 | 1,09 |
+| 28 | ~34,3 | 1,22 |
+| 32 | ~46,7 | 1,46 |
+
+**Conclusión:** la curva cargada en T-19 (referenciada a CSS=19 mm) es exacta
+cerca del mínimo. Al abrir el CSS, el motor subestimará el tamaño del producto.
+No es un error, es una limitación documentada. La corrección requiere cargar
+una curva distinta por rango de CSS (fuera del alcance actual).
 
 ## 3. Recirculación real (circuito cerrado)
 Hoy, cuando el sobre-tamaño de la seleccionadora debería volver al
