@@ -10,6 +10,7 @@
       "equipos": ["Terex Finlay J-1175", "Terex Finlay 883+"],
       "css_mm": 75,
       "alimentacion_tph": 250,
+      "alimentacion_tph_origen": "No figuraba explicita en el caso; se reconstruye del propio reporte AggFlow sumando producto util (226 tph) mas descarte -127+100 (24 tph) = 250 tph. No es un valor derivado del resultado esperado.",
       "producto_objetivo": {"min_mm": 0, "max_mm": 100, "volumen_ton": 110000},
       "plazo_meses": 3,
       "horas_dia": 6,
