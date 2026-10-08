@@ -230,7 +230,8 @@ aparece con `capacity_source`. Anotar en `MEMORY.md` qué casos cambiaron de res
 
 ---
 
-## T-11 · Digitalizar las curvas de producto del C-1540 · BLOQUEADA
+## T-11 · Digitalizar las curvas de producto del C-1540 · HECHA
+*(digitalizadas el 17-ago en `docs/DATOS_MANUAL_C-1540.md`; cargadas al catálogo en T-19)*
 
 **Problema:** las curvas de producto del manual (Tablas 3.5, 3.8, 3.11, 3.14) son **gráficos**,
 no tablas. Las lecturas que hay en `docs/DATOS_MANUAL_C-1540.md` son aproximadas (±5 puntos) y
@@ -251,7 +252,7 @@ al abrir el CSS, y hay que anotarlo en `PENDIENTES_PRECISION.md`.
 
 ---
 
-## T-12 · Corregir los tres conos Finlay con datos de manual · PENDIENTE · PRIORIDAD ALTA
+## T-12 · Corregir los tres conos Finlay con datos de manual · HECHA
 
 Reemplaza y amplía T-10, que cubría solo el C-1540.
 
@@ -272,7 +273,8 @@ eso puede cambiar qué equipo gana en varios casos. Anotar en `MEMORY.md` cuále
 
 ---
 
-## T-13 · Extraer datos de mandíbulas, seleccionadoras, scalpers, impactores y conveyor · PENDIENTE
+## T-13 · Extraer datos de mandíbulas, seleccionadoras, scalpers, impactores y conveyor · HECHA PARCIAL
+*(faltan 4 manuales: I-120, I-130RS, I-140 y 893+)*
 
 **Qué hacer:** aplicar `docs/PROCEDIMIENTO_EXTRACCION_MANUALES.md` a los 20 manuales restantes
 de `manuales/`, generando un documento por familia en `docs/`, igual que se hizo con los conos.
@@ -296,7 +298,8 @@ Orden sugerido por impacto:
 
 ---
 
-## T-14 · Reactivar los casos de validación que quedaron sin ejecutar · PENDIENTE
+## T-14 · Reactivar los casos de validación que quedaron sin ejecutar · HECHA
+*(883+ cargado; el caso de Argentina volvió a ejecutarse. El caso Mina El Pleito sigue SKIPPED a propósito — faltan specs Minyu/MEKA)*
 
 **Contexto:** se eliminaron las sustituciones de equipos del archivo de tests (violaban la
 regla 9 de CLAUDE.md). Como consecuencia, dos de los tres casos de validación real ya no se
@@ -350,7 +353,8 @@ casi todos. Anotar en `MEMORY.md` qué casos cambian. **No ajustar ningún caso 
 
 ---
 
-## T-16 · Factores NEA y BED — Etapa 2 · PENDIENTE
+## T-16 · Factores NEA y BED — Etapa 2 · HECHA PARCIAL
+*(NEA operativo; BED devuelve 1,0 hasta tener ancho, rpm, carrera e inclinación por seleccionadora — bloqueo B-BED01)*
 
 Los dos factores que más cambian el resultado en circuito cerrado, que es el caso habitual de
 KrushRock. En el ejemplo del paper, `NEA` = 0,59 redujo la capacidad del piso inferior de
@@ -365,7 +369,7 @@ KrushRock. En el ejemplo del paper, `NEA` = 0,59 redujo la capacidad del piso in
 
 ---
 
-## T-17 · Aprovechamiento en vez de umbral de tamaño · PENDIENTE
+## T-17 · Aprovechamiento en vez de umbral de tamaño · HECHA
 
 **Qué hacer:**
 
@@ -388,7 +392,7 @@ el porcentaje real. Los tests existentes siguen verdes.
 
 ---
 
-## T-18 · Optimización conjunta de CSS (Etapa 3 del Plan Maestro) · PENDIENTE · PRIORIDAD ALTA
+## T-18 · Optimización conjunta de CSS (Etapa 3 del Plan Maestro) · HECHA
 
 Es la función central que pidió Marcelo. Hasta ahora el CSS se deriva del producto pedido y
 queda fijo; nunca se busca la mejor combinación.
