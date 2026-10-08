@@ -13,25 +13,29 @@ Estructura fija de este archivo. El agente **no la cambia**:
 
 # 1 · PARTE DE LA ÚLTIMA SESIÓN
 
-**Fecha:** 07-oct-2026 · **Rama:** `trabajo/2026-10-07b` → fusionada a `main` · **Modo:** supervisado
+**Fecha:** 07-oct-2026 · **Ramas:** `trabajo/2026-10-07b` y `trabajo/2026-10-07c` → fusionadas a `main` · **Modo:** supervisado
 
-**Resultado: T-23 completada. 333 tests verdes, 1 omitido. Commit `e2c5dfb` en main.**
+**Resultado: T-23 y T-24 completadas. 333 tests verdes, 1 omitido.**
 
 | Qué cambió | Detalle |
 |---|---|
-| Bug corregido: `_viable_jaws()` | Descarta mandíbulas cuyo CSS mínimo >= tamaño máximo del feed (antes proponía J-960 con CSS 40 mm para material de 38 mm). |
-| Bug corregido: bloqueo B-04 eliminado | Se elimina `if not jaws: return []`: ahora el sistema genera configs sin mandíbula aunque no haya mandíbulas viables. |
-| Nuevo: configuración `cone_screen` | Cono + seleccionadora, sin mandíbula. Para material pre-chancado. |
-| Nuevo: configuración `screen_only` | Solo seleccionadora. Para material ya dentro del rango del producto. |
-| Nuevo: configuración `hsi_screen` | Impactor + seleccionadora. Alternativa a cono para roca blanda. |
-| Nuevas funciones: `_viable_hsi()`, `_make_hsi_node()` | Soporte para impactores en el recomendador. |
-| Nuevo: `tests/test_t23_no_jaw_precrushed.py` | 5 tests: opción A sin mandíbula, aprovechamiento > 67,5%, config es cone_screen o hsi_screen, sin jaw en todas las configs, campos correctos. |
+| T-23: Bug corregido en `_viable_jaws()` | Descarta mandíbulas con CSS_min >= feed_max (el J-960 con CSS 40 mm ya no se propone para material de 38 mm). |
+| T-23: Bloqueo B-04 eliminado | Cuando no hay mandíbula viable el sistema sigue generando configs sin mandíbula. |
+| T-23: Nuevas configs `cone_screen`, `screen_only`, `hsi_screen` | Circuitos sin mandíbula para material pre-chancado. |
+| T-23: `tests/test_t23_no_jaw_precrushed.py` | 5 tests: sin mandíbula, aprovechamiento > 67,5%, config correcta, todos verdes. |
+| T-24: `_viable_screens()` filtra screens sin área | Seleccionadoras donde `nominal_tph()==0` ya no se proponen (elimina el "0 tph con 100% aprovechamiento"). |
+| T-24: M6x20-3D retirada del catálogo | Sin manual con área de criba disponible. Ver bloqueo B-T24-M6x20. |
+| T-24: `test_screens_seleccionables_tienen_area()` | Trinquete en `test_catalogo_coherencia.py`: falla si una screen del catálogo queda sin área calculable. |
 
 **Lo que necesito de ti, en orden:**
 
-1. **Revisar visualmente T-20 (frontend).** La rama `trabajo/2026-10-07` tiene el motor duplicado (`engine.js`) eliminado del frontend. El modo campaña muestra un aviso "próximamente". Necesita prueba visual antes de fusionar a main. Ver WORKFLOW.md sección 9.
+1. **Revisar visualmente T-20 (frontend).** La rama `trabajo/2026-10-07` tiene el motor duplicado (`engine.js`) eliminado. El modo campaña muestra un aviso "próximamente". Necesita prueba visual antes de fusionar a main.
 
-2. **Bloqueos anteriores siguen abiertos.** B-BED01 (datos de pantalla), B-02 (J-1175), B-07 (test Hierro), B-IM01 (I-110RS feed_max). Ver sección 2.
+2. **M6x20-3D (Astec): aportar manual con área de criba.** Ver bloqueo B-T24-M6x20.
+
+3. **883 HF y 884 HF (Terex Finlay HF): aportar manual con área.** Sin manuales en la carpeta, quedan excluidas.
+
+4. **Bloqueos anteriores siguen abiertos.** B-BED01 (datos de pantalla), B-02 (J-1175), B-07 (test Hierro). Ver sección 2.
 
 ---
 
@@ -61,6 +65,19 @@ CSS más cerrado. Uno de los dos datos está mal. Revisar el manual y decir cuá
 ### B-04 · RESUELTO EN T-23
 El bloqueo `if not jaws: return []` fue eliminado. El sistema ahora genera configs
 sin mandíbula (`cone_screen`, `screen_only`, `hsi_screen`) cuando no hay mandíbula viable.
+
+### B-T24-M6x20 · Astec M6x20-3D — área de criba sin fuente
+M6x20-3D retirada del catálogo en T-24 porque no hay manual disponible con el dato de
+`area_m2_per_deck`. Sin ese dato la fórmula VSMA devuelve 0 tph, lo que produce un resultado
+incoherente (0 tph + 100% de aprovechamiento). La máquina es real y pertenece al catálogo
+de Astec/JCI (la empresa que escribió el paper VSMA). Volver a agregar cuando Marcelo
+aporte el manual con las dimensiones de la criba (aproximado: 6 ft × 20 ft = 11,2 m²/deck,
+pero NO cargar sin fuente citada del manual).
+
+### B-T24-HF · 883 HF y 884 HF (Terex Finlay) — área sin manual
+No hay manuales de 883 HF ni 884 HF en `manuales/Seleccionadoras/`. Sin manuales, no se
+puede obtener el área de criba. Quedan en `screen_hf` (categoría que el recomendador no usa)
+hasta que Marcelo aporte los manuales.
 
 ### B-06 · El cono no tiene `mid_chamber_mm` en el catálogo
 Sin ese campo, el criterio C2 de D-05 (40–60% del material pasa a mitad de cámara) no se puede
@@ -154,6 +171,22 @@ en la simulación o es solo logística. Requiere decisión de Marcelo.
 ---
 
 # 3 · DETALLE DE LA ÚLTIMA SESIÓN
+
+### T-24 · Seleccionadoras sin área excluidas del recomendador — COMPLETA · Commit `14abd20`
+
+**Causa raíz:** T-15 cargó área solo para 16 de 17 screens del catálogo. M6x20-3D quedó sin
+`area_m2_per_deck`. `nominal_tph()` devuelve 0.0 para esa screen. `_viable_screens()` la
+incluía igualmente (solo filtraba por decks), lo que hacía que el recomendador la propusiera
+con 0 tph de capacidad → "0 tph + 100% aprovechamiento" incoherente.
+
+**Cambios:**
+- `_viable_screens()`: agrega `screen_nominal_tph(e, aperture_mm) > 0` al filtro
+- `app/routers/equipment.py`: M6x20-3D retirada del catálogo (sin manual, sin área)
+- `test_screens_seleccionables_tienen_area()`: trinquete en `test_catalogo_coherencia.py`
+
+**Tests:** 333 passed, 1 skipped.
+
+---
 
 ### T-23 · Recomendador sin mandíbula obligatoria — COMPLETA · Commit `e2c5dfb`
 

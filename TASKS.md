@@ -552,6 +552,49 @@ que todo el material de entrada. No chanca nada: el material le pasa de largo.
 
 ---
 
+## T-24 · Diez seleccionadoras quedaron sin capacidad calculable · HECHA
+
+**Caso real que lo destapó (07-oct-2026, modo simple):** la Opción B mostró "0 tph" junto a
+"100% de material en rango". La seleccionadora era una **Astec M6x20-3D**.
+
+**Causa raíz:** T-15 eliminó `cap_min_tph` y `cap_max_tph` de las 27 seleccionadoras del
+catálogo —correcto, no tenían fuente— pero solo cargó `area_m2_per_deck` para 17. Las otras 10
+quedaron sin ningún dato con el que calcular capacidad: la fórmula VSMA necesita el área.
+El recomendador las sigue proponiendo y la producción da cero.
+
+Sin área: Astec M6x20-3D · Powerscreen Warrior 600 · Powerscreen Warrior 2100 ·
+Kleemann MS 402i · Kleemann MOBISCREEN HF · Metso Outotec ST1.5 · Metso Outotec SF Series HF ·
+Sandvik QA141 · Terex Finlay 883 HF · Terex Finlay 884 HF.
+
+**Qué hacer:**
+
+1. **Excluir del recomendador** toda seleccionadora sin `area_m2_per_deck`. No puede proponerse
+   un equipo cuya capacidad no se sabe calcular.
+2. Cargar el área de las dos Finlay (883 HF y 884 HF) desde los manuales de `manuales/`, si la
+   publican. Si no la publican, dejarlas excluidas y anotarlo.
+3. **No inventar el área de las otras ocho.** Son de marcas sin manual disponible. Quedan
+   excluidas hasta tener fuente.
+4. Agregar a `tests/test_catalogo_coherencia.py` un test que falle si alguna seleccionadora
+   seleccionable carece de `area_m2_per_deck`. Esto es exactamente lo que la Etapa 1 debía
+   atrapar y no atrapó.
+
+**Lo que se hizo:**
+
+1. `_viable_screens()` ahora excluye seleccionadoras donde `nominal_tph() == 0` (sin área).
+2. **M6x20-3D (Astec)** retirada del catálogo (sin manual disponible). Ver bloqueo `B-T24-M6x20` en MEMORY.md.
+3. 883 HF y 884 HF: no hay manuales en `manuales/Seleccionadoras/` — quedan excluidas del recomendador.
+4. Test `test_screens_seleccionables_tienen_area()` agregado a `tests/test_catalogo_coherencia.py`.
+5. Suite completa: 333 passed, 1 skipped.
+
+**Commit:** `14abd20` en rama `trabajo/2026-10-07c`, fusionado a main.
+
+**Cómo se sabe que quedó bien:** repetir el caso de arriba y verificar que ninguna opción
+muestra 0 tph con porcentaje de aprovechamiento positivo. Los tests existentes siguen verdes.
+
+**Referencia:** REQUISITOS.md RF-10 y RC-2 · `docs/METODO_CAPACIDAD_SELECCIONADORAS.md`.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada
