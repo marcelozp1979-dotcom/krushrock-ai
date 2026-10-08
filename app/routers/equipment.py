@@ -324,17 +324,17 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
     ],
     "screen_1d": [
         {"brand": "Terex Finlay",  "model": "873+", "type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": 500, "decks": 1, "area_m2_per_deck": 5.56, "extra_specs": {}, "notes": "1 deck lavado/descascarado — manual 873+ Rev 4.1: cap 450 tph, feed_max 500mm, crib 3.66×1.52m (D-21/B-SC01)"},
-        {"brand": "Powerscreen",   "model": "Warrior 600","type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 1, "area_m2_per_deck": None, "extra_specs": {}, "notes": "1 deck, compacta"},
-        {"brand": "Kleemann",      "model": "MS 402i",    "type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 1, "area_m2_per_deck": None, "extra_specs": {}, "notes": "1 deck eléctrico"},
-        {"brand": "Metso Outotec", "model": "ST1.5",      "type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 1, "area_m2_per_deck": None, "extra_specs": {}, "notes": "1 deck"},
-        {"brand": "Sandvik",       "model": "QA141",      "type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 1, "area_m2_per_deck": None, "extra_specs": {}, "notes": "1 deck"},
+        # Warrior 600 (Powerscreen) retirada en T-25: sin area_m2_per_deck ni manual disponible. Bloqueo B-T25-1D.
+        # MS 402i (Kleemann) retirada en T-25: sin area_m2_per_deck ni manual disponible. Bloqueo B-T25-1D.
+        # ST1.5 (Metso Outotec) retirada en T-25: sin area_m2_per_deck ni manual disponible. Bloqueo B-T25-1D.
+        # QA141 (Sandvik) retirada en T-25: sin area_m2_per_deck ni manual disponible. Bloqueo B-T25-1D.
     ],
     "screen_hf": [
-        {"brand": "Terex Finlay",  "model": "883 HF",        "type": "screen_hf", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 2, "area_m2_per_deck": None, "extra_specs": {}, "notes": "Alta frecuencia 2 deck, finos"},
-        {"brand": "Terex Finlay",  "model": "884 HF",        "type": "screen_hf", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 2, "area_m2_per_deck": None, "extra_specs": {}, "notes": "Alta frecuencia 2 deck"},
-        {"brand": "Powerscreen",   "model": "Warrior 2100",  "type": "screen_hf", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 2, "area_m2_per_deck": None, "extra_specs": {}, "notes": "Alta frecuencia, fino seco"},
-        {"brand": "Kleemann",      "model": "MOBISCREEN HF", "type": "screen_hf", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 2, "area_m2_per_deck": None, "extra_specs": {}, "notes": "Alta frecuencia"},
-        {"brand": "Metso Outotec", "model": "SF Series HF",  "type": "screen_hf", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 2, "area_m2_per_deck": None, "extra_specs": {}, "notes": "Alta frecuencia"},
+        # 883 HF (Terex Finlay) retirada en T-25: sin area_m2_per_deck ni manual disponible. Bloqueo B-T25-HF.
+        # 884 HF (Terex Finlay) retirada en T-25: sin area_m2_per_deck ni manual disponible. Bloqueo B-T25-HF.
+        # Warrior 2100 (Powerscreen) retirada en T-25: sin area_m2_per_deck ni manual disponible. Bloqueo B-T25-HF.
+        # MOBISCREEN HF (Kleemann) retirada en T-25: sin area_m2_per_deck ni manual disponible. Bloqueo B-T25-HF.
+        # SF Series HF (Metso Outotec) retirada en T-25: sin area_m2_per_deck ni manual disponible. Bloqueo B-T25-HF.
     ],
 }
 

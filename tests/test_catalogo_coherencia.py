@@ -195,19 +195,19 @@ def test_equipos_con_curva_tienen_fuente() -> None:
 
 def test_screens_seleccionables_tienen_area() -> None:
     """
-    T-24: toda seleccionadora en _FALLBACK["screen"] debe tener area_m2_per_deck
-    o area_m2, de modo que nominal_tph() > 0. Si no tiene área, no puede proponerse
-    en el recomendador — cero tph con aprovechamiento positivo es un estado incoherente.
+    T-24/T-25: toda seleccionadora en screen, screen_1d y screen_hf debe tener
+    area_m2_per_deck o area_m2, de modo que nominal_tph() > 0. Sin área no puede
+    proponerse en el recomendador — cero tph con aprovechamiento positivo es incoherente.
 
-    Si un equipo carece de área y debe agregarse al catálogo, primero cargar el dato
-    desde un manual (ver WORKFLOW.md §6.1). No inventar ni estimar.
+    Si un equipo carece de área y debe agregarse, primero cargar el dato desde un manual.
+    No inventar ni estimar.
     """
     from app.services.screen_capacity import nominal_tph as _nominal_tph
-    sin_area = [
-        f"{eq.get('brand', '?')} {eq.get('model', '?')}"
-        for eq in _FALLBACK["screen"]
-        if _nominal_tph(eq, 25.4) <= 0
-    ]
+    sin_area = []
+    for cat in ("screen", "screen_1d", "screen_hf"):
+        for eq in _FALLBACK.get(cat, []):
+            if _nominal_tph(eq, 25.4) <= 0:
+                sin_area.append(f"{cat}/{eq.get('brand', '?')} {eq.get('model', '?')}")
     assert not sin_area, (
         "Seleccionadoras en catálogo sin capacidad calculable (falta area_m2_per_deck): "
         + ", ".join(sin_area)
