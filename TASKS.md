@@ -230,7 +230,8 @@ aparece con `capacity_source`. Anotar en `MEMORY.md` qué casos cambiaron de res
 
 ---
 
-## T-11 · Digitalizar las curvas de producto del C-1540 · BLOQUEADA
+## T-11 · Digitalizar las curvas de producto del C-1540 · HECHA
+*(digitalizadas el 17-ago en `docs/DATOS_MANUAL_C-1540.md`; cargadas al catálogo en T-19)*
 
 **Problema:** las curvas de producto del manual (Tablas 3.5, 3.8, 3.11, 3.14) son **gráficos**,
 no tablas. Las lecturas que hay en `docs/DATOS_MANUAL_C-1540.md` son aproximadas (±5 puntos) y
@@ -251,7 +252,7 @@ al abrir el CSS, y hay que anotarlo en `PENDIENTES_PRECISION.md`.
 
 ---
 
-## T-12 · Corregir los tres conos Finlay con datos de manual · PENDIENTE · PRIORIDAD ALTA
+## T-12 · Corregir los tres conos Finlay con datos de manual · HECHA
 
 Reemplaza y amplía T-10, que cubría solo el C-1540.
 
@@ -272,7 +273,8 @@ eso puede cambiar qué equipo gana en varios casos. Anotar en `MEMORY.md` cuále
 
 ---
 
-## T-13 · Extraer datos de mandíbulas, seleccionadoras, scalpers, impactores y conveyor · PENDIENTE
+## T-13 · Extraer datos de mandíbulas, seleccionadoras, scalpers, impactores y conveyor · HECHA PARCIAL
+*(faltan 4 manuales: I-120, I-130RS, I-140 y 893+)*
 
 **Qué hacer:** aplicar `docs/PROCEDIMIENTO_EXTRACCION_MANUALES.md` a los 20 manuales restantes
 de `manuales/`, generando un documento por familia en `docs/`, igual que se hizo con los conos.
@@ -296,7 +298,8 @@ Orden sugerido por impacto:
 
 ---
 
-## T-14 · Reactivar los casos de validación que quedaron sin ejecutar · PENDIENTE
+## T-14 · Reactivar los casos de validación que quedaron sin ejecutar · HECHA
+*(883+ cargado; el caso de Argentina volvió a ejecutarse. El caso Mina El Pleito sigue SKIPPED a propósito — faltan specs Minyu/MEKA)*
 
 **Contexto:** se eliminaron las sustituciones de equipos del archivo de tests (violaban la
 regla 9 de CLAUDE.md). Como consecuencia, dos de los tres casos de validación real ya no se
@@ -350,7 +353,8 @@ casi todos. Anotar en `MEMORY.md` qué casos cambian. **No ajustar ningún caso 
 
 ---
 
-## T-16 · Factores NEA y BED — Etapa 2 · PENDIENTE
+## T-16 · Factores NEA y BED — Etapa 2 · HECHA PARCIAL
+*(NEA operativo; BED devuelve 1,0 hasta tener ancho, rpm, carrera e inclinación por seleccionadora — bloqueo B-BED01)*
 
 Los dos factores que más cambian el resultado en circuito cerrado, que es el caso habitual de
 KrushRock. En el ejemplo del paper, `NEA` = 0,59 redujo la capacidad del piso inferior de
@@ -365,7 +369,7 @@ KrushRock. En el ejemplo del paper, `NEA` = 0,59 redujo la capacidad del piso in
 
 ---
 
-## T-17 · Aprovechamiento en vez de umbral de tamaño · PENDIENTE
+## T-17 · Aprovechamiento en vez de umbral de tamaño · HECHA
 
 **Qué hacer:**
 
@@ -388,7 +392,7 @@ el porcentaje real. Los tests existentes siguen verdes.
 
 ---
 
-## T-18 · Optimización conjunta de CSS (Etapa 3 del Plan Maestro) · PENDIENTE · PRIORIDAD ALTA
+## T-18 · Optimización conjunta de CSS (Etapa 3 del Plan Maestro) · HECHA
 
 Es la función central que pidió Marcelo. Hasta ahora el CSS se deriva del producto pedido y
 queda fijo; nunca se busca la mejor combinación.
@@ -429,7 +433,7 @@ botella, aunque el cono siguiente quede holgado. Hay que evaluar el **tren compl
 
 ---
 
-## T-19 · Cargar la curva de producto real del C-1540 · PENDIENTE
+## T-19 · Cargar la curva de producto real del C-1540 · HECHA
 
 **Desbloquea T-11.** Las curvas ya están digitalizadas en `docs/DATOS_MANUAL_C-1540.md`,
 sección "Curvas digitalizadas", con precisión declarada de ±3 puntos.
@@ -453,6 +457,75 @@ equipo pierde precisión al abrir el CSS. No es un error del motor, es una limit
 del enfoque.
 
 **Referencia:** `docs/DATOS_MANUAL_C-1540.md`.
+
+---
+
+## T-20 · Eliminar el motor duplicado del frontend · PENDIENTE · PRIORIDAD MÁXIMA
+
+**Esto es corrección, no limpieza.** `krushrock-app/src/engine.js` (672 líneas) contiene lógica
+de simulación que corre en el navegador, en paralelo al backend. **Está en uso:**
+
+- `App.jsx` importa `runSimulation`
+- `components/Resultados.jsx` importa `buildAnalysis`, `coneFactor`, `calcYieldsForCSS`,
+  `computeCampaign` y `campaignUnoptTime`, y los llama en las líneas 69, 127, 137 y 154.
+
+`coneFactor` es la función que `DIAGNOSTICO_MOTOR_KRUSHROCK.md` identificó como errónea: usa
+P80 = CSS × 1,40–1,90 cuando el valor real es ≈ 0,9–1,0. **Sobreestima el P80 hasta en 83%.**
+Es decir, la pantalla de resultados puede estar mostrando números que el backend ya no calcula
+así. El software tiene dos verdades distintas según qué pantalla se mire.
+
+**Qué hacer:**
+
+1. Para cada función de `engine.js` que se use, verificar si el backend ya entrega ese dato en
+   la respuesta de la API. Si lo entrega, usar el dato del backend.
+2. Si el backend **no** lo entrega, **no reimplementarlo en el frontend**: agregar el campo a la
+   respuesta de la API y anotarlo en `MEMORY.md`.
+3. Eliminar `engine.js` por completo.
+4. Verificar que no quede ninguna referencia a `runSimulation`, `buildAnalysis`, `coneFactor`,
+   `calcYieldsForCSS`, `computeCampaign` ni `campaignUnoptTime` en el frontend.
+
+**Cómo se sabe que quedó bien:** no queda ninguna importación desde `engine.js` y el archivo no
+existe. Los tests de backend siguen verdes. **Requiere prueba visual de Marcelo** antes de
+integrar: el frontend no tiene tests automáticos todavía.
+
+**Referencia:** REQUISITOS.md RC-4 · `DIAGNOSTICO_MOTOR_KRUSHROCK.md` punto 4.
+
+---
+
+## T-21 · Red de seguridad mínima para el frontend · PENDIENTE
+
+Hoy el frontend son 10.728 líneas sin un solo test. Es más de la mitad del sistema y está
+completamente descubierto.
+
+**Qué hacer:** montar Playwright y escribir **tres o cuatro** pruebas de extremo a extremo, no
+más. Cada una abre la aplicación, completa un caso y verifica que los números aparezcan:
+
+1. Modo simple: un producto, roca dura, y verificar que aparece una recomendación con tph.
+2. Modo simple: caso imposible (volumen enorme, plazo corto) y verificar que sale el mensaje
+   explicativo, no una pantalla vacía.
+3. Modo avanzado: armar un circuito y verificar que la tabla de resultados se llena.
+4. Descargar el PDF de propuesta y verificar que se genera.
+
+**No escribir tests unitarios de componentes.** El objetivo es detectar "se rompió la app", que
+es el riesgo real, no cubrir líneas.
+
+**Referencia:** REQUISITOS.md RC-5.
+
+---
+
+## T-22 · Dividir los dos archivos gigantes del frontend · PENDIENTE · BLOQUEADA POR T-21
+
+`Wizard.jsx` (3.848 líneas) y `Resultados.jsx` (3.534 líneas) son demasiado grandes para
+modificarlos con seguridad: nadie tiene una vista completa de qué depende de qué.
+
+**No hacer esta tarea antes de T-21.** Dividir sin red de seguridad cambia un riesgo por otro.
+
+**Qué hacer, una vez que existan los tests:** separar por pantalla o por paso del asistente, un
+archivo por bloque funcional. Después de cada división, correr los tests de T-21.
+Objetivo orientativo: ningún archivo sobre 500 líneas.
+
+**Regla:** dividir **sin cambiar comportamiento**. Si aparece un bug durante la división, se
+anota, no se arregla en la misma tarea.
 
 ---
 

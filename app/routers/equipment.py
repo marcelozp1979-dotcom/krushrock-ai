@@ -217,6 +217,20 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "notes": "Cono secundario — excéntrico largo, cóncavo Medium Coarse",
             "curves": {"css": [19, 22, 25, 28, 32], "tph": [135.0, 160.0, 170.0, 180.0, 190.0]},
             "capacity_source": "Manual Terex Finlay C-1540 Rev 2.7 (16-04-2025), Tabla 3.4 p.3-14 — excéntrico largo, cóncavo Medium Coarse; punto medio de rangos",
+            # Curva de producto real (Tabla 3.5, excéntrico largo, CSS 19 mm como referencia).
+            # d/CSS = tamaño_mm / 19. % pasante leídos directamente del gráfico digitalizado.
+            "product_curve": {
+                0.0895: 17,   # 1.70 mm
+                0.1242: 21,   # 2.36 mm
+                0.1763: 26,   # 3.35 mm
+                0.2632: 34,   # 5.0 mm
+                0.3316: 39,   # 6.3 mm
+                0.5263: 54,   # 10 mm
+                0.7368: 68,   # 14 mm
+                1.0526: 86,   # 20 mm
+                1.4737: 100,  # 28 mm
+            },
+            "product_curve_source": "Manual Terex Finlay C-1540 Rev 2.7, Tabla 3.5 p.3-14 — excéntrico largo, digitalizado ±3 puntos; CSS 19 mm como referencia",
         },
         {
             "brand": "Terex Finlay", "model": "C-1545", "type": "cone",

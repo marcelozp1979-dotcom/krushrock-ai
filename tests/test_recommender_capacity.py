@@ -106,15 +106,16 @@ def test_meses_requeridos_mayor_duracion_cuando_capacidad_insuficiente():
 
 def test_product_fit_distinto_jaw_screen_vs_jaw_cone_screen():
     """
-    Con producto fino (0-19mm):
-    - jaw+seleccionadora: jaw ajustado a target fino → más finos directos
-    - jaw+cono+seleccionadora: jaw ajustado a target grueso (para el cono)
-      → diferente distribución granulométrica antes del harnero
+    Con producto intermedio (10-40mm):
+    - jaw+seleccionadora: jaw produce directamente el rango objetivo
+    - jaw+cono+seleccionadora: cono C-1540 (curva real) remodela la granulometría
+      → distinta fracción útil en el rango 10-40mm
     Los product_fit_pct deben ser distintos.
     """
+    _GRAVA_MED = [{"name": "grava_med", "min_mm": 10.0, "max_mm": 40.0, "volumen_ton": 30_000.0}]
     faena = dict(
         f80_mm=400.0,
-        products=_ARENA,
+        products=_GRAVA_MED,
         duracion_meses=3,
         rock_type="granito",
         n_units=1,

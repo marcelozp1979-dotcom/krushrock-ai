@@ -36,7 +36,9 @@ En este orden, en cada arranque y después de cada tarea completada:
 
 ## 3. Rama de trabajo
 
-- **Nunca** trabajar ni hacer push sobre `main`.
+- **Nunca** trabajar directamente sobre `main`: el trabajo va siempre en una rama.
+  La fusión a `main` al final la hace el agente, con la condición de la sección 6 punto 4.
+  **Marcelo no ejecuta comandos de git.** El agente se encarga de guardar, fusionar y subir.
 - Crear o continuar en una rama con nombre `nocturno/AAAA-MM-DD`.
 - Un commit por tarea completada, con el número de tarea en el mensaje.
 - `git push` de la rama al terminar cada tarea, no al final de la noche.
@@ -120,7 +122,10 @@ Estas no se negocian, ni siquiera con buena justificación:
    el campo correspondiente. Sin fuente → no se carga, se anota en `MEMORY.md` y se sigue.
 2. **No ajustar los casos de validación** para que calce el código. Nunca.
 3. **No tocar** `app/services/granulometry.py` ni `app/services/equipment_models.py`.
-4. **No hacer push a `main`.** Nunca. Ni con merge, ni con fast-forward.
+4. **Fusionar a `main` solo con la suite completa verde.** Desde el 06-oct-2026 el agente sí puede
+   fusionar y hacer push a `main`, pero únicamente si `python -m pytest -q` pasa **entero** —no una
+   corrida parcial— y ninguna tarea quedó a medias. Si algo falla, el trabajo se queda en la rama y
+   se reporta. Nunca fusionar para "dejarlo andando".
 5. **No desplegar** a Railway ni a Vercel.
 6. **No modificar** `CLAUDE.md`, `REQUISITOS.md` ni `PLAN_MAESTRO.md`. Si algo de ahí parece
    equivocado, se anota en `MEMORY.md` como propuesta y se sigue.
