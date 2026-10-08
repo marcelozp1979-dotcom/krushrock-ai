@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { G, GCSS, API_BASE } from "./shared.js";
 import { LandingScreen, SimpleMode } from "./components/ModoSimple.jsx";
-import { runSimulation } from "./engine.js";
+import { runSimulation } from "./simulation.js";
 import Results from "./components/Resultados.jsx";
 import Onboarding from "./components/Wizard.jsx";
 

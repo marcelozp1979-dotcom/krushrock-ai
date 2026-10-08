@@ -27,19 +27,27 @@ Estructura fija de este archivo. El agente **no la cambia**:
 | T-24: M6x20-3D retirada del catálogo | Sin manual con área de criba disponible. Ver bloqueo B-T24-M6x20. |
 | T-24: `test_screens_seleccionables_tienen_area()` | Trinquete en `test_catalogo_coherencia.py`: falla si una screen del catálogo queda sin área calculable. |
 
-**Lo que necesito de ti, en orden:**
+**Lo que necesito de ti:**
 
-1. **Revisar visualmente T-20 (frontend).** La rama `trabajo/2026-10-07` tiene el motor duplicado (`engine.js`) eliminado. El modo campaña muestra un aviso "próximamente". Necesita prueba visual antes de fusionar a main.
+1. **Revisar visualmente T-20 (frontend).** `engine.js` eliminado, `simulation.js` y `analysis.js` activos. El modo campaña muestra "próximamente". Necesita prueba visual: abre la app, simula un caso, revisa tabs de Producción, Plazo y Comercial.
 
 2. **M6x20-3D (Astec): aportar manual con área de criba.** Ver bloqueo B-T24-M6x20.
 
 3. **883 HF y 884 HF (Terex Finlay HF): aportar manual con área.** Sin manuales en la carpeta, quedan excluidas.
 
-4. **Bloqueos anteriores siguen abiertos.** B-BED01 (datos de pantalla), B-02 (J-1175), B-07 (test Hierro). Ver sección 2.
+4. **Bloqueos anteriores siguen abiertos.** B-BED01 (datos de pantalla), B-02 (J-1175), B-07 (test Hierro), B-campana01 (Modo Campaña en backend). Ver sección 2.
 
 ---
 
 # 2 · BLOQUEOS ABIERTOS
+
+### B-campana01 · Modo Campaña pendiente de implementación en backend
+
+Las funciones de simulación de campaña (`computeCampaign`, `campaignUnoptTime`, `calcYieldsForCSS`)
+fueron eliminadas de `engine.js` (T-20) porque usaban un factor P80/CSS erróneo (×1,4–1,9).
+El motor correcto para campaña usa las curvas normalizadas del backend.
+Hasta que se implemente, el tab "Campaña" muestra un aviso al usuario.
+Requiere: implementar `POST /simulations/campaign` con secuencia de fases CSS, rendimientos por producto y horas estimadas.
 
 ### B-BED01 · factor_BED necesita datos de pantalla
 
@@ -211,6 +219,25 @@ Además el `if not jaws: return []` impedía generar configs sin mandíbula.
 - Sin mandíbula ✓ · aprovechamiento > 67,5% ✓
 
 **Tests:** `tests/test_t23_no_jaw_precrushed.py` — 5 tests, todos verdes.
+
+---
+
+### T-20 · Eliminar motor duplicado del frontend — HECHA PARCIAL · Commit `8e5bcd5`
+
+**Análisis de `engine.js` (672 líneas):**
+- `runSimulation`: llamaba al backend (`POST /simulations/calculate`), no era cálculo local. Correcto.
+- `buildAnalysis`: genera texto diagnóstico. Lógica de display, no simulación.
+- `coneFactor`: usaba P80 = CSS × 1,40–1,90. **Erróneo** (manual C-1540 da ×0,98 en CSS 19mm).
+- `calcYieldsForCSS`, `computeCampaign`, `campaignUnoptTime`: usaban `coneFactor` erróneo. Eliminadas.
+
+**Cambios:**
+- `runSimulation` → `krushrock-app/src/simulation.js` (+ import `G` que faltaba en engine.js)
+- `buildAnalysis` → `krushrock-app/src/analysis.js`
+- `App.jsx`: import `./engine.js` → `./simulation.js`
+- `Resultados.jsx`: import → `../analysis.js`; bloque campaña reemplazado por aviso "próximamente"
+- `engine.js` eliminado
+
+**Bloqueo B-campana01:** motor de campaña usaba `coneFactor` erróneo. Implementar en backend con curvas reales.
 
 ---
 
