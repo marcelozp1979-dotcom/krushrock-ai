@@ -114,9 +114,17 @@ def _reduction_ratio_ok(crusher_type: str, feed_max_mm: float, css_mm: float) ->
 # ── FILTROS DE CATÁLOGO ───────────────────────────────────────────────────────
 
 def _viable_jaws(feed_max_material_mm: float) -> List[Dict]:
-    """Mandíbulas cuyo feed_max_mm acepta el tamaño máximo real de partícula."""
+    """
+    Mandíbulas cuyo feed_max_mm acepta el tamaño máximo real de partícula
+    y cuyo CSS mínimo es menor que ese tamaño (puede reducir algo).
+    Una mandíbula con CSS_min >= feed_max no reduce nada: el material pasa de largo.
+    """
     return sorted(
-        [e for e in _FALLBACK["jaw"] if check_crusher_feed(e, feed_max_material_mm)[0]],
+        [
+            e for e in _FALLBACK["jaw"]
+            if check_crusher_feed(e, feed_max_material_mm)[0]
+            and (e.get("css_min_mm") or 0) < feed_max_material_mm
+        ],
         key=lambda e: e["cap_max_tph"],
     )
 
@@ -226,6 +234,43 @@ def _make_cone_node(eq: Dict, target_p80_mm: float, id_suffix: str = "") -> Dict
     return {
         "id": f"cone_{safe_id}",
         "type": "cone",
+        "target_p80_mm": target_p80_mm,
+        "equipment": equipment,
+    }
+
+
+def _viable_hsi(feed_max_material_mm: float) -> List[Dict]:
+    """Impactores HSI que aceptan el tamaño máximo real de partícula."""
+    return sorted(
+        [e for e in _FALLBACK.get("hsi", []) if check_crusher_feed(e, feed_max_material_mm)[0]],
+        key=lambda e: e["cap_max_tph"],
+    )
+
+
+def _make_hsi_node(eq: Dict, target_p80_mm: float) -> Dict:
+    safe_id = eq["model"].replace(" ", "_").replace("-", "_")
+    equipment: Dict = {
+        "id": f"hsi_{eq['model']}",
+        "brand": eq["brand"],
+        "model": eq["model"],
+        "type": "hsi",
+        "cap_max_tph": eq.get("cap_max_tph", 0),
+        "specs": {
+            "feedMm": eq.get("feed_max_mm"),
+            "cssRange": [
+                eq.get("css_min_mm", 10),
+                eq.get("css_max_mm", 50),
+            ],
+        },
+        "curves": eq.get("curves", {}),
+        "capex_usd": 700_000,
+        "color": "#8b5cf6",
+    }
+    if eq.get("product_curve") is not None:
+        equipment["product_curve"] = eq["product_curve"]
+    return {
+        "id": f"hsi_{safe_id}",
+        "type": "hsi",
         "target_p80_mm": target_p80_mm,
         "equipment": equipment,
     }
@@ -382,9 +427,6 @@ def recommend(
     # Partícula máxima a la salida de la mandíbula ≈ P80/0.8 (P80 es percentil 80, no máximo)
     cones = _viable_cones(jaw_target_p80 / 0.8)
     screens = _viable_screens(len(products), aperture_mm)
-
-    if not jaws:
-        return []
 
     # Productos en el formato que acepta simulate()
     products_for_sim: Optional[List[Dict]] = (
@@ -627,6 +669,62 @@ def recommend(
                                 # (curva completa disponible); el segundo no tiene curva.
                                 "cone_feeds_curve": [feed_curve_dict, None],
                             })
+
+    # F: cono + seleccionadora (sin mandíbula) — para material pre-chancado
+    # Se activa cuando el feed cabe directo en un cono (más pequeño que su feed_max).
+    if screens:
+        cones_f = _viable_cones(feed_max_material_mm)
+        for cone in cones_f[:_PICK]:
+            css_min_c = cone.get("css_min_mm") or 0
+            css_c_est = max(p80_target, css_min_c)
+            if not _reduction_ratio_ok("cone", feed_max_material_mm, css_c_est):
+                rejected_reasons.append(
+                    f"{cone['model']} cone_screen: razón de reducción excede límite"
+                )
+                continue
+            for scr in screens[:_PICK]:
+                bn = _bottleneck_cap([cone, scr], aperture_mm)
+                candidates.append({
+                    "label": "cone_screen",
+                    "nodes": [
+                        _make_cone_node(cone, p80_target),
+                        _make_screen_node(scr, aperture_mm),
+                    ],
+                    "circuit": "closed",
+                    "n_units": 1,
+                    "cap_bottleneck_tph": bn,
+                    "cone_feeds_p80": [f80_mm],
+                    "cone_feeds_curve": [feed_curve_dict],
+                })
+
+    # G: seleccionadora sola — el material ya es más fino que el producto pedido
+    if screens and feed_max_material_mm <= finest_max:
+        for scr in screens[:_PICK]:
+            bn = _bottleneck_cap([scr], aperture_mm)
+            candidates.append({
+                "label": "screen_only",
+                "nodes": [_make_screen_node(scr, aperture_mm)],
+                "circuit": "open",
+                "n_units": 1,
+                "cap_bottleneck_tph": bn,
+            })
+
+    # H: impactor + seleccionadora (sin mandíbula) — alternativa a cono para roca blanda
+    if screens:
+        hsis_h = _viable_hsi(feed_max_material_mm)
+        for hsi in hsis_h[:_PICK]:
+            for scr in screens[:_PICK]:
+                bn = _bottleneck_cap([hsi, scr], aperture_mm)
+                candidates.append({
+                    "label": "hsi_screen",
+                    "nodes": [
+                        _make_hsi_node(hsi, p80_target),
+                        _make_screen_node(scr, aperture_mm),
+                    ],
+                    "circuit": "closed",
+                    "n_units": 1,
+                    "cap_bottleneck_tph": bn,
+                })
 
     if not candidates:
         # Calcular razón de reducción requerida para el mensaje informativo
