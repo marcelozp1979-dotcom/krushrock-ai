@@ -193,6 +193,28 @@ def test_equipos_con_curva_tienen_fuente() -> None:
     )
 
 
+def test_screens_seleccionables_tienen_area() -> None:
+    """
+    T-24: toda seleccionadora en _FALLBACK["screen"] debe tener area_m2_per_deck
+    o area_m2, de modo que nominal_tph() > 0. Si no tiene área, no puede proponerse
+    en el recomendador — cero tph con aprovechamiento positivo es un estado incoherente.
+
+    Si un equipo carece de área y debe agregarse al catálogo, primero cargar el dato
+    desde un manual (ver WORKFLOW.md §6.1). No inventar ni estimar.
+    """
+    from app.services.screen_capacity import nominal_tph as _nominal_tph
+    sin_area = [
+        f"{eq.get('brand', '?')} {eq.get('model', '?')}"
+        for eq in _FALLBACK["screen"]
+        if _nominal_tph(eq, 25.4) <= 0
+    ]
+    assert not sin_area, (
+        "Seleccionadoras en catálogo sin capacidad calculable (falta area_m2_per_deck): "
+        + ", ".join(sin_area)
+        + ". Cargar el área desde el manual del equipo o eliminar del catálogo."
+    )
+
+
 def test_cobertura_de_fuentes_no_retrocede() -> None:
     """
     Trinquete de trazabilidad: el número de equipos con datos de manual

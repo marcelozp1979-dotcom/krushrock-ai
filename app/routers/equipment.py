@@ -318,7 +318,9 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
         {"brand": "Sandvik",       "model": "QA335",           "type": "screen", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 2, "area_m2": 24.0, "area_m2_per_deck": 12.0,  "extra_specs": {}, "notes": "plantas áridos — Doublescreen, 2 cajas de 2 decks en serie"},
         {"brand": "Metso Outotec", "model": "ST2.4",           "type": "screen", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 2, "area_m2": 10.8, "area_m2_per_deck": 5.4,   "extra_specs": {}, "notes": "2 deck"},
         {"brand": "Metso Outotec", "model": "ST3.5",           "type": "screen", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 2, "area_m2": 11.0, "area_m2_per_deck": 5.5,   "extra_specs": {}, "notes": "capacidad por verificar, sin fuente oficial de marketing confirmada"},
-        {"brand": "Astec",         "model": "M6x20-3D",        "type": "screen", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": None, "decks": 3, "area_m2": None, "area_m2_per_deck": None,  "extra_specs": {}, "notes": "3 deck"},
+        # M6x20-3D (Astec) retirada en T-24: sin area_m2_per_deck ni manual disponible.
+        # Volver a agregar cuando Marcelo aporte manual con tabla de área de criba.
+        # Bloqueo B-T24-M6x20 en MEMORY.md.
     ],
     "screen_1d": [
         {"brand": "Terex Finlay",  "model": "873+", "type": "screen_1d", "css_min_mm": None, "css_max_mm": None, "feed_max_mm": 500, "decks": 1, "area_m2_per_deck": 5.56, "extra_specs": {}, "notes": "1 deck lavado/descascarado — manual 873+ Rev 4.1: cap 450 tph, feed_max 500mm, crib 3.66×1.52m (D-21/B-SC01)"},

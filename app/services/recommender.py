@@ -139,12 +139,18 @@ def _viable_cones(jaw_output_p80_mm: float) -> List[Dict]:
 
 def _viable_screens(n_products: int, aperture_mm: float = 25.4) -> List[Dict]:
     """
-    Seleccionadoras con decks suficientes para el número de fracciones de producto.
+    Seleccionadoras con decks suficientes para el número de fracciones de producto
+    Y con capacidad VSMA calculable (área conocida).
     3 productos → deck triple mínimo; caso general → doble deck.
     Ordenadas por capacidad nominal VSMA ascendente (la más chica primero).
+    Excluye equipos sin area_m2_per_deck: su capacidad sería 0 tph y contaminaría el ranking.
     """
     return sorted(
-        [e for e in _FALLBACK["screen"] if check_screen_decks(e, n_products)[0]],
+        [
+            e for e in _FALLBACK["screen"]
+            if check_screen_decks(e, n_products)[0]
+            and screen_nominal_tph(e, aperture_mm) > 0
+        ],
         key=lambda e: screen_nominal_tph(e, aperture_mm),
     )
 
