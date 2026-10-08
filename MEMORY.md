@@ -13,31 +13,35 @@ Estructura fija de este archivo. El agente **no la cambia**:
 
 # 1 · PARTE DE LA ÚLTIMA SESIÓN
 
-**Fecha:** 17-ago-2026 · **Rama:** `trabajo/2026-08-20` · **Modo:** autónomo
+**Fecha:** 07-oct-2026 · **Rama:** `trabajo/2026-10-07` → integrada a `main` · **Modo:** autónomo
 
-**Resultado: T-18 y T-16 completadas. T-11 sigue BLOQUEADA (confirmado). 322 tests verdes, 1 omitido. Commits `fbc084b` (T-18) y `1a99482` (T-16).**
+**Resultado: T-19 integrada a main. T-20 completada (engine.js eliminado). 328 tests verdes. Commit `trabajo/2026-10-07`.**
 
 | Qué cambió | Detalle |
 |---|---|
-| Nuevo: `app/services/css_optimizer.py` | Función `optimize_css()`: busca por grilla el CSS por equipo que maximiza tph de producto. Valida D-06: abrir el CSS de la mandíbula aumenta caudal y supera el CSS mínimo. |
-| Nuevo: `tests/test_t18_css_optimizer.py` | 7 tests: mejora vs mínimo, CSS dentro de rango, campos obligatorios, grilla, interpolación, error sin equipos, límite de alimentación. |
-| Modificado: `app/services/screen_capacity.py` | Agrega `factor_NEA` (material tamaño cercano), `factor_BED` (espesor de cama, stub), `nominal_tph_with_feed` (capacidad con feed real). |
-| Nuevo: `tests/test_t16_nea_bed.py` | 9 tests: NEA=1 sin near-size, monotónica, rango válido, consistente con paper, BED=1 sin datos, BED penaliza cama alta, capacidad reduce con near-size. |
-| T-11: BLOQUEADA | Curvas de producto del C-1540 son gráficos en el PDF. pypdf no extrae valores; pdftoppm no disponible en el entorno. Los datos de capacidad (TPH vs CSS) ya estaban en el catálogo de sesiones anteriores. |
+| Integrado a main: `trabajo/2026-08-21` | T-19 (curva C-1540) + estados de tareas. Commit `16cb349`. |
+| Eliminado: `krushrock-app/src/engine.js` | Motor duplicado eliminado. La función `runSimulation` (que ya llamaba al backend) fue a `simulation.js`. `buildAnalysis` (texto diagnóstico) fue a `analysis.js`. |
+| Modo Campaña deshabilitado | Las funciones `coneFactor/calcYieldsForCSS/computeCampaign/campaignUnoptTime` usaban P80=CSS×1,4–1,9 (erróneo; el manual da ×0,98). Eliminadas. La pantalla de Campaña muestra un aviso hasta implementarse en backend. |
 
-**Lo que necesito de ti, en orden:**
+**Lo que necesito de ti:**
 
-1. **Resolver B-08 (curvas C-1540).** Ver las curvas granulométricas (Tablas 3.5, 3.8, 3.11, 3.14) en el manual C-1540 y pasarme los puntos aproximados (% pasante por tamaño de malla por CSS). Sin eso el C-1540 usa la curva genérica de cono.
+1. **Revisar visualmente el frontend** (T-20 requiere prueba visual): abre la app, simula un caso, revisa que los tabs de Producción, Plazo y Comercial funcionen. El tab Campaña ahora dice "próximamente" — eso es correcto. Si algo se ve mal, avísame.
 
-2. **Resolver B-BED01 (datos de pantalla para factor BED).** El factor BED de T-16 necesita: ancho del equipo (m), rpm, stroke (mm) e inclinación de cada seleccionadora del catálogo. Sin esos datos, BED=1.0 (sin penalización). ¿Los tienen en algún manual?
+2. **B-BED01 (factor BED pendiente).** El factor de espesor de cama de la seleccionadora devuelve 1.0 hasta tener ancho, rpm, carrera e inclinación de cada pantalla. ¿Los tienen en algún manual?
 
-3. **Resolver B-07 (test Hierro SKIPPED).** ¿El 161 tph era de campo real o calculado con catálogo antiguo?
-
-4. **Integrar ramas a main.** Ramas acumuladas: `trabajo/2026-08-17`, `trabajo/2026-08-18`, `trabajo/2026-08-20`. Ver `WORKFLOW.md` sección 9.
+3. **B-campana01 (Modo Campaña en backend).** Las funciones de planificación de campaña (qué CSS usar para cada producto, cuántos meses toma) necesitan implementarse en el backend. ¿Es prioritario para clientes actuales?
 
 ---
 
 # 2 · BLOQUEOS ABIERTOS
+
+### B-campana01 · Modo Campaña pendiente de implementación en backend
+
+Las funciones de simulación de campaña (`computeCampaign`, `campaignUnoptTime`, `calcYieldsForCSS`)
+fueron eliminadas de `engine.js` (T-20) porque usaban un factor P80/CSS erróneo (×1,4–1,9).
+El motor correcto para campaña usa las curvas normalizadas del backend.
+Hasta que se implemente, el tab "Campaña" muestra un aviso al usuario.
+Requiere: implementar `POST /simulations/campaign` con secuencia de fases CSS, rendimientos por producto y horas estimadas.
 
 ### B-BED01 · factor_BED necesita datos de pantalla
 
@@ -158,7 +162,35 @@ en la simulación o es solo logística. Requiere decisión de Marcelo.
 
 # 3 · DETALLE DE LA ÚLTIMA SESIÓN
 
-### T-18 · Optimizador de CSS — COMPLETA · Commits `fbc084b`
+### Integración de `trabajo/2026-08-21` a `main`
+
+1. Guardados cambios pendientes (TASKS.md estados + WORKFLOW.md actualización push-to-main). Commit `4cb6535`.
+2. Suite completa: 328 passed, 1 skipped.
+3. `git merge trabajo/2026-08-21 → main`, push. Commit `16cb349`.
+
+### T-20 · Eliminar motor duplicado del frontend — HECHA PARCIAL
+
+**Análisis de `engine.js` (672 líneas):**
+- `runSimulation`: llama al backend (`POST /simulations/calculate`), NO es cálculo local. Correcto.
+- `buildAnalysis`: genera texto diagnóstico a partir del resultado. Lógica de display, no simulación.
+- `coneFactor`: usa P80 = CSS × 1,40–1,90. **Erróneo** (manual C-1540 da ×0,98 en CSS 19mm).
+- `calcYieldsForCSS`, `computeCampaign`, `campaignUnoptTime`: usan `coneFactor` erróneo.
+
+**Cambios:**
+- `runSimulation` → `krushrock-app/src/simulation.js` (idéntica, + import `G` que faltaba)
+- `buildAnalysis` → `krushrock-app/src/analysis.js`
+- `App.jsx`: import actualizado de `./engine.js` → `./simulation.js`
+- `Resultados.jsx`: import → `../analysis.js`; bloque campaña reemplazado por aviso
+- `engine.js` eliminado
+- Ningún archivo del proyecto importa ya de `engine.js`
+
+**Campaña:** el motor de campaña usaba `coneFactor` erróneo. Se eliminó. La pantalla muestra aviso "próximamente" con explicación técnica. Ver B-campana01 para implementar en backend.
+
+**Tests backend:** 328 passed, 1 skipped (sin regresiones).
+
+**Pendiente visual:** Marcelo debe revisar los tabs de Producción, Plazo y Comercial antes de integrar a main.
+
+*Sesiones anteriores: `docs/MEMORY_ARCHIVO.md`*
 
 **Implementación:** `app/services/css_optimizer.py`, función principal `optimize_css()`.
 

@@ -460,7 +460,8 @@ del enfoque.
 
 ---
 
-## T-20 · Eliminar el motor duplicado del frontend · PENDIENTE · PRIORIDAD MÁXIMA
+## T-20 · Eliminar el motor duplicado del frontend · HECHA PARCIAL
+*(engine.js eliminado; runSimulation → simulation.js; buildAnalysis → analysis.js; modo campaña deshabilitado con aviso hasta implementar en backend — ver MEMORY.md)*
 
 **Esto es corrección, no limpieza.** `krushrock-app/src/engine.js` (672 líneas) contiene lógica
 de simulación que corre en el navegador, en paralelo al backend. **Está en uso:**
