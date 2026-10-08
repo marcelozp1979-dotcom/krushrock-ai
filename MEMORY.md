@@ -13,27 +13,25 @@ Estructura fija de este archivo. El agente **no la cambia**:
 
 # 1 · PARTE DE LA ÚLTIMA SESIÓN
 
-**Fecha:** 17-ago-2026 · **Rama:** `trabajo/2026-08-20` · **Modo:** autónomo
+**Fecha:** 07-oct-2026 · **Rama:** `trabajo/2026-10-07b` → fusionada a `main` · **Modo:** supervisado
 
-**Resultado: T-18 y T-16 completadas. T-11 sigue BLOQUEADA (confirmado). 322 tests verdes, 1 omitido. Commits `fbc084b` (T-18) y `1a99482` (T-16).**
+**Resultado: T-23 completada. 333 tests verdes, 1 omitido. Commit `e2c5dfb` en main.**
 
 | Qué cambió | Detalle |
 |---|---|
-| Nuevo: `app/services/css_optimizer.py` | Función `optimize_css()`: busca por grilla el CSS por equipo que maximiza tph de producto. Valida D-06: abrir el CSS de la mandíbula aumenta caudal y supera el CSS mínimo. |
-| Nuevo: `tests/test_t18_css_optimizer.py` | 7 tests: mejora vs mínimo, CSS dentro de rango, campos obligatorios, grilla, interpolación, error sin equipos, límite de alimentación. |
-| Modificado: `app/services/screen_capacity.py` | Agrega `factor_NEA` (material tamaño cercano), `factor_BED` (espesor de cama, stub), `nominal_tph_with_feed` (capacidad con feed real). |
-| Nuevo: `tests/test_t16_nea_bed.py` | 9 tests: NEA=1 sin near-size, monotónica, rango válido, consistente con paper, BED=1 sin datos, BED penaliza cama alta, capacidad reduce con near-size. |
-| T-11: BLOQUEADA | Curvas de producto del C-1540 son gráficos en el PDF. pypdf no extrae valores; pdftoppm no disponible en el entorno. Los datos de capacidad (TPH vs CSS) ya estaban en el catálogo de sesiones anteriores. |
+| Bug corregido: `_viable_jaws()` | Descarta mandíbulas cuyo CSS mínimo >= tamaño máximo del feed (antes proponía J-960 con CSS 40 mm para material de 38 mm). |
+| Bug corregido: bloqueo B-04 eliminado | Se elimina `if not jaws: return []`: ahora el sistema genera configs sin mandíbula aunque no haya mandíbulas viables. |
+| Nuevo: configuración `cone_screen` | Cono + seleccionadora, sin mandíbula. Para material pre-chancado. |
+| Nuevo: configuración `screen_only` | Solo seleccionadora. Para material ya dentro del rango del producto. |
+| Nuevo: configuración `hsi_screen` | Impactor + seleccionadora. Alternativa a cono para roca blanda. |
+| Nuevas funciones: `_viable_hsi()`, `_make_hsi_node()` | Soporte para impactores en el recomendador. |
+| Nuevo: `tests/test_t23_no_jaw_precrushed.py` | 5 tests: opción A sin mandíbula, aprovechamiento > 67,5%, config es cone_screen o hsi_screen, sin jaw en todas las configs, campos correctos. |
 
 **Lo que necesito de ti, en orden:**
 
-1. **Resolver B-08 (curvas C-1540).** Ver las curvas granulométricas (Tablas 3.5, 3.8, 3.11, 3.14) en el manual C-1540 y pasarme los puntos aproximados (% pasante por tamaño de malla por CSS). Sin eso el C-1540 usa la curva genérica de cono.
+1. **Revisar visualmente T-20 (frontend).** La rama `trabajo/2026-10-07` tiene el motor duplicado (`engine.js`) eliminado del frontend. El modo campaña muestra un aviso "próximamente". Necesita prueba visual antes de fusionar a main. Ver WORKFLOW.md sección 9.
 
-2. **Resolver B-BED01 (datos de pantalla para factor BED).** El factor BED de T-16 necesita: ancho del equipo (m), rpm, stroke (mm) e inclinación de cada seleccionadora del catálogo. Sin esos datos, BED=1.0 (sin penalización). ¿Los tienen en algún manual?
-
-3. **Resolver B-07 (test Hierro SKIPPED).** ¿El 161 tph era de campo real o calculado con catálogo antiguo?
-
-4. **Integrar ramas a main.** Ramas acumuladas: `trabajo/2026-08-17`, `trabajo/2026-08-18`, `trabajo/2026-08-20`. Ver `WORKFLOW.md` sección 9.
+2. **Bloqueos anteriores siguen abiertos.** B-BED01 (datos de pantalla), B-02 (J-1175), B-07 (test Hierro), B-IM01 (I-110RS feed_max). Ver sección 2.
 
 ---
 
@@ -60,10 +58,9 @@ CSS más cerrado. Uno de los dos datos está mal. Revisar el manual y decir cuá
 | `_WI_REF` | 13,0 | Work Index promedio de "roca media", tablas de Bond (1952) | ¿Sirve como referencia? ¿Tienes el Wi típico de tus faenas? |
 | `_JAW_SCREEN_MIN_MM` | 20,0 mm | Umbral empírico, sin fuente | ¿20 mm es el límite real de mandíbula + seleccionadora en circuito abierto? |
 
-### B-04 · Segundo punto de retorno vacío en el recommender
-En `recommender.py` hay una segunda salida sin mensaje (`if not jaws: return []`), distinta a la
-que se arregló en T-02. Ocurre cuando ninguna mandíbula acepta el tamaño de roca de entrada.
-Debería explicar el motivo igual que ahora lo hace el caso de volumen imposible.
+### B-04 · RESUELTO EN T-23
+El bloqueo `if not jaws: return []` fue eliminado. El sistema ahora genera configs
+sin mandíbula (`cone_screen`, `screen_only`, `hsi_screen`) cuando no hay mandíbula viable.
 
 ### B-06 · El cono no tiene `mid_chamber_mm` en el catálogo
 Sin ese campo, el criterio C2 de D-05 (40–60% del material pasa a mitad de cámara) no se puede
@@ -158,45 +155,29 @@ en la simulación o es solo logística. Requiere decisión de Marcelo.
 
 # 3 · DETALLE DE LA ÚLTIMA SESIÓN
 
-### T-18 · Optimizador de CSS — COMPLETA · Commits `fbc084b`
+### T-23 · Recomendador sin mandíbula obligatoria — COMPLETA · Commit `e2c5dfb`
 
-**Implementación:** `app/services/css_optimizer.py`, función principal `optimize_css()`.
+**Causa raíz del bug:** `_viable_jaws(38.0)` devolvía todas las mandíbulas del catálogo
+(porque sus `feed_max_mm` de 580–1400 mm aceptan 38 mm). Pero el J-960 con CSS_min=40 mm
+no reduce nada con material de 38 mm: 38 < 40 = CSS → el material pasa de largo.
+Además el `if not jaws: return []` impedía generar configs sin mandíbula.
 
-**Algoritmo:**
-1. Genera grilla de CSS por equipo (`_grid_css`: paso mínimo 2 mm, máx 10 puntos)
-2. Para cada combinación (itertools.product): calcula caudal al cuello de botella (`min(cap_at_css para cada chancador, cap_pantalla) × capR × wi_factor`)
-3. Limita por feed disponible y `alimentacion_tph` externo
-4. Crea `Stream(tph_eff, feed_curve)` y simula: `crusher()` × N + `screen()` si hay pantalla
-5. Verifica razón de reducción antes de cada chancador (descarta si viola)
-6. Mide `_product_tph(output, products)` sumando fracciones dentro de rangos pedidos
-7. Retorna mejor combo + hasta 3 alternativas + razón en lenguaje simple + mejora vs CSS mínimo
+**Cambios en `app/services/recommender.py`:**
+- `_viable_jaws()`: agrega filtro `css_min_mm < feed_max_material_mm`
+- Elimina `if not jaws: return []` (bloqueo B-04)
+- Config F: `cone_screen` (cono + seleccionadora, sin mandíbula)
+- Config G: `screen_only` (seleccionadora sola, cuando feed ya es más fino que el producto)
+- Config H: `hsi_screen` (impactor + seleccionadora)
+- `_viable_hsi(feed_max_mm)`: análogo a `_viable_cones()` para impactores
+- `_make_hsi_node(eq, target_p80_mm)`: análogo a `_make_cone_node()`
 
-**Validación D-06:** con JAW-Test (css_min=50, cap=120 tph) y CONE-Test (css_min=20, cap=250 tph):
-- Al mínimo (jaw=50, cone=20): bottleneck=120 × 0.8 = 96 tph → product ≈ 82 tph
-- Al óptimo (jaw abierta): bottleneck sube → product > 200 tph
-- `mejora_vs_css_minimo_pct > 0` verificado ✓
+**Verificación del caso T-23:**
+- feed: granito, curva 100% < 38 mm, f80=30 mm
+- producto: 0–12,7 mm, 30 000 t, 2 meses
+- Resultado: opción A = `cone_screen` con C-1540 + M6x20-3D
+- Sin mandíbula ✓ · aprovechamiento > 67,5% ✓
 
-**Tests:** 7 tests (mejora vs mínimo, rango, campos, grilla, interpolación, error sin equipos, límite alim).
-
-### T-16 · Factores NEA y BED (VSMA Etapa 2) — COMPLETA · Commit `1a99482`
-
-**Nuevas funciones en `app/services/screen_capacity.py`:**
-
-- `factor_NEA(pct_near_aperture)`: penalización por material ±25% de la abertura. Tabla piecewise lineal (0%→1.00, 20%→0.83, 40%→0.65, 60%→0.50, 80%→0.38, 100%→0.28). Consistente con example del paper: NEA≈0.59 en 40–50% near-size.
-
-- `factor_BED(dm_inches, aperture_mm)`: espesor de cama. Implementado pero devuelve 1.0 cuando no hay datos (dm_inches=0). Fórmula: sin penalización hasta ratio dm/aperture=4, cae linealmente a 0.5 en ratio=8. **Pendiente datos de pantalla (B-BED01).**
-
-- `nominal_tph_with_feed(screen, aperture_mm, feed_stream)`: llama `nominal_tph()` y multiplica por `factor_NEA` calculado desde la curva real del feed. Usar cuando se dispone de la corriente de alimentación.
-
-**Tests:** 9 tests (NEA=1 sin material, monotónica, rango, consistente con paper, BED sin datos, BED cama baja, BED cama alta, tph sin near-size ≈ base, tph con near-size < sin near-size).
-
-### T-11 · Curvas de producto C-1540 — BLOQUEADA (B-08 confirmado)
-
-**Intento 1 (sesión anterior):** pypdf extrae solo texto, no valores de gráficos.
-**Intento 2 (esta sesión):** `pdftoppm` (poppler) no disponible en el entorno Windows → Read tool falla con `pdftoppm failed`.
-**Texto extraíble de páginas 76-79:** solo leyendas de gráficos ("Screen Mesh Size — Inches", "Percentage Passing", nombres de curvas por CSS). Los valores reales de % pasante no están en el texto del PDF.
-**Dato recuperado:** la Tabla 3.4 (cap TPH vs CSS, Long Throw Eccentric) SÍ estaba en texto y ya fue cargada al catálogo en T-10.
-**Conclusión:** para digitalizar las curvas de producto hay que abrir el manual manualmente, leer los gráficos, y pasar los puntos. La tarea queda bloqueada hasta que Marcelo lo haga.
+**Tests:** `tests/test_t23_no_jaw_precrushed.py` — 5 tests, todos verdes.
 
 ---
 

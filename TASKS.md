@@ -5,7 +5,7 @@ Estados: `PENDIENTE` · `EN CURSO` · `HECHA` · `BLOQUEADA`
 El agente trabaja **en orden**, de arriba hacia abajo. No reordena la cola.
 Reglas del ciclo en `WORKFLOW.md`. Prohibiciones en `WORKFLOW.md` sección 6.
 
-Última actualización: 28-jul-2026
+Última actualización: 07-oct-2026
 
 ---
 
@@ -460,7 +460,7 @@ del enfoque.
 
 ---
 
-## T-20 · Eliminar el motor duplicado del frontend · PENDIENTE · PRIORIDAD MÁXIMA
+## T-20 · Eliminar el motor duplicado del frontend · HECHA PARCIAL
 
 **Esto es corrección, no limpieza.** `krushrock-app/src/engine.js` (672 líneas) contiene lógica
 de simulación que corre en el navegador, en paralelo al backend. **Está en uso:**
@@ -526,6 +526,29 @@ Objetivo orientativo: ningún archivo sobre 500 líneas.
 
 **Regla:** dividir **sin cambiar comportamiento**. Si aparece un bug durante la división, se
 anota, no se arregla en la misma tarea.
+
+---
+
+## T-23 · El recomendador obliga a usar mandíbula · HECHA
+
+**Caso real que lo destapó (07-oct-2026, modo simple):**
+granito, alimentación con el 100% pasando 38 mm (material pre-chancado), producto 0–12,7 mm,
+30.000 t en 2 meses. El sistema proponía un **J-960 con CSS 40 mm** — una mandíbula abierta más
+que todo el material de entrada. No chanca nada: el material le pasa de largo.
+
+**Lo que se hizo:**
+
+1. `_viable_jaws()` ahora descarta mandíbulas cuyo CSS mínimo >= feed_max (no reducen nada).
+2. Eliminado el bloqueo B-04: `if not jaws: return []` — cuando no hay mandíbula viable
+   se siguen generando las configs sin mandíbula.
+3. Nuevas configuraciones: `cone_screen` (cono + seleccionadora), `screen_only` (solo
+   seleccionadora, cuando el material ya es más fino que el producto) y `hsi_screen`
+   (impactor + seleccionadora).
+4. Nuevas funciones: `_viable_hsi()` y `_make_hsi_node()`.
+5. 5 tests nuevos en `tests/test_t23_no_jaw_precrushed.py` (todos verdes).
+6. Suite completa: 333 passed, 1 skipped.
+
+**Commit:** `e2c5dfb` en rama `trabajo/2026-10-07b`, fusionado a main.
 
 ---
 
