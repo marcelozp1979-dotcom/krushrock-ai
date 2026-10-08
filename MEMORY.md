@@ -83,9 +83,17 @@ aporte el manual con las dimensiones de la criba (aproximado: 6 ft × 20 ft = 11
 pero NO cargar sin fuente citada del manual).
 
 ### B-T24-HF · 883 HF y 884 HF (Terex Finlay) — área sin manual
-No hay manuales de 883 HF ni 884 HF en `manuales/Seleccionadoras/`. Sin manuales, no se
-puede obtener el área de criba. Quedan en `screen_hf` (categoría que el recomendador no usa)
-hasta que Marcelo aporte los manuales.
+No hay manuales de 883 HF ni 884 HF en `manuales/Seleccionadoras/`. Retiradas del catálogo
+en T-25 (bloqueo B-T25-HF). Volver a agregar cuando Marcelo aporte los manuales.
+
+### B-T25-1D · screen_1d sin área — Warrior 600, MS 402i, ST1.5, QA141
+Cuatro seleccionadoras de 1 deck retiradas del catálogo en T-25 por no tener `area_m2_per_deck`
+ni manuales disponibles en `manuales/Seleccionadoras/`. Volver a agregar cuando Marcelo
+aporte los manuales con dimensiones de criba (largo × ancho en pies o metros).
+
+### B-T25-HF · screen_hf sin área — 883 HF, 884 HF, Warrior 2100, MOBISCREEN HF, SF Series HF
+Cinco seleccionadoras de alta frecuencia retiradas del catálogo en T-25 por no tener
+`area_m2_per_deck` ni manuales disponibles. Volver a agregar cuando Marcelo aporte manuales.
 
 ### B-06 · El cono no tiene `mid_chamber_mm` en el catálogo
 Sin ese campo, el criterio C2 de D-05 (40–60% del material pasa a mitad de cámara) no se puede

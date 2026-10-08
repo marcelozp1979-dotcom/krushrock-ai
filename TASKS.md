@@ -596,6 +596,28 @@ muestra 0 tph con porcentaje de aprovechamiento positivo. Los tests existentes s
 
 ---
 
+## T-25 · Cerrar los dos cabos de T-20 y T-24 · PENDIENTE · PRIORIDAD ALTA
+
+**a) Rescatar T-20.** El commit `8e5bcd5` de la rama `trabajo/2026-10-07` elimina `engine.js`
+(motor duplicado del frontend) y nunca se fusionó a `main`. Verificar que `main` no tenga
+`krushrock-app/src/engine.js` al terminar. **Antes de cerrar cualquier tarea, comprobar con
+`git log main` que el commit está realmente en `main`** — se ha reportado dos veces como
+integrado sin estarlo.
+
+**b) Ampliar el test de T-24.** `test_screens_seleccionables_tienen_area` solo recorre
+`_FALLBACK["screen"]`. Debe recorrer también `screen_1d` y `screen_hf`, donde hay 9 equipos sin
+`area_m2_per_deck`: Warrior 600, MS 402i, ST1.5, QA141, 883 HF, 884 HF, Warrior 2100,
+MOBISCREEN HF y SF Series HF.
+
+Para esos 9: cargar el área solo si está en un manual de `manuales/` (las Finlay 883 HF y 884 HF
+podrían tenerla). Los que no tengan fuente se retiran del catálogo con comentario, igual que se
+hizo con la Astec M6x20-3D. **No inventar áreas.**
+
+**Cómo se sabe que quedó bien:** `engine.js` no existe en `main`; el test cubre los tres grupos
+y pasa; ningún equipo del catálogo queda sin capacidad calculable. Suite completa verde.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada
