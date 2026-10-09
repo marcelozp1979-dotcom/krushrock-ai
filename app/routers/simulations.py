@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.routers.auth import get_current_user
 from app.services.simulation_engine import simulate, ROCK_DB
 from app.services.recommender import recommend, run_config, HOURS_PER_MONTH
+from app.services.equipment_classes import apply_equipment_classes
 from app.routers.equipment import _FALLBACK
 
 router = APIRouter()
@@ -175,6 +176,9 @@ class RecommendRequest(BaseModel):
     inchancables: bool = False
     horas_dia: Optional[float] = None
     dias_mes: Optional[float] = None
+    # modo "simple" → respuesta con clases de equipo (D-23, T-26)
+    # modo "advanced" → respuesta con marca y modelo (D-24, comportamiento actual)
+    mode: str = "advanced"
 
     @model_validator(mode="after")
     def check_feed_input(self) -> "RecommendRequest":
@@ -359,7 +363,10 @@ async def recommend_circuit(req: RecommendRequest):
             feed_curve_dict=feed_curve_dict,
             horas_dia=req.horas_dia,
             dias_mes=req.dias_mes,
+            mode=req.mode,
         )
+        if req.mode == "simple":
+            results = apply_equipment_classes(results)
         return {"recommendations": results}
     except Exception as exc:
         import traceback

@@ -282,6 +282,73 @@ deriva a Claude en Cowork, que sí puede renderizar el PDF.
 
 ---
 
+## D-23 · 08-oct-2026 · El modo simple recomienda clases de equipo, no marcas ni modelos
+
+El módulo de recomendación deja de proponer máquinas con marca y modelo. Propone **clases
+definidas por tamaño físico**, que es el lenguaje estándar de la industria y es comparable entre
+fabricantes:
+
+> "Mandíbula 900×600 · CSS 40 mm" · "Cono de 3 pies · CSS 12 mm" · "Seleccionadora 6×20 de 2 decks · malla 12,7 mm"
+
+Puede mostrarse una máquina de referencia a modo informativo, nunca como recomendación.
+
+**Por qué:**
+
+- **Legal.** Se deja de recomendar la máquina de un fabricante usando sus cifras publicadas. El
+  disclaimer "no afiliado a fabricantes" pasa a ser coherente con lo que hace el software.
+- **Comercial.** Un contratista con flota Metso no recibe una propuesta que le dice que compre
+  Finlay. El "o equipo equivalente" actual es una media tinta.
+- **Técnico.** "Cono de 3 pies con CSS 12 mm" *es* la especificación de ingeniería. La marca es
+  decisión de compra.
+- **De datos.** Hoy 74 de 79 equipos del catálogo no tienen fuente de manual. Con clases se
+  necesitan seis u ocho clases bien documentadas en vez de 79 modelos.
+
+**Condición que no se negocia:** una clase genérica no tiene curva de capacidad propia. **Cada
+clase se define con los datos de manual de una máquina real que la representa.** El C-1540 deja
+de ser "el equipo recomendado" y pasa a ser "la referencia que define la clase cono de 3 pies".
+Sin esa ancla el motor no tiene física con la que calcular.
+
+**Efecto secundario:** esto vuelve mucho más valiosa la funcionalidad de flota propia (D-01,
+RF-3), nunca construida. El software dice "necesitas un cono de 3 pies"; el cliente responde
+"tengo un Maxtrak 1000, ¿sirve?".
+
+*Decidió: Marcelo.*
+
+---
+
+## D-24 · 08-oct-2026 · El catálogo de modelos se mantiene, pero marcado
+
+El modo avanzado sigue trabajando con marcas y modelos específicos; solo el modo simple pasa a
+clases genéricas.
+
+**Riesgo asumido y su mitigación:** mantener el catálogo deja vivo el problema de los datos sin
+fuente, solo lo traslada al modo avanzado. Para contenerlo, **todo equipo sin fuente documentada
+debe aparecer marcado como "datos no verificados"** en pantalla y en el PDF de propuesta — el
+mismo tratamiento que RF-4 definió para los equipos que carga el cliente.
+
+*Decidió: Marcelo.*
+
+---
+
+## D-25 · 08-oct-2026 · Detalles de las clases de equipo
+
+Complementa D-23. Lista de clases en `docs/CLASES_DE_EQUIPO.md`.
+
+**Nomenclatura: milímetros y pies, ambos.** "Cono de 3 pies (1000 mm)". El milímetro es el dato
+de ingeniería; el pie es como se habla en faena.
+
+**La máquina de referencia NO se muestra al cliente.** Vive solo en el código, como ancla de los
+cálculos. Mostrar "Cono de 3 pies (ref. Finlay C-1540)" sería recomendar una marca con otra
+redacción, que es justo lo que D-23 quiere evitar. No aparece ni en pantalla ni en el PDF.
+
+**Se completan primero los cuatro datos faltantes**, antes de lanzar el modo simple con clases.
+Están todos en manuales que Marcelo ya tiene y la extracción es automatizable, así que no
+justifica lanzar con nueve clases incompletas.
+
+*Decidió: Marcelo.*
+
+---
+
 ## D-11 · anterior · No extraer datos desde AggFlow
 AggFlow se usa solo como referencia de validación, nunca como fuente del catálogo.
 **Por qué:** licencia COMECO.

@@ -618,6 +618,76 @@ y pasa; ningún equipo del catálogo queda sin capacidad calculable. Suite compl
 
 ---
 
+## T-28 · Completar los cuatro datos que faltan para las clases · PENDIENTE · PRIORIDAD ALTA
+
+Previo obligatorio de T-26. Todos los datos están en `manuales/`. **Si alguno no aparece en el
+manual, se anota en `MEMORY.md` y no se inventa.**
+
+1. **Abertura de boca** (ancho × alto, mm) del **J-1175** y del **J-1280**.
+2. **Diámetro de cabeza del cono** del **C-1545** y del **C-1550+**.
+3. **Curva de capacidad** (tph vs CSS) del **J-1480** y del **J-1160** — hoy no tienen tabla con
+   fuente, solo curva de producto.
+4. **Rango de CSS** de los impactores Finlay (I-110RS, I-120, I-130RS, I-140, IC-100). Procesar
+   de paso los 4 manuales que quedaron sin extraer: I-120, I-130RS, I-140 y el scalper 893+.
+
+Actualizar con lo encontrado: el catálogo, `docs/CLASES_DE_EQUIPO.md` y los documentos de
+`docs/DATOS_MANUALES_*.md` correspondientes, siempre con la página del manual citada.
+
+**Referencia:** `docs/CLASES_DE_EQUIPO.md` sección 5 · DECISIONS.md D-25.
+
+---
+
+## T-26 · Clases de equipo en el modo simple · HECHA · (09-oct-2026)
+
+**Diez clases completas disponibles** (dimensión física + curva de capacidad con fuente):
+
+- Mandíbulas: **900×600** (ref J-960) · **1100×700** (ref J-1170) · **1070×762** (ref J-1175)
+- Conos: **1000 mm / 3 pies** (ref C-1540) · **1300 mm / 4¼ pies** (ref C-1550+)
+- Seleccionadoras: **3,65×1,5 · 2 decks** · **4,3×1,7 · 2 decks** · **4,3×1,7 · 3 decks** ·
+  **6,1×1,52 · 3 decks** · **6,1×1,70 · 3 decks**
+
+Sin clase por falta de dato, confirmado contra manual: J-1160 y J-1480 (sus manuales no publican
+tabla de tph), J-1280 (falta abertura), C-1545 (su manual solo da rangos globales), C-1554 (sin
+manual). Impactores: ninguna clase, sin curva de capacidad.
+
+Implementa D-23 y D-25. Lista de clases aprobada en `docs/CLASES_DE_EQUIPO.md`.
+
+**Reglas de presentación (D-25):**
+
+- Nomenclatura en **pies y milímetros**: "Cono de 3 pies (1000 mm) · CSS 12 mm".
+- **La máquina de referencia no se muestra nunca** al cliente: ni en pantalla ni en el PDF.
+  Vive solo en el código como ancla de los cálculos.
+
+**Qué hará:**
+
+1. Crear `app/services/equipment_classes.py` con las clases definidas por tamaño físico, cada
+   una anclada a los datos de manual de una máquina real de referencia (curva de capacidad,
+   rango de CSS, boca de entrada, área de criba).
+2. El recomendador del modo simple devuelve **clases**, no modelos: "Cono de 3 pies · CSS 12 mm".
+3. Puede incluirse la máquina de referencia como dato informativo, claramente etiquetado como
+   referencia y no como recomendación.
+4. El PDF de propuesta refleja lo mismo.
+
+**No tocar el modo avanzado** en esta tarea: sigue trabajando con modelos (D-24).
+
+**Referencia:** DECISIONS.md D-23.
+
+---
+
+## T-27 · Marcar los equipos sin fuente en el modo avanzado · PENDIENTE
+
+Implementa D-24. Todo equipo del catálogo sin `capacity_source` debe mostrarse marcado como
+**"datos no verificados"** en pantalla y en el PDF de propuesta. Hoy son 74 de 79.
+
+Mismo tratamiento que RF-4 definió para los equipos que carga el cliente.
+
+**Cómo se sabe que quedó bien:** test que verifique que un equipo sin `capacity_source` viene
+con la marca en la respuesta de la API. Suite completa verde.
+
+**Referencia:** DECISIONS.md D-24 · REQUISITOS.md RF-4 y RF-10.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada
