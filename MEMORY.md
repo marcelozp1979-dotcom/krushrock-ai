@@ -13,29 +13,26 @@ Estructura fija de este archivo. El agente **no la cambia**:
 
 # 1 · PARTE DE LA ÚLTIMA SESIÓN
 
-**Fecha:** 07-oct-2026 · **Ramas:** `trabajo/2026-10-07b` y `trabajo/2026-10-07c` → fusionadas a `main` · **Modo:** supervisado
+**Fecha:** 08-oct-2026 · **Rama:** `trabajo/2026-10-08c` → fusionada a `main` · **Modo:** supervisado
 
-**Resultado: T-23 y T-24 completadas. 333 tests verdes, 1 omitido.**
+**Resultado: T-29 completada — dimensiones físicas copiadas al catálogo. 329 tests verdes, 1 omitido.**
 
-| Qué cambió | Detalle |
+| Qué cambió | Detalle en lenguaje de negocio |
 |---|---|
-| T-23: Bug corregido en `_viable_jaws()` | Descarta mandíbulas con CSS_min >= feed_max (el J-960 con CSS 40 mm ya no se propone para material de 38 mm). |
-| T-23: Bloqueo B-04 eliminado | Cuando no hay mandíbula viable el sistema sigue generando configs sin mandíbula. |
-| T-23: Nuevas configs `cone_screen`, `screen_only`, `hsi_screen` | Circuitos sin mandíbula para material pre-chancado. |
-| T-23: `tests/test_t23_no_jaw_precrushed.py` | 5 tests: sin mandíbula, aprovechamiento > 67,5%, config correcta, todos verdes. |
-| T-24: `_viable_screens()` filtra screens sin área | Seleccionadoras donde `nominal_tph()==0` ya no se proponen (elimina el "0 tph con 100% aprovechamiento"). |
-| T-24: M6x20-3D retirada del catálogo | Sin manual con área de criba disponible. Ver bloqueo B-T24-M6x20. |
-| T-24: `test_screens_seleccionables_tienen_area()` | Trinquete en `test_catalogo_coherencia.py`: falla si una screen del catálogo queda sin área calculable. |
+| J-960: abertura de boca cargada | 900×600 mm — del manual oficial Rev 5.2. La ficha ahora tiene dato confirmado. |
+| J-1160: abertura de boca cargada | 1000×600 mm — del manual oficial Rev 4.8. |
+| J-1170: abertura de boca cargada | 1100×700 mm — del manual oficial Rev 1.0. |
+| J-1480: abertura de boca cargada | 1397×762 mm (Jaques 54"×30") — del manual oficial Rev 291116-10. |
+| C-1540: diámetro de cabeza cargado | 1000 mm (40") — del folleto oficial Terex Finlay 2022. |
+| `docs/CLASES_DE_EQUIPO.md` actualizado | La tabla de mandíbulas ahora tiene abertura y fuente para J-960, J-1160, J-1170, J-1480, J-1175. La tabla de conos tiene diámetro y fuente para los tres modelos. |
 
 **Lo que necesito de ti:**
 
-1. **Revisar visualmente T-20 (frontend).** `engine.js` eliminado, `simulation.js` y `analysis.js` activos. El modo campaña muestra "próximamente". Necesita prueba visual: abre la app, simula un caso, revisa tabs de Producción, Plazo y Comercial.
+1. **J-1280: conseguir el manual.** No hay ningún manual de J-1280 en la carpeta de manuales. Sin manual no se puede confirmar la abertura de boca ni incorporarlo a las clases de modo simple. (B-MJ05)
 
-2. **M6x20-3D (Astec): aportar manual con área de criba.** Ver bloqueo B-T24-M6x20.
+2. **J-1480 y J-1160: tabla de capacidad (tph vs CSS).** Sus manuales disponibles tienen solo curvas de granulometría, no tablas de tph. Sin eso no se puede hacer la curva de capacidad para modo simple. (B-MJ04, B-MJ02)
 
-3. **883 HF y 884 HF (Terex Finlay HF): aportar manual con área.** Sin manuales en la carpeta, quedan excluidas.
-
-4. **Bloqueos anteriores siguen abiertos.** B-BED01 (datos de pantalla), B-02 (J-1175), B-07 (test Hierro), B-campana01 (Modo Campaña en backend). Ver sección 2.
+3. **Bloqueos anteriores siguen abiertos.** B-BED01, B-02, B-campana01, B-SC01 ("Rinser 873" vs 873+), y los bloqueos de impactores. Ver sección 2.
 
 ---
 
@@ -187,6 +184,33 @@ en la simulación o es solo logística. Requiere decisión de Marcelo.
 ---
 
 # 3 · DETALLE DE LA ÚLTIMA SESIÓN
+
+### T-29 · Dimensiones físicas al catálogo — COMPLETA · Rama `trabajo/2026-10-08c`
+
+**Fuentes consultadas:**
+- `docs/DATOS_MANUALES_MANDIBULAS.md`: abertura J-960 (900×600), J-1160 (1000×600), J-1170 (1100×700), J-1480 (1397×762).
+- `docs/DATOS_MANUALES_CONOS.md`: C-1540 no tiene ficha en ese archivo. Fuente usada: folleto oficial Terex Finlay C-1540 (2022) indicado por Marcelo.
+
+**Búsquedas bloqueadas confirmadas:**
+- J-1280: ningún manual en `manuales/Mandíbulas/`. B-MJ05 confirmado.
+- J-1480 capacidad: Rev 291116-10 solo tiene curvas de granulometría. B-MJ04 confirmado.
+- J-1160 capacidad: Rev 4.8 secciones 3.6/3.7/3.8 sin tabla tph. B-MJ02 confirmado.
+
+**Cambios en `app/routers/equipment.py`:**
+- J-960: `jaw_opening_mm: {width: 900, height: 600}` — Manual Rev 5.2 p.4-4 (PDF p.88).
+- J-1160: `jaw_opening_mm: {width: 1000, height: 600}` — Manual Rev 4.8 p.3-11 (PDF p.85).
+- J-1170: `jaw_opening_mm: {width: 1100, height: 700}` — Manual Rev 1.0 p.3-13 (PDF p.61).
+- J-1480: `jaw_opening_mm: {width: 1397, height: 762}` — Manual Rev 291116-10 IT-3 (PDF p.50).
+- C-1540: `head_diameter_mm: 1000` — Folleto oficial Terex Finlay C-1540 (2022).
+
+**Cambios en `docs/CLASES_DE_EQUIPO.md`:**
+- Tabla mandíbulas: columna "Fuente abertura" agregada; J-1160 incorporada como clase nueva.
+- Tabla conos: columna "Fuente diámetro" agregada.
+- Resumen §5 actualizado: mandíbulas con abertura confirmada = 4 (falta solo J-1280).
+
+**Tests:** 329 passed, 1 skipped.
+
+---
 
 ### T-24 · Seleccionadoras sin área excluidas del recomendador — COMPLETA · Commit `14abd20`
 

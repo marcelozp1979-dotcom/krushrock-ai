@@ -20,33 +20,37 @@ no sirve para calcular.
 
 ## 1 · Mandíbulas — clase por abertura de boca (ancho × alto, mm)
 
-| Clase | Referencia | Abertura | CSS | Capacidad | Curva |
-|---|---|---|---|---|---|
-| **Mandíbula 900×600** | Terex Finlay J-960 | 900×600 mm | 40–125 mm | 65–160 tph | ✔ |
-| **Mandíbula 1100×700** | Terex Finlay J-1170 | 1100×700 mm | 50–150 mm | — | ✔ |
-| **Mandíbula 1070×762** | Terex Finlay J-1175 | **1070 × 762 mm** | 50–175 mm | 113–452 tph | ✔ |
-| **Mandíbula 1400×760** | Terex Finlay J-1480 | 1397×762 mm | 100–200 mm | — | ✘ |
+| Clase | Referencia | Abertura | CSS | Capacidad | Curva | Fuente abertura |
+|---|---|---|---|---|---|---|
+| **Mandíbula 900×600** | Terex Finlay J-960 | **900×600 mm** | 40–125 mm | 65–160 tph | ✔ | Manual Rev 5.2 p.4-4 (PDF p.88) |
+| **Mandíbula 1000×600** | Terex Finlay J-1160 | **1000×600 mm** | 40–145 mm | 150–280 tph | ✘ | Manual Rev 4.8 p.3-11 (PDF p.85) |
+| **Mandíbula 1100×700** | Terex Finlay J-1170 | **1100×700 mm** | 50–150 mm | 90–290 tph | ✔ | Manual Rev 1.0 p.3-13 (PDF p.61) |
+| **Mandíbula 1070×762** | Terex Finlay J-1175 | **1070×762 mm** | 50–175 mm | 113–452 tph | ✔ | Manual Rev 8.8 p.4-4 (PDF p.91) |
+| **Mandíbula 1400×760** | Terex Finlay J-1480 | **1397×762 mm** | 100–200 mm | — | ✘ | Manual Rev 291116-10 IT-3 (PDF p.50) |
 
-**Estado T-28:**
+**Estado T-29 (2026-10-08):**
 
-- **J-1175:** abertura confirmada **1070 × 762 mm** — Manual Rev 8.8 p.4-4 (PDF p.91).
+- **J-960:** abertura confirmada **900×600 mm** — Manual Rev 5.2 p.4-4 (PDF p.88). Cargado al catálogo.
+- **J-1160:** abertura confirmada **1000×600 mm** — Manual Rev 4.8 p.3-11 (PDF p.85). Cargado al catálogo. Sin tabla de capacidad tph en Rev 4.8 (B-MJ02).
+- **J-1170:** abertura confirmada **1100×700 mm** — Manual Rev 1.0 p.3-13 (PDF p.61). Cargado al catálogo.
+- **J-1175:** abertura confirmada **1070×762 mm** — Manual Rev 8.8 p.4-4 (PDF p.91). Ya estaba en catálogo desde T-28.
+- **J-1480:** abertura confirmada **1397×762 mm** — Manual Rev 291116-10 IT-3 (PDF p.50). Cargado al catálogo. Sin tabla de capacidad tph en Rev 291116-10 (B-MJ04).
 - **J-1280:** sin manual disponible (B-MJ05). La clase J-1280 queda sin abertura física hasta obtener el manual.
-- **J-1480:** sin tabla de capacidad en Rev 291116-10 (B-MJ04). La clase 1397×762 queda sin física.
-- **J-1160:** sin tabla de capacidad en Rev 4.8 (B-MJ02). La clase 1000×600 queda sin física.
 
 ---
 
 ## 2 · Conos — clase por diámetro de cabeza
 
-| Clase | Referencia | Cabeza | CSS | Capacidad | Curva |
-|---|---|---|---|---|---|
-| **Cono 1000 mm (≈3 pies)** | Terex Finlay C-1540 | 1000 mm (40") | 19–32 mm | 125–220 tph | ✔ + curva de producto digitalizada |
-| **Cono 1150 mm (≈45")** | Terex Finlay C-1545 | **1150 mm (45")** | 18–45 mm | 175–240 tph | ✘ (el manual solo da rangos globales) |
-| **Cono 1300 mm (≈52")** | Terex Finlay C-1550+ | **1300 mm (52")** | 22–50 mm | 250–589 tph | ✔ (15 puntos, la mejor tabla del catálogo) |
+| Clase | Referencia | Cabeza | CSS | Capacidad | Curva | Fuente diámetro |
+|---|---|---|---|---|---|---|
+| **Cono 1000 mm (≈40")** | Terex Finlay C-1540 | **1000 mm (40")** | 19–32 mm | 125–220 tph | ✔ + curva de producto digitalizada | Folleto oficial Terex 2022 |
+| **Cono 1150 mm (≈45")** | Terex Finlay C-1545 | **1150 mm (45")** | 18–45 mm | 175–240 tph | ✘ (el manual solo da rangos globales) | Manual Rev 5.1 p.3-17 (PDF p.95) |
+| **Cono 1300 mm (≈52")** | Terex Finlay C-1550+ | **1300 mm (52")** | 22–50 mm | 250–589 tph | ✔ (15 puntos, la mejor tabla del catálogo) | Manual Rev 1.4 p.3-12 (PDF p.76) |
 
-**Estado T-28:** diámetros de cabeza confirmados de sus manuales oficiales.
-- C-1545: **1150 mm (45")** — Manual Rev 5.1 p.3-17 (PDF p.95).
-- C-1550+: **1300 mm (52")** — Manual Rev 1.4 p.3-12 (PDF p.76), modelo TC 1300X.
+**Estado T-29 (2026-10-08):** diámetros de cabeza confirmados de sus fuentes oficiales.
+- C-1540: **1000 mm (40")** — Folleto oficial Terex Finlay C-1540 (2022). Cargado al catálogo.
+- C-1545: **1150 mm (45")** — Manual Rev 5.1 p.3-17 (PDF p.95). Ya estaba desde T-28.
+- C-1550+: **1300 mm (52")** — Manual Rev 1.4 p.3-12 (PDF p.76), modelo TC 1300X. Ya estaba desde T-28.
 
 ---
 
@@ -89,17 +93,16 @@ a la apertura de la **rampa A (inferior)**.
 
 | Familia | Clases sólidas hoy | Bloqueadas por falta de dato |
 |---|---|---|
-| Mandíbulas | 3 | 1 (J-1280 sin manual; J-1480 y J-1160 sin curva de capacidad) |
+| Mandíbulas | 3 | 2 (J-1280 sin abertura; J-1480 y J-1160 tienen abertura pero sin curva de capacidad) |
 | Conos | 3 | 0 |
 | Seleccionadoras | 5 | 0 |
 | Impactores | 0 | todas (falta curva tph) |
 
 **Once clases sólidas** (con física completa: abertura, CSS, curva de capacidad).
-Se agregaron C-1545 y C-1550+ al confirmar su diámetro de cabeza en T-28.
 
-**Pendiente tras T-28:**
+**Pendiente tras T-29:**
 1. J-1280: sin manual (B-MJ05). Abertura desconocida.
-2. J-1480 y J-1160: sin tabla de capacidad tph en las versiones de manual disponibles.
+2. J-1480 y J-1160: abertura confirmada y cargada; sin tabla de capacidad tph en los manuales disponibles (B-MJ04, B-MJ02).
 3. Impactores: CSS parcialmente cargado (I-120RS, I-140RS) pero sin tabla tph → no recomendables en modo simple.
 
 ---

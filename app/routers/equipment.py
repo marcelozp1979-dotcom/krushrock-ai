@@ -34,7 +34,8 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "cap_min_tph": 60, "cap_max_tph": 175,
             "feed_max_mm": 580, "decks": None,
             "min_product_mm": 50,  # D-14: confirmado por Marcelo
-            "extra_specs": {"palanca": "doble", "rpm": 320},
+            "extra_specs": {"palanca": "doble", "rpm": 320, "jaw_opening_mm": {"width": 900, "height": 600}},
+            # jaw_opening_mm — Manual Terex Finlay J-960 Rev 5.2 p.4-4 (PDF p.88)
             "notes": "Compacta, orugas",
             "curves": {
                 "css": [40, 50, 63, 75, 100, 125],
@@ -48,7 +49,8 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "cap_min_tph": 150, "cap_max_tph": 280,
             "feed_max_mm": 600, "decks": None,
             "min_product_mm": 50,  # D-14: confirmado por Marcelo
-            "extra_specs": {"palanca": "simple", "rpm": 260},
+            "extra_specs": {"palanca": "simple", "rpm": 260, "jaw_opening_mm": {"width": 1000, "height": 600}},
+            # jaw_opening_mm — Manual Terex Finlay J-1160 Rev 4.8 p.3-11 (PDF p.85)
             "notes": "Orugas, hidrostático, boca 1000x600; rpm 220-300",
             "specs_source": "Manual Terex J-1160 Rev 4.2, datos técnicos",
             # Tablas de granulometría idénticas a J-1175 (misma familia de cámara JW3042)
@@ -76,7 +78,8 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "cap_min_tph": 90, "cap_max_tph": 290,
             "feed_max_mm": 700, "decks": None,
             "min_product_mm": 75,  # D-14: confirmado por Marcelo
-            "extra_specs": {"palanca": "simple"},
+            "extra_specs": {"palanca": "simple", "jaw_opening_mm": {"width": 1100, "height": 700}},
+            # jaw_opening_mm — Manual Terex Finlay J-1170 Rev 1.0 p.3-13 (PDF p.61)
             "notes": "Orugas, hidrostático, boca 1100x700; CSS mín 75 en cantera",
             "curves": {
                 "css": [50, 64, 75, 90, 100, 125],
@@ -157,7 +160,8 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "cap_min_tph": 400, "cap_max_tph": 600,
             "feed_max_mm": 1400, "decks": None,
             "min_product_mm": 100,  # D-14: confirmado por Marcelo
-            "extra_specs": {"palanca": "simple", "rpm": 250},
+            "extra_specs": {"palanca": "simple", "rpm": 250, "jaw_opening_mm": {"width": 1397, "height": 762}},
+            # jaw_opening_mm — Manual Terex Finlay J-1480 Rev 291116-10 IT-3 (PDF p.50): "Jaques 54x30 (1397x762 mm)"
             "notes": "Orugas, gran formato",
             "product_curve": {
                 0.08: 5.0, 0.10: 6.1, 0.125: 7.3, 0.15: 8.7, 0.175: 10.1,
@@ -214,7 +218,8 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "css_min_mm": 19, "css_max_mm": 32,
             "cap_min_tph": 125, "cap_max_tph": 220,
             "feed_max_mm": 160, "decks": None,
-            "extra_specs": {"rpm": 280},
+            "extra_specs": {"rpm": 280, "head_diameter_mm": 1000},
+            # head_diameter_mm — Folleto oficial Terex Finlay C-1540 (2022): "diámetro de cabeza 1000 mm (40")"
             "notes": "Cono secundario — excéntrico largo, cóncavo Medium Coarse",
             "curves": {"css": [19, 22, 25, 28, 32], "tph": [135.0, 160.0, 170.0, 180.0, 190.0]},
             "capacity_source": "Manual Terex Finlay C-1540 Rev 2.7 (16-04-2025), Tabla 3.4 p.3-14 — excéntrico largo, cóncavo Medium Coarse; punto medio de rangos",
