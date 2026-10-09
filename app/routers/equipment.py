@@ -99,8 +99,9 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "cap_min_tph": 122, "cap_max_tph": 452,
             "feed_max_mm": 790, "decks": None,
             "min_product_mm": 75,  # D-14: confirmado por Marcelo
-            "extra_specs": {"palanca": "doble", "rpm": 290},
+            "extra_specs": {"palanca": "doble", "rpm": 290, "jaw_opening_mm": {"width": 1070, "height": 762}},
             "notes": "Orugas, C13 ACERT",
+            # jaw_opening_mm — Manual Terex Finlay J-1175 Rev 8.8 p.4-4 (PDF p.91): "Jaques 42x30 de simple efecto (1.070x762 mm)"
             # Curva de capacidad — Manual Terex Finlay J-1175 Rev 8.8 p.3-10
             "curves": {
                 "css": [50, 60, 75, 90, 100, 115, 125, 140, 150, 165, 175],
@@ -237,8 +238,9 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "css_min_mm": 18, "css_max_mm": 45,
             "cap_min_tph": 175, "cap_max_tph": 240,
             "feed_max_mm": 180, "decks": None,
-            "extra_specs": {"rpm": 285},
+            "extra_specs": {"rpm": 285, "head_diameter_mm": 1150},
             "notes": "Cono alta eficiencia — carrera larga, cóncavo MC",
+            # head_diameter_mm — Manual Terex Finlay C-1545 Rev 5.1 p.3-17 (PDF p.95): "Tamaño (diámetro del cabezal): 1150 mm (45 pulgadas)"
             "capacity_source": "Manual Terex Finlay C-1545 Rev 5.1, Tabla 3.5 — carrera larga, cóncavo Medium Coarse; sin tabla de curva css-tph",
         },
         {
@@ -246,8 +248,9 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "css_min_mm": 22, "css_max_mm": 50,
             "cap_min_tph": 250, "cap_max_tph": 589,
             "feed_max_mm": 220, "decks": None,
-            "extra_specs": {"rpm": 290},
+            "extra_specs": {"rpm": 290, "head_diameter_mm": 1300},
             "notes": "Alta capacidad, orugas — excéntrica larga, cóncavo MC",
+            # head_diameter_mm — Manual Terex Finlay C-1550+ Rev 1.4 p.3-12 (PDF p.76): "TC 1300X... Tamaño (diámetro del cabezal): 1300 mm (52\")"
             "curves": {
                 "css": [22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50],
                 "tph": [276.5, 297.5, 321.0, 332.5, 349.5, 370.0, 387.5,
@@ -280,8 +283,14 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
     ],
     "hsi": [
         {"brand": "Terex Finlay",  "model": "I-110RS",       "type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 130, "cap_max_tph": 250, "feed_max_mm": 500,  "decks": None, "extra_specs": {}, "notes": "Primario/secundario, orugas — feed_max corregido per D-21 (manual IT-7: 304-500mm)"},
-        {"brand": "Terex Finlay",  "model": "I-120RS",       "type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 160, "cap_max_tph": 300, "feed_max_mm": 850,  "decks": None, "extra_specs": {}, "notes": "Con seleccionadora integrada"},
-        {"brand": "Terex Finlay",  "model": "I-140RS",       "type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 250, "cap_max_tph": 400, "feed_max_mm": 900,  "decks": None, "extra_specs": {}, "notes": "Alta capacidad, orugas"},
+        # I-120RS — Manual Rev 5.0 p.3-15 (PDF p.97): Apron A: 20-75mm, B: 40-180mm; p.3-11 (PDF p.93): apertura 1130×800mm, rotor 1040mm
+        {"brand": "Terex Finlay",  "model": "I-120RS",       "type": "hsi", "css_min_mm": 20, "css_max_mm": 75, "cap_min_tph": 160, "cap_max_tph": 300, "feed_max_mm": 850,  "decks": None,
+         "extra_specs": {"feed_opening_mm": {"width": 1130, "height": 800}, "rotor_diameter_mm": 1040, "apron_a_mm": {"min": 20, "max": 75}, "apron_b_mm": {"min": 40, "max": 180}},
+         "notes": "Con seleccionadora integrada"},
+        # I-140RS — Manual Rev 4.9 p.3-17 (PDF p.97): Apron A: 20-75mm, B: 50-150mm; p.3-12 (PDF p.92): apertura 1270×1000mm, rotor 1270mm
+        {"brand": "Terex Finlay",  "model": "I-140RS",       "type": "hsi", "css_min_mm": 20, "css_max_mm": 75, "cap_min_tph": 250, "cap_max_tph": 400, "feed_max_mm": 900,  "decks": None,
+         "extra_specs": {"feed_opening_mm": {"width": 1270, "height": 1000}, "rotor_diameter_mm": 1270, "apron_a_mm": {"min": 20, "max": 75}, "apron_b_mm": {"min": 50, "max": 150}},
+         "notes": "Alta capacidad, orugas"},
         {"brand": "Terex Finlay",  "model": "I-1312RS",      "type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 300, "cap_max_tph": 500, "feed_max_mm": 1100, "decks": None, "extra_specs": {}, "notes": "Primario, roca blanda-media"},
         {"brand": "Powerscreen",   "model": "XH320SR",       "type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 200, "cap_max_tph": 320, "feed_max_mm": 820,  "decks": None, "extra_specs": {}, "notes": "Impactor horizontal con seleccionadora integrada de recirculación"},
         {"brand": "Powerscreen",   "model": "Trakpactor 260","type": "hsi", "css_min_mm": None, "css_max_mm": None, "cap_min_tph": 150, "cap_max_tph": 280, "feed_max_mm": 800,  "decks": None, "extra_specs": {}, "notes": "Orugas"},
@@ -371,6 +380,9 @@ def _to_frontend(item: Dict[str, Any]) -> Dict[str, Any]:
     ):
         if item.get(opt) is not None:
             result[opt] = item[opt]
+    # D-24 / T-27: equipos sin fuente de capacidad verificada se marcan explícitamente
+    if not item.get("capacity_source"):
+        result["datos_no_verificados"] = True
     return result
 
 

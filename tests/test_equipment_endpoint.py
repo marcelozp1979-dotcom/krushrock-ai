@@ -79,7 +79,7 @@ class TestEquipmentEndpointFallback:
             assert "decks" in item, f"Zaranda sin decks: {item.get('model')}"
 
     def test_filter_hsi_returns_impactores(self):
-        """HSI no tiene CSS — no debe tener cssR en la respuesta."""
+        """HSI con css_min/max None no debe tener cssR; con apron range sí puede tenerlo (T-28)."""
         resp = client.get("/api/v1/equipment?type=hsi")
         assert resp.status_code == 200
         data = resp.json()
@@ -87,8 +87,16 @@ class TestEquipmentEndpointFallback:
         assert len(items) > 0, "No hay chancadores HSI"
         for item in items:
             assert "capR" in item
-            # HSI no tiene CSS; el endpoint no debe incluir cssR para estos
-            assert "cssR" not in item, f"HSI no debería tener cssR: {item['model']}"
+            # T-28: I-120RS e I-140RS tienen cssR (apron A range confirmado de manual)
+            # Los demás HSI sin css_min/max deben seguir sin cssR
+            if "cssR" in item:
+                css = item["cssR"]
+                assert isinstance(css, list) and len(css) == 2, (
+                    f"cssR de HSI debe ser lista [min, max]: {item['model']}"
+                )
+                assert css[0] is not None and css[1] is not None, (
+                    f"cssR de HSI con dato verificado no debe tener None: {item['model']}"
+                )
 
     def test_all_records_have_required_fields(self):
         """
@@ -132,3 +140,49 @@ class TestEquipmentEndpointFallback:
         data = resp.json()
         assert "equipment" in data
         assert len(data["equipment"]) == 0
+
+    def test_datos_no_verificados_presentes_sin_capacity_source(self):
+        """T-27 / D-24: equipos sin capacity_source deben tener datos_no_verificados=True."""
+        resp = client.get("/api/v1/equipment")
+        assert resp.status_code == 200
+        data = resp.json()
+        equipment = data["equipment"]
+        # equipment es dict de tipo -> lista cuando no se filtra por tipo
+        for tipo, items in equipment.items():
+            for item in items:
+                # Si el equipo tiene datos_no_verificados, debe ser True (nunca False ni otro)
+                if "datos_no_verificados" in item:
+                    assert item["datos_no_verificados"] is True, (
+                        f"{tipo}/{item['model']}: datos_no_verificados debe ser True"
+                    )
+
+    def test_datos_no_verificados_ausente_con_capacity_source(self):
+        """T-27 / D-24: equipos con capacity_source NO deben tener datos_no_verificados."""
+        # Los equipos con fuente verificada son: J-960, J-1170, J-1175, J-1280, J-1280H, C-1540, C-1545, C-1550+
+        modelos_verificados = {"J-960", "J-1170", "J-1175", "J-1280", "J-1280H", "C-1540", "C-1545", "C-1550+"}
+        resp = client.get("/api/v1/equipment")
+        assert resp.status_code == 200
+        data = resp.json()
+        equipment = data["equipment"]
+        for tipo, items in equipment.items():
+            for item in items:
+                if item["model"] in modelos_verificados:
+                    assert "datos_no_verificados" not in item, (
+                        f"{item['model']} tiene capacity_source y no debe tener datos_no_verificados"
+                    )
+
+    def test_mayoria_equipos_no_verificados(self):
+        """T-27: la mayoría de equipos (≥60) deben estar marcados como no verificados."""
+        resp = client.get("/api/v1/equipment")
+        assert resp.status_code == 200
+        data = resp.json()
+        equipment = data["equipment"]
+        total = sum(len(items) for items in equipment.values())
+        no_verif = sum(
+            1 for items in equipment.values()
+            for item in items
+            if item.get("datos_no_verificados")
+        )
+        assert no_verif >= 60, (
+            f"Se esperan ≥60 equipos sin fuente verificada, hay {no_verif} de {total}"
+        )

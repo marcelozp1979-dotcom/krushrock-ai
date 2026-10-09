@@ -9,13 +9,13 @@ Los PDF no se suben al repositorio (DECISIONS.md D-16); este documento sí.
 
 ## Estado de lectura de manuales
 
-| Manual disponible | Catálogo | Leído en T-13 |
-|---|---|---|
-| IC-100 & IC-100RS Rev 1.0 | NO está en catálogo | ✓ parcial |
-| I-110_RS Tier 3 & 4 Rev 020915-06 | I-110RS (hsi) | ✓ parcial |
-| I-120 & I-120RS Rev 5.0 | I-120RS (hsi) | ✗ pendiente |
-| I-130_RS Tier 3 Rev 081012-03 | NO está en catálogo | ✗ pendiente |
-| I-140 & I-140RS Rev 4.9 | I-140RS (hsi) | ✗ pendiente |
+| Manual disponible | Catálogo | Leído en T-13 | Leído en T-28 |
+|---|---|---|---|
+| IC-100 & IC-100RS Rev 1.0 | NO está en catálogo | ✓ parcial | — |
+| I-110_RS Tier 3 & 4 Rev 020915-06 | I-110RS (hsi) | ✓ parcial | — |
+| I-120 & I-120RS Rev 5.0 | I-120RS (hsi) | ✗ pendiente | ✓ completo |
+| I-130_RS Tier 3 Rev 081012-03 | NO está en catálogo | ✗ pendiente | ✓ parcial |
+| I-140 & I-140RS Rev 4.9 | I-140RS (hsi) | ✗ pendiente | ✓ completo |
 
 ---
 
@@ -31,8 +31,19 @@ Los PDF no se suben al repositorio (DECISIONS.md D-16); este documento sí.
 | **I-110RS** | cap_min | 130 tph | sin dato en manual | sin fuente |
 | **I-110RS** | cap_max | 250 tph | sin dato en manual | sin fuente |
 | **IC-100** | todo | no en catálogo | ver tabla abajo | nuevo |
-| **I-120RS** | todos | cap 160–300, feed 850 | **no leído** | pendiente |
-| **I-140RS** | todos | cap 250–400, feed 900 | **no leído** | pendiente |
+| **I-120RS** | apertura física | sin dato | **1130 × 800 mm** | nuevo |
+| **I-120RS** | diámetro rotor | sin dato | **1040 mm** | nuevo |
+| **I-120RS** | rampa A (CSS inferior) | None | **20–75 mm** | nuevo |
+| **I-120RS** | rampa B (superior) | None | **40–180 mm** | nuevo |
+| **I-120RS** | tph canteras caliza | 160–300 | **150–270 t/h** | ±10% — ver B-IM05 |
+| **I-130RS** | apertura física | sin dato | **1100 × 1240 mm** | nuevo |
+| **I-130RS** | diámetro rotor | sin dato | **1270 × 1220 mm** | nuevo |
+| **I-130RS** | feed_max | — | **304–560 mm** | nuevo |
+| **I-130RS** | rampas (CSS) | — | **no en manual Tier 3** | ver B-IM04 |
+| **I-140RS** | apertura física | sin dato | **1270 × 1000 mm** | nuevo |
+| **I-140RS** | diámetro rotor | sin dato | **1270 mm** | nuevo |
+| **I-140RS** | rampa A (CSS inferior) | None | **20–75 mm** | nuevo |
+| **I-140RS** | rampa B (superior) | None | **50–150 mm** | nuevo |
 
 ---
 
@@ -100,25 +111,82 @@ Los PDF no se suben al repositorio (DECISIONS.md D-16); este documento sí.
 
 ## I-120 / I-120RS
 
-**Estado:** Manual disponible (163 MB, Rev 5.0) pero **no leído en T-13** por límite de sesión.  
-**Catálogo:** I-120RS: cap_min=160, cap_max=300, feed_max=850.  
-Pendiente para próxima sesión.
+**Fuente:** Manual de funcionamiento Rev 5.0, 22-04-2024.  
+**Catálogo:** I-120RS: css_min=20, css_max=75 (rampa A), cap_min=160, cap_max=300, feed_max=850.
+
+### Especificaciones del manual
+
+| Dato | Valor | Página manual |
+|---|---|---|
+| Apertura de alimentación | **1130 × 800 mm** | 3-11 (PDF p.93) |
+| Diámetro del rotor | **1040 mm** | 3-11 (PDF p.93) |
+| Rampa A (inferior) mín/máx | **20 mm / 75 mm** | 3-15 (PDF p.97) |
+| Rampa B (superior) mín/máx | **40 mm / 180 mm** | 3-15 (PDF p.97) |
+| Relación A/B recomendada | 2,5:1 a 2:1 | 3-15 (PDF p.97) |
+| tph canteras caliza (2+2 barras mart.) | **150–270 t/h** | 3-21 (PDF p.103) |
+| Capacidad tph tabla oficial | **no publicada** | — |
+
+### Comparación con catálogo
+
+| Campo | Catálogo (antes T-28) | Manual | Nota |
+|---|---|---|---|
+| css_min_mm | None | **20 mm** (rampa A) | actualizado T-28 |
+| css_max_mm | None | **75 mm** (rampa A) | actualizado T-28 |
+| feed_max_mm | 850 | apertura 800mm (alto) × 1130mm (ancho) | ver B-IM05 |
+| cap_min / max | 160–300 tph | 150–270 (caliza) | ±10%, fuente no verificada |
 
 ---
 
 ## I-130RS
 
-**Estado:** Manual disponible (98 MB, Rev 081012-03 Tier 3) pero **no leído en T-13**.  
-**Catálogo:** No existe entrada para I-130RS.  
-Pendiente para próxima sesión.
+**Fuente:** Manual de funcionamiento Rev 081012-03 Tier 3, 2008.  
+**Catálogo:** No existe entrada para I-130RS (máquina más antigua que las actuales en catálogo).
+
+### Especificaciones del manual
+
+| Dato | Valor | Página manual |
+|---|---|---|
+| Trituradora | Cedarapids 1313/1316 | IT-4 (PDF p.53) |
+| Apertura de alimentación | **1100 × 1240 mm** | IT-4 (PDF p.53) |
+| Diámetro del rotor | **1270 × 1220 mm** | IT-4 (PDF p.53) |
+| Tamaño de alimentación máximo | **304–560 mm (12"–22")** | IT-6 (PDF p.55) |
+| Velocidades polea | 405–505 rpm / 485–595 rpm | IT-6 (PDF p.55) |
+| Motor | CAT C13, **328 kW (440 hp)** | IT-4 (PDF p.53) |
+| Peso I-130 | **49 t** | IT-6 (PDF p.55) |
+| Peso I-130RS | **61 t** | IT-6 (PDF p.55) |
+| Rango rampas (CSS) | **no encontrado en manual Tier 3** | ver B-IM04 |
+| Capacidad tph | orientativas (curvas rpm) | IT-7/8 (PDF p.56-57) |
+
+**Nota:** El manual Tier 3 (2008) muestra curvas de gradación por velocidad de rotor (sección 2.3.8, IT-7/IT-8) pero no incluye rangos de apertura de rampas en mm como los manuales Rev 4.x/5.x.
 
 ---
 
 ## I-140 / I-140RS
 
-**Estado:** Manual disponible (133 MB, Rev 4.9) pero **no leído en T-13** por límite de sesión.  
-**Catálogo:** I-140RS: cap_min=250, cap_max=400, feed_max=900.  
-Pendiente para próxima sesión.
+**Fuente:** Manual de funcionamiento Rev 4.9, 07-12-2023.  
+**Catálogo:** I-140RS: css_min=20, css_max=75 (rampa A), cap_min=250, cap_max=400, feed_max=900.
+
+### Especificaciones del manual
+
+| Dato | Valor | Página manual |
+|---|---|---|
+| Apertura de alimentación | **1270 × 1000 mm** | 3-12 (PDF p.92) |
+| Diámetro del rotor | **1270 mm** | 3-12 (PDF p.92) |
+| Velocidad del rotor | 466–665 rpm | 3-12 (PDF p.92) |
+| Barras de impacto | 2 largas + 2 cortas, martensita | 3-12 (PDF p.92) |
+| Rampa A (inferior) mín/máx | **20 mm / 75 mm** | 3-17 (PDF p.97) |
+| Rampa B (superior) mín/máx | **50 mm / 150 mm** | 3-17 (PDF p.97) |
+| Relación A/B recomendada | 2,5:1 a 2:1 | 3-17 (PDF p.97) |
+| Capacidad tph tabla oficial | **no publicada** | — |
+
+### Comparación con catálogo
+
+| Campo | Catálogo (antes T-28) | Manual | Nota |
+|---|---|---|---|
+| css_min_mm | None | **20 mm** (rampa A) | actualizado T-28 |
+| css_max_mm | None | **75 mm** (rampa A) | actualizado T-28 |
+| feed_max_mm | 900 | apertura 1000mm (alto) × 1270mm (ancho) | ≈ razonable |
+| cap_min / max | 250–400 tph | no publicada | sin fuente |
 
 ---
 
@@ -128,4 +196,8 @@ Pendiente para próxima sesión.
 
 - **B-IM02:** Las capacidades de los impactores HSI (cap_min, cap_max) del catálogo no tienen fuente de manual. Los manuales de I-110RS e IC-100 no publican tablas de tph (solo curvas de producto orientativas para piedra caliza). Los valores del catálogo son estimaciones comerciales sin fuente verificada.
 
-- **B-IM03:** I-120 & I-120RS, I-130RS, I-140 & I-140RS: manuales disponibles pero no leídos en T-13 por límite de sesión. Pendientes para próxima sesión o revisión T-13b.
+- **B-IM03:** *(Cerrado T-28)* I-120RS, I-130RS e I-140RS leídos en T-28. Ver secciones arriba.
+
+- **B-IM04:** I-130RS rango de rampas (CSS): el manual Tier 3 (Rev 081012-03, 2008) no incluye la sección "Ajuste de las rampas de impacto" con rangos en mm que sí tienen los manuales Rev 4.x/5.x (I-120RS, I-140RS, IC-100). Las páginas IT-7/IT-8 muestran curvas de gradación a diferentes velocidades de rotor pero sin especificar la apertura de rampa en mm. No hay datos de CSS disponibles para I-130RS en el manual disponible.
+
+- **B-IM05:** I-120RS feed_max: el catálogo dice 850mm, pero la apertura física del impactador es 1130mm × 800mm (alto). El valor 850mm no coincide con la apertura del manual. Puede ser una especificación del distribuidor o una interpretación diferente. Requiere aclaración con Terex antes de corregir. El campo feed_max_mm se mantiene en 850 hasta confirmar.
