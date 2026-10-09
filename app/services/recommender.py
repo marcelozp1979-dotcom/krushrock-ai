@@ -379,6 +379,7 @@ def recommend(
     dias_mes: Optional[float] = None,
     hours_per_month_input: Optional[float] = None,
     _return_all: bool = False,
+    mode: str = "advanced",
 ) -> List[Dict]:
     """
     Genera las 2 mejores configuraciones de equipo para un proyecto de chancado.
@@ -433,6 +434,14 @@ def recommend(
     # Partícula máxima a la salida de la mandíbula ≈ P80/0.8 (P80 es percentil 80, no máximo)
     cones = _viable_cones(jaw_target_p80 / 0.8)
     screens = _viable_screens(len(products), aperture_mm)
+
+    # Modo simple (D-23): restringir catálogo a las diez clases con física completa.
+    # Esto garantiza que todos los candidatos generados sean transformables a clase.
+    if mode == "simple":
+        from app.services.equipment_classes import get_class_name
+        jaws    = [e for e in jaws    if get_class_name("jaw",    e["model"])]
+        cones   = [e for e in cones   if get_class_name("cone",   e["model"])]
+        screens = [e for e in screens if get_class_name("screen", e["model"])]
 
     # Productos en el formato que acepta simulate()
     products_for_sim: Optional[List[Dict]] = (
