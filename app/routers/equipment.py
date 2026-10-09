@@ -380,6 +380,9 @@ def _to_frontend(item: Dict[str, Any]) -> Dict[str, Any]:
     ):
         if item.get(opt) is not None:
             result[opt] = item[opt]
+    # D-24 / T-27: equipos sin fuente de capacidad verificada se marcan explícitamente
+    if not item.get("capacity_source"):
+        result["datos_no_verificados"] = True
     return result
 
 
