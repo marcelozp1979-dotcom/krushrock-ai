@@ -7,6 +7,17 @@ Orden: la más reciente primero.
 
 ---
 
+## 07-oct-2026 — Sesión supervisada (trabajo/2026-10-07b + trabajo/2026-10-07c) — T-23, T-24
+
+**Resultado: T-23 y T-24 completadas. 333 tests verdes, 1 omitido.**
+
+| Tarea | Qué se logró |
+|---|---|
+| T-23 | `_viable_jaws()` descarta mandíbulas inviables (CSS_min >= feed_max). Se generan configs sin mandíbula: `cone_screen`, `screen_only`, `hsi_screen`. |
+| T-24 | `_viable_screens()` excluye screens sin área calculable. M6x20-3D retirada. Trinquete en `test_catalogo_coherencia.py`. |
+
+---
+
 ## 17-ago-2026 — Sesión autónoma (trabajo/2026-08-18) — T-15
 
 **Resultado: T-15 completada. 299 tests verdes, 2 omitidos. Commit `d41b278`.**
