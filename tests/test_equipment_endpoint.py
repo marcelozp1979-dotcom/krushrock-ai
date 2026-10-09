@@ -79,7 +79,7 @@ class TestEquipmentEndpointFallback:
             assert "decks" in item, f"Zaranda sin decks: {item.get('model')}"
 
     def test_filter_hsi_returns_impactores(self):
-        """HSI no tiene CSS — no debe tener cssR en la respuesta."""
+        """HSI con css_min/max None no debe tener cssR; con apron range sí puede tenerlo (T-28)."""
         resp = client.get("/api/v1/equipment?type=hsi")
         assert resp.status_code == 200
         data = resp.json()
@@ -87,8 +87,16 @@ class TestEquipmentEndpointFallback:
         assert len(items) > 0, "No hay chancadores HSI"
         for item in items:
             assert "capR" in item
-            # HSI no tiene CSS; el endpoint no debe incluir cssR para estos
-            assert "cssR" not in item, f"HSI no debería tener cssR: {item['model']}"
+            # T-28: I-120RS e I-140RS tienen cssR (apron A range confirmado de manual)
+            # Los demás HSI sin css_min/max deben seguir sin cssR
+            if "cssR" in item:
+                css = item["cssR"]
+                assert isinstance(css, list) and len(css) == 2, (
+                    f"cssR de HSI debe ser lista [min, max]: {item['model']}"
+                )
+                assert css[0] is not None and css[1] is not None, (
+                    f"cssR de HSI con dato verificado no debe tener None: {item['model']}"
+                )
 
     def test_all_records_have_required_fields(self):
         """

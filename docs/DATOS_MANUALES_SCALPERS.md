@@ -35,7 +35,7 @@ Los PDF no se suben al repositorio (DECISIONS.md D-16); este documento sí.
 | **883+** | motor | sin dato | CAT C4.4 **83 kW** Tier3 / **82 kW** Tier4 | nuevo |
 | **883+** | cap_min/max | 80–200 tph | sin dato en manual | sin fuente |
 | **863+** | todo | no en catálogo | ver tabla abajo | nuevo |
-| **893+** | todo | no en catálogo | **no leído** | pendiente |
+| **893+** | todo | no en catálogo | **leído T-28** | ver sección abajo |
 
 ---
 
@@ -140,9 +140,32 @@ Los PDF no se suben al repositorio (DECISIONS.md D-16); este documento sí.
 
 ## 893+
 
-**Estado:** Manual disponible (83 MB, Rev 2) pero **no leído en T-13** por límite de sesión.  
-**Estado en catálogo:** No existe entrada para 893+.  
-Pendiente para próxima sesión.
+**Fuente:** Manual de funcionamiento Rev 2.0, 25/11/2024.  
+**Estado en catálogo:** No existe entrada para 893+. Documento para posible incorporación futura.
+
+### Especificaciones del manual
+
+| Dato | Valor | Página manual |
+|---|---|---|
+| Tipo | Criba para servicio pesado (scalper móvil) | 3-2 (PDF p.62) |
+| Peso total (LRC) | **48,000 kg** | 3-2 (PDF p.62) |
+| Unidad de cribado (dimensión) | **6,104 m × 1,93 m (20' × 6'3")** | 3-2 (PDF p.62) |
+| Caja de cribado — deck 1 | **6,102 m × 1,830 m (20' × 6')** | 3-3 (PDF p.63) |
+| Caja de cribado — deck 2 | **5,486 m × 1,830 m (18' × 6')** | 4-6 (PDF p.74) |
+| Área por deck (deck 1) | **≈ 11.17 m²** (6,102 × 1,830) | calculado |
+| Área por deck (deck 2) | **≈ 10.04 m²** (5,486 × 1,830) | calculado |
+| Número de decks | **2 pisos** | 3-3 (PDF p.63) |
+| Ángulo de trabajo | 14°–18° | 3-3 (PDF p.63) |
+| Carrera ajustable | 8–10 mm | 3-3 (PDF p.63) |
+| Motor CAT 7.1 LRC / Tier 4F | CAT C4.4, **129.5 kW** @ 2200 rpm | 3-4 (PDF p.64) |
+| Tolva | 10 m³, 2,47 m ancho, 6,0 m largo | 3-2 (PDF p.62) |
+| Transportador transferencia | 1,500 mm ancho | 3-3 (PDF p.63) |
+| Capacidad tph | **no publicada** | — |
+| Tamaño máximo alimentación | **no encontrado** | — |
+
+**Nota:** La unidad de cribado tiene dos tamices de distinto tamaño: el piso superior (deck 1) es más grande (20'×6') y el inferior (deck 2) más corto (18'×6'). Para la fórmula VSMA se usa el área del deck limitante (deck 1 = 11,17 m²).
+
+**Tipo de criba compatible:** Bofor, de separación, de placa perforadora, tamiz tejido (por manual).
 
 ---
 
@@ -154,4 +177,4 @@ Pendiente para próxima sesión.
 
 - **B-SC03:** 863+ motor Tier 3: en el manual se cita "Motor CAT 4.4 Tier 3" pero sin potencia explícita en las páginas leídas. Es probable que sea 83kW (igual al 873+ y 883+ que usan la misma plataforma CAT C4.4). No se puede confirmar sin leer la tabla de especificaciones completa.
 
-- **B-SC04:** 893+ manual no leído en T-13 por límite de sesión. No está en catálogo. Pendiente.
+- **B-SC04:** *(Cerrado T-28)* 893+ leído en T-28. Ver sección arriba. No está en catálogo aún; decisión de incorporación pendiente de Marcelo.
