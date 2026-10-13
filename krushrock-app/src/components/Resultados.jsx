@@ -1847,7 +1847,6 @@ export default function Results({ res, unit: initUnit, onReset, onSave, onEdit, 
                   s: "¿Cuánto voy a producir?",
                 },
                 { v: "deadline", l: "Deadline", s: "¿Puedo cumplir una meta?" },
-                { v: "campana", l: "Campaña", s: "Optimizar por producto" },
               ].map((m) => (
                 <button
                   key={m.v}
@@ -2634,24 +2633,6 @@ export default function Results({ res, unit: initUnit, onReset, onSave, onEdit, 
               </>
             )}
 
-            {/* ─── MODO CAMPAÑA ─── */}
-            {prodMode === "campana" && (
-              <div style={{ background: G.card, border: `1px solid ${G.border}`, borderRadius: 8, padding: 24, display: "flex", flexDirection: "column", gap: 12, alignItems: "center", textAlign: "center" }}>
-                <div style={{ fontSize: 28, marginBottom: 4 }}>⏳</div>
-                <div style={{ fontFamily: G.fontD, fontWeight: 700, fontSize: 15, color: G.accent }}>
-                  Modo Campaña — próximamente
-                </div>
-                <div style={{ fontSize: 12, color: G.muted, maxWidth: 480, lineHeight: 1.6 }}>
-                  El motor local de campaña fue eliminado en T-20 porque usaba un factor P80/CSS
-                  erróneo (×1,4–1,9 en vez de ×0,98 del manual).
-                  La funcionalidad se reimplementará en el backend con el modelo correcto de curvas normalizadas.
-                </div>
-                <div style={{ fontSize: 11, color: G.muted, borderTop: `1px solid ${G.border}`, paddingTop: 12, width: "100%" }}>
-                  Para estimar meses de campaña, usa el módulo <b>Plazo / Deadline</b> con un
-                  producto a la vez mientras llega la versión completa.
-                </div>
-              </div>
-            )}
           </div>
         )}
 

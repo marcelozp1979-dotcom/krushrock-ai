@@ -811,6 +811,46 @@ trae el porcentaje fuera de rango y que es mayor que cero. Suite completa verde.
 
 ---
 
+## T-34 · Retirar el modo Campaña de la interfaz · HECHA
+
+Implementa D-29. El selector "Campaña — Optimizar por producto" vive en
+`krushrock-app/src/components/Resultados.jsx` (línea ~1850 el selector, ~2642 el aviso de
+"próximamente").
+
+**Qué hacer:**
+
+1. Eliminar la opción `campana` del selector de modos de la pantalla de resultados.
+2. Eliminar el bloque que muestra "Modo Campaña — próximamente".
+3. Verificar que los modos **Producción** y **Plazo** siguen funcionando.
+4. **No tocar nada más del modo avanzado.**
+5. Dejar anotado en `docs/` que la funcionalidad se retiró a propósito y qué haría, para poder
+   reponerla si un cliente del piloto la pide. Mantener el bloqueo B-campana01 como referencia.
+
+**Cómo se sabe que quedó bien:** el selector ya no ofrece Campaña y no queda ninguna referencia
+a "próximamente" en el frontend. Suite completa verde. Requiere prueba visual de Marcelo.
+
+**Referencia:** DECISIONS.md D-29 · MEMORY.md B-campana01.
+
+---
+
+## T-35 · Cuentas y aislamiento por cliente (hito piloto) · PENDIENTE · PRIORIDAD ALTA
+
+Primer tramo de D-28. **No incluye pagos ni límites por plan** — eso viene después.
+
+**Qué hacer:**
+
+1. Login funcional para usuarios creados a mano por Marcelo.
+2. **Cada cliente ve solo sus propias simulaciones.** Hoy no hay aislamiento (RS-1).
+3. **Cerrar el endpoint público del PDF** (`POST /reports/proposal`): exige cuenta (RS-2).
+4. Revisar que ningún otro endpoint quede abierto sin autenticación.
+
+**Cómo se sabe que quedó bien:** test que verifique que un usuario no puede leer la simulación
+de otro, y que el endpoint del PDF rechaza una petición sin credenciales. Suite completa verde.
+
+**Referencia:** REQUISITOS.md RS-1 y RS-2 · PLAN_MAESTRO.md Etapa 5 · DECISIONS.md D-28.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada
