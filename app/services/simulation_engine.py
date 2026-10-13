@@ -507,13 +507,16 @@ def simulate(
             hi = final_stream.passing(max_mm) if max_mm < 9999 else 100.0
             lo = final_stream.passing(min_mm) if min_mm > 0 else 0.0
             pct = max(0.0, hi - lo)
+            # % material por encima del tamaño máximo pedido (fuera de especificación)
+            oversize_pct = round(max(0.0, 100.0 - hi), 1) if max_mm < 9999 else 0.0
             products_out.append({
-                "id":      prod.get("id", ""),
-                "label":   prod.get("label", ""),
-                "min_mm":  min_mm,
-                "max_mm":  max_mm,
-                "yld_pct": round(pct, 1),
-                "tph_out": round(final_stream.tph * pct / 100.0, 1),
+                "id":          prod.get("id", ""),
+                "label":       prod.get("label", ""),
+                "min_mm":      min_mm,
+                "max_mm":      max_mm,
+                "yld_pct":     round(pct, 1),
+                "tph_out":     round(final_stream.tph * pct / 100.0, 1),
+                "oversize_pct": oversize_pct,
             })
 
     total_prod_tph = sum(p["tph_out"] for p in products_out)
