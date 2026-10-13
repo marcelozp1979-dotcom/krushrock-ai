@@ -5,7 +5,7 @@ Estados: `PENDIENTE` · `EN CURSO` · `HECHA` · `BLOQUEADA`
 El agente trabaja **en orden**, de arriba hacia abajo. No reordena la cola.
 Reglas del ciclo en `WORKFLOW.md`. Prohibiciones en `WORKFLOW.md` sección 6.
 
-Última actualización: 07-oct-2026
+Última actualización: 13-oct-2026
 
 ---
 
@@ -874,6 +874,39 @@ iniciar sesión, correr una simulación y descargar el PDF.
 de extremo a extremo antes de fusionar.
 
 **Referencia:** REQUISITOS.md RS-1 y RS-2 · PLAN_MAESTRO.md Etapa 5 · DECISIONS.md D-28.
+
+---
+
+## T-36 · Control de acceso del piloto: invitación real y vigencia · HECHA
+
+**Dos agujeros detectados el 13-oct-2026 al probar el login.**
+
+**a) La invitación es cosmética.** La pantalla dice "acceso por invitación", pero
+`POST /auth/register` sigue abierto sin autenticación. Cualquiera que conozca la dirección del
+servidor puede crearse una cuenta llamando al endpoint directamente.
+
+**b) No existe forma de representar que un cliente pagó.** El usuario tiene `plan`
+(free/pro/enterprise) y `sim_count_month`, pero **no tiene fecha de vencimiento ni estado**.
+No se puede decir "pagó hasta el 30 de noviembre" ni suspender a alguien sin borrarlo.
+
+**Qué hacer:**
+
+1. **Cerrar `/auth/register`.** En el modelo de piloto (D-28) las cuentas las crea Marcelo.
+   Opciones: exigir credencial de administrador, o deshabilitarlo. Decidir y documentar.
+2. Agregar al usuario dos campos: **`estado`** (activo · suspendido) y **`vence_el`** (fecha).
+3. **Verificar ambos en el login y en cada petición**: si está suspendido o venció, se rechaza
+   con un mensaje claro — *"Tu suscripción venció el 30-11-2026. Contacta al administrador."*
+4. Crear una forma simple de que Marcelo dé de alta un cliente sin entrar a Supabase: un
+   endpoint de administrador o un script. Mínimo: correo, nombre, empresa, plan y vencimiento.
+5. `require_plan` ya existe en `auth.py` pero no se usa en ningún endpoint. Dejarlo anotado para
+   la fase de límites por plan; **no cablearlo todavía**.
+
+**Cómo se sabe que quedó bien:** tests que verifiquen que el registro público responde 401 o 404,
+que un usuario suspendido no puede entrar, y que un usuario con fecha vencida tampoco.
+Suite completa verde. **Prueba visual de Marcelo:** crear un cliente, entrar con él, suspenderlo
+y confirmar que deja de entrar.
+
+**Referencia:** DECISIONS.md D-28 · REQUISITOS.md RS-2 · T-35.
 
 ---
 

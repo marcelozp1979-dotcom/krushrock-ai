@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str = ""           # anon key (público)
     SUPABASE_SERVICE_KEY: str = ""   # service_role key (privado, solo backend)
 
+    # Administración de usuarios (T-36)
+    ADMIN_TOKEN: str = ""  # token secreto para crear usuarios; obligatorio en producción
+
     # Anthropic
     ANTHROPIC_API_KEY: str = ""
 

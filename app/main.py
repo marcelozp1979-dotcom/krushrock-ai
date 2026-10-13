@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import time
 
-from app.routers import auth, projects, simulations, equipment, reports, opex, ai
+from app.routers import auth, projects, simulations, equipment, reports, opex, ai, admin
 from app.core.config import settings
 
 app = FastAPI(
@@ -44,6 +44,7 @@ app.include_router(equipment.router,   prefix="/api/v1/equipment",   tags=["Equi
 app.include_router(reports.router,     prefix="/api/v1/reports",     tags=["Reportes"])
 app.include_router(opex.router,        prefix="/api/v1/opex",        tags=["OPEX"])
 app.include_router(ai.router,          prefix="/api/v1/ai",           tags=["IA"])
+app.include_router(admin.router,       prefix="/api/v1/admin",        tags=["Admin"])
 
 # ── HEALTH ────────────────────────────────────────────────────────────────────
 @app.get("/health", tags=["Sistema"])
