@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ROCK_DB, ROCK_CATS, CAT_LABELS } from "../catalogo.js";
 import {
-  G, GCSS, API_BASE,
+  G, GCSS, API_BASE, authHeaders,
   EXTRACTION_LABELS, EXTRACTION_UNITS, STANDARD_INCH_VALUES,
   parsePositiveNumber, extractJsonFromText, normalizeExtractionResult,
   toMm, fromMm, unitLabel, parseMeasureToMm, formatInches,
@@ -376,7 +376,7 @@ export default function Onboarding({
     try {
       const response = await fetch(`${API_BASE}/ai/extract`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ text: pasteText }),
       });
       if (!response.ok) {

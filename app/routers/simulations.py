@@ -308,12 +308,8 @@ async def _save_simulation(record: dict, user_id: str, project_id: Optional[str]
 
 
 @router.post("/calculate")
-async def calculate_simulation(req: SimulationRequest):
-    """
-    Endpoint público (sin autenticación) para calcular una simulación.
-    Solo cálculo — no guarda en base de datos.
-    Permite al frontend obtener resultados del motor v2 sin login.
-    """
+async def calculate_simulation(req: SimulationRequest, user=Depends(get_current_user)):
+    """Solo cálculo — no guarda en base de datos."""
     try:
         nodes_raw = [_enrich_node_from_catalog(n.dict()) for n in req.nodes]
         products_raw = [p.dict() for p in req.products] if req.products else None
@@ -339,11 +335,8 @@ async def calculate_simulation(req: SimulationRequest):
 
 
 @router.post("/recommend")
-async def recommend_circuit(req: RecommendRequest):
-    """
-    Endpoint público — recomienda las 2 mejores configuraciones de circuito
-    para el material y producto indicados, sin requerir autenticación.
-    """
+async def recommend_circuit(req: RecommendRequest, user=Depends(get_current_user)):
+    """Recomienda las 2 mejores configuraciones de circuito."""
     try:
         f80 = req.f80_mm if req.f80_mm is not None else _f80_from_curve(req.feed_curve)
         feed_curve_dict = (
@@ -433,11 +426,8 @@ def _build_compare_table(req: CompareConfigsRequest) -> Dict[str, Any]:
 
 
 @router.post("/compare-configs")
-async def compare_configs(req: CompareConfigsRequest):
-    """
-    Endpoint público — compara dos configuraciones de planta sobre la misma faena
-    y devuelve una tabla comparativa con indicadores clave (sin análisis IA).
-    """
+async def compare_configs(req: CompareConfigsRequest, user=Depends(get_current_user)):
+    """Compara dos configuraciones de planta sobre la misma faena."""
     try:
         return _build_compare_table(req)
     except ValueError as exc:
@@ -449,12 +439,8 @@ async def compare_configs(req: CompareConfigsRequest):
 
 
 @router.post("/compare-simple")
-async def compare_simple(req: CompareConfigsRequest):
-    """
-    Endpoint público — idéntico a /compare-configs en entrada y salida.
-    Creado explícitamente para el flujo de modo simple del frontend.
-    Comparte toda la lógica de cálculo vía _build_compare_table().
-    """
+async def compare_simple(req: CompareConfigsRequest, user=Depends(get_current_user)):
+    """Idéntico a /compare-configs; entrada y salida iguales. Para modo simple del frontend."""
     try:
         return _build_compare_table(req)
     except ValueError as exc:

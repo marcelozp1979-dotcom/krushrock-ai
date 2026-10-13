@@ -16,7 +16,7 @@ from app.routers.auth import get_current_user
 router = APIRouter()
 
 
-# ── /proposal — PDF de propuesta técnica (público, sin auth) ──────────────────
+# ── /proposal — PDF de propuesta técnica ──────────────────────────────────────
 
 class _EquipoProposal(BaseModel):
     etapa: str
@@ -63,11 +63,8 @@ class ProposalRequest(BaseModel):
 
 
 @router.post("/proposal")
-async def generate_proposal(req: ProposalRequest):
-    """
-    Genera PDF de propuesta técnica (sin autenticación requerida).
-    Corre run_config con la faena y configuración provistas y retorna el PDF.
-    """
+async def generate_proposal(req: ProposalRequest, user=Depends(get_current_user)):
+    """Genera PDF de propuesta técnica."""
     from app.services.recommender import run_config
     from app.services.proposal_pdf import build_proposal_pdf
 
