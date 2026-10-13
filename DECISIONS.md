@@ -385,6 +385,59 @@ pantalla y en el PDF. Es el número que una comisión evaluadora puede reclamar.
 
 ---
 
+## D-28 · 13-oct-2026 · Camino al producto vendible: piloto primero, SaaS después
+
+**Destino final: SaaS abierto** con registro, pago y límites por plan. **Primer hito: versión de
+piloto** con 2 o 3 clientes conocidos, cuentas creadas a mano y cobro por fuera.
+
+**Por qué el hito intermedio:** el login y el aislamiento por cuenta son idénticos en ambos
+casos — no es trabajo desechable, es el primer tramo del mismo camino. La diferencia son los
+pagos y los límites, que se agregan encima. Se gana tener algo usable en 2 o 3 semanas, y que
+las licitaciones reales del piloto digan qué falta antes de construir planes de pago.
+
+**Estimación a 7 h semanales (3–4 sesiones por semana):**
+
+| Escenario | Sesiones | Semanas |
+|---|---|---|
+| Piloto + sacar Campaña | 7–8 | 2–3 |
+| SaaS abierto + sacar Campaña | 11–15 | 4–6 |
+| SaaS abierto + Campaña implementado | 13–18 | 5–7 |
+
+Con margen por lo que aparece sobre la marcha, el SaaS completo queda realmente en **6 a 9
+semanas**.
+
+*Decidió: Marcelo.*
+
+---
+
+## D-29 · 13-oct-2026 · Se retira el modo Campaña de la interfaz
+
+El selector "Campaña — Optimizar por producto", dentro de la pantalla de resultados del modo
+avanzado, muestra "próximamente" desde T-20, cuando se eliminaron sus cálculos por usar el
+factor P80/CSS erróneo.
+
+**Se retira el selector.** No se vende un producto con una función a medias a la vista.
+
+**No se elimina la idea:** el modo Campaña planifica producción por fases —producir base dos
+meses, cambiar el CSS, producir gravilla— y es valioso si los clientes trabajan así. Se repone
+cuando un cliente del piloto lo pida, y entonces se sabrá para qué exactamente.
+
+**No se toca el modo avanzado**, que funciona completo. Solo desaparece ese selector.
+
+*Decidió: Marcelo.*
+
+---
+
+## D-30 · 13-oct-2026 · Registro público cerrado; cuentas sólo por administrador
+`POST /auth/register` siempre devuelve 403. Los clientes los crea Marcelo usando
+`POST /api/v1/admin/users` con el header `X-Admin-Token`. El usuario almacena `estado`
+(activo/suspendido) y `vence_el` (fecha ISO). Ambos se verifican en login y en cada petición.
+**Por qué:** piloto cerrado — Marcelo controla quién tiene acceso y hasta cuándo.
+**Descartado:** registro abierto con código de invitación (complejidad innecesaria en piloto).
+*Decidió: Marcelo (T-36).*
+
+---
+
 ## D-11 · anterior · No extraer datos desde AggFlow
 AggFlow se usa solo como referencia de validación, nunca como fuente del catálogo.
 **Por qué:** licencia COMECO.

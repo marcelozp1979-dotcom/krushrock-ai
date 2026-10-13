@@ -5,7 +5,7 @@ JWT + Supabase Auth
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Optional
 import jwt
 import bcrypt
@@ -74,6 +74,25 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 # ── DEPENDENCY: usuario actual ────────────────────────────────────────────────
+def _check_estado_vencimiento(user: dict):
+    """Lanza 403 si el usuario está suspendido o con licencia vencida."""
+    estado = user.get("estado", "activo")
+    if estado == "suspendido":
+        raise HTTPException(status_code=403, detail="Cuenta suspendida. Contacta al administrador.")
+
+    vence_el = user.get("vence_el")
+    if vence_el:
+        try:
+            vence_date = date.fromisoformat(str(vence_el)[:10])
+            if vence_date < date.today():
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Licencia vencida el {vence_date.isoformat()}. Contacta al administrador para renovar.",
+                )
+        except (ValueError, TypeError):
+            pass  # fecha malformada: no bloquear
+
+
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     payload = decode_token(token)
     user_id = payload.get("sub")
@@ -84,6 +103,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     result = sb.table("users").select("*").eq("id", user_id).single().execute()
     if not result.data:
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
+
+    _check_estado_vencimiento(result.data)
     return result.data
 
 
@@ -98,36 +119,13 @@ async def require_plan(min_plan: str, user=Depends(get_current_user)):
 
 
 # ── ENDPOINTS ─────────────────────────────────────────────────────────────────
-@router.post("/register", response_model=TokenResponse, status_code=201)
+@router.post("/register", status_code=403)
 async def register(data: UserRegister):
-    sb = get_supabase()
-
-    # Verificar email único
-    existing = sb.table("users").select("id").eq("email", data.email).execute()
-    if existing.data:
-        raise HTTPException(status_code=400, detail="Email ya registrado")
-
-    # Crear usuario
-    hashed = hash_password(data.password)
-    user_data = {
-        "email": data.email,
-        "password_hash": hashed,
-        "full_name": data.full_name,
-        "company": data.company,
-        "plan": data.plan,
-        "sim_count_month": 0,
-        "created_at": datetime.utcnow().isoformat(),
-    }
-    result = sb.table("users").insert(user_data).execute()
-    user = result.data[0]
-
-    # Tokens
-    access  = create_token({"sub": user["id"], "email": user["email"], "plan": user["plan"]},
-                            timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
-    refresh = create_token({"sub": user["id"], "type": "refresh"},
-                            timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS))
-    return {"access_token": access, "refresh_token": refresh,
-            "user": {k: user[k] for k in ("id","email","full_name","company","plan")}}
+    """Registro público deshabilitado (T-36). Los clientes se crean mediante el endpoint de administración."""
+    raise HTTPException(
+        status_code=403,
+        detail="El registro público está deshabilitado. Contacta al administrador para obtener acceso.",
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -137,6 +135,8 @@ async def login(form: OAuth2PasswordRequestForm = Depends()):
     user = result.data
     if not user or not verify_password(form.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+    _check_estado_vencimiento(user)
 
     access  = create_token({"sub": user["id"], "email": user["email"], "plan": user["plan"]},
                             timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
