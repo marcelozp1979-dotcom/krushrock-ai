@@ -309,3 +309,23 @@ export function fitRR(points) {
 
 // .replace elimina BOM (U+FEFF) que Vercel puede inyectar al guardar el env var en su dashboard
 export const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1").replace(/^﻿/, "").trim();
+
+// ── AUTH HELPERS ──────────────────────────────────────────────────────────────
+const _TOKEN_KEY = "krushrock_token";
+
+export function getAuthToken() {
+  try { return localStorage.getItem(_TOKEN_KEY) || null; } catch { return null; }
+}
+
+export function setAuthToken(token) {
+  try { localStorage.setItem(_TOKEN_KEY, token); } catch {}
+}
+
+export function clearAuthToken() {
+  try { localStorage.removeItem(_TOKEN_KEY); } catch {}
+}
+
+export function authHeaders() {
+  const t = getAuthToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}

@@ -1,5 +1,5 @@
 import { ROCK_DB } from "./catalogo.js";
-import { API_BASE, G } from "./shared.js";
+import { API_BASE, G, authHeaders } from "./shared.js";
 
 export async function runSimulation(inp) {
   // Catálogo de equipos: siempre viene del componente (cargado desde el backend)
@@ -247,7 +247,7 @@ export async function runSimulation(inp) {
     const apiUrl = API_BASE + "/simulations/calculate";
     const resp = await fetch(apiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
         tph: Number(tph),
         f80: Number(f80),

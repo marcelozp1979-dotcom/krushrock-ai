@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ROCK_DB, ROCK_CATS } from "../catalogo.js";
-import { G, GCSS, API_BASE } from "../shared.js";
+import { G, GCSS, API_BASE, authHeaders } from "../shared.js";
 import { Badge } from "./BaseComponents.jsx";
 
 const SIMPLE_PRODUCTS = [
@@ -175,7 +175,7 @@ export function SimpleMode({ eqCatalog, onBack }) {
     try {
       const resp = await fetch(`${API_BASE}/simulations/recommend`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ rock_type: rockKey, ...buildFeedPayload(),
           products: buildProductsPayload(), duracion_meses: Number(meses), inchancables,
           horas_dia: Number(horasDia), dias_mes: Number(diasMes), mode: "simple",
@@ -217,7 +217,7 @@ export function SimpleMode({ eqCatalog, onBack }) {
     try {
       const resp = await fetch(`${API_BASE}/reports/proposal`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           cliente:  pdfCliente || null,
           proyecto: pdfProyecto || null,
@@ -269,7 +269,7 @@ export function SimpleMode({ eqCatalog, onBack }) {
     try {
       const resp = await fetch(`${API_BASE}/simulations/compare-simple`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           config_usuario: {
             equipos: cmpEquipos.map(e => ({ etapa: e.etapa, marca: e.marca, modelo: e.modelo })),

@@ -2,11 +2,12 @@
 KrushRock — Router IA
 Proxy seguro hacia Claude: la API key nunca sale del servidor.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 import anthropic
 
 from app.core.config import settings
+from app.routers.auth import get_current_user
 
 router = APIRouter()
 
@@ -48,11 +49,8 @@ class ExtractRequest(BaseModel):
 
 
 @router.post("/extract")
-async def extract_parameters(req: ExtractRequest):
-    """
-    Recibe texto libre del frontend y extrae parámetros técnicos usando Claude.
-    La API key de Anthropic nunca llega al browser — vive solo en el backend.
-    """
+async def extract_parameters(req: ExtractRequest, user=Depends(get_current_user)):
+    """Extrae parámetros técnicos de texto libre usando Claude."""
     if len(req.text.strip()) < 20:
         raise HTTPException(status_code=400, detail="El texto es muy corto para extraer datos.")
 

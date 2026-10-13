@@ -833,19 +833,45 @@ a "próximamente" en el frontend. Suite completa verde. Requiere prueba visual d
 
 ---
 
-## T-35 · Cuentas y aislamiento por cliente (hito piloto) · PENDIENTE · PRIORIDAD ALTA
+## T-35 · Cerrar los endpoints abiertos (hito piloto) · HECHA
 
 Primer tramo de D-28. **No incluye pagos ni límites por plan** — eso viene después.
 
+**Lo que YA está bien** (verificado el 13-oct-2026, no rehacerlo):
+
+- Autenticación completa en `app/routers/auth.py`: registro, login, refresh, `get_current_user`
+  y `require_plan`.
+- Aislamiento por usuario correcto en `projects.py`: todas las consultas filtran por `user_id`.
+- Ya exigen login: guardar/listar/borrar simulaciones, proyectos, `reports/generate` y opex.
+
+**El problema real: el motor completo está abierto sin cuenta.** Endpoints sin autenticación:
+
+| Endpoint | Qué expone |
+|---|---|
+| `POST /simulations/calculate` | el motor de simulación |
+| `POST /simulations/recommend` | la recomendación de equipos |
+| `POST /simulations/compare-configs` | comparación de configuraciones |
+| `POST /simulations/compare-simple` | comparación modo simple |
+| `POST /reports/proposal` | el PDF de propuesta — el código dice "público, sin auth" |
+| `app/routers/ai.py` (1 endpoint) | el endpoint de IA |
+| `app/routers/equipment.py` (4 endpoints) | el catálogo completo |
+
 **Qué hacer:**
 
-1. Login funcional para usuarios creados a mano por Marcelo.
-2. **Cada cliente ve solo sus propias simulaciones.** Hoy no hay aislamiento (RS-1).
-3. **Cerrar el endpoint público del PDF** (`POST /reports/proposal`): exige cuenta (RS-2).
-4. Revisar que ningún otro endpoint quede abierto sin autenticación.
+1. Exigir `get_current_user` en los endpoints de cálculo, en el PDF de propuesta y en el de IA.
+2. **El catálogo de equipos es decisión de Marcelo:** es su activo de datos, pero el frontend lo
+   necesita antes de que el usuario entre en algunas pantallas. Por defecto exigir login; si eso
+   rompe la carga inicial, dejarlo abierto solo para lectura y anotarlo en `MEMORY.md`.
+3. Verificar que el frontend envía el token en todas esas llamadas. **Si no lo hace, la app deja
+   de funcionar** — es la parte riesgosa de esta tarea.
+4. Eliminar el comentario "público, sin auth" de `reports.py`.
 
-**Cómo se sabe que quedó bien:** test que verifique que un usuario no puede leer la simulación
-de otro, y que el endpoint del PDF rechaza una petición sin credenciales. Suite completa verde.
+**Cómo se sabe que quedó bien:** test que verifique que cada endpoint cerrado responde 401 sin
+credenciales y funciona con ellas. Suite completa verde. **Requiere prueba visual de Marcelo:**
+iniciar sesión, correr una simulación y descargar el PDF.
+
+**Cuidado:** esta tarea puede dejar la app inutilizable si el frontend no manda el token. Probar
+de extremo a extremo antes de fusionar.
 
 **Referencia:** REQUISITOS.md RS-1 y RS-2 · PLAN_MAESTRO.md Etapa 5 · DECISIONS.md D-28.
 

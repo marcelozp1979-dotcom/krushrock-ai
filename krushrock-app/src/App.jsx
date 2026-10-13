@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { G, GCSS, API_BASE } from "./shared.js";
+import { G, GCSS, API_BASE, getAuthToken, clearAuthToken } from "./shared.js";
 import { LandingScreen, SimpleMode } from "./components/ModoSimple.jsx";
 import { runSimulation } from "./simulation.js";
 import Results from "./components/Resultados.jsx";
 import Onboarding from "./components/Wizard.jsx";
+import Login from "./components/Login.jsx";
 
 export default function App() {
   const [res, setRes] = useState(null);
@@ -13,8 +14,19 @@ export default function App() {
   const [simLoading, setSimLoading] = useState(false);
   const [simError, setSimError] = useState(null);
   const [appMode, setAppMode] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Inicializar sesión desde token guardado (sin llamada al backend)
+  useEffect(() => {
+    const token = getAuthToken();
+    if (token) setCurrentUser({ token });
+  }, []);
+
+  const handleLogin = (user) => setCurrentUser(user || { authenticated: true });
+  const handleLogout = () => { clearAuthToken(); setCurrentUser(null); setAppMode(null); setRes(null); };
 
   // Catálogo de equipos: se carga desde el backend. null = cargando.
+  // GET /equipment se deja abierto para que cargue antes del login.
   const [eqCatalog, setEqCatalog] = useState(null);
   useEffect(() => {
     fetch(`${API_BASE}/equipment`)
@@ -127,8 +139,12 @@ export default function App() {
     setAppMode(null);
   };
 
+  // Gate de autenticación: si no hay token, mostrar login
+  if (!currentUser)
+    return <Login onLogin={handleLogin} />;
+
   if (appMode === null)
-    return <LandingScreen onSelect={setAppMode} />;
+    return <LandingScreen onSelect={setAppMode} onLogout={handleLogout} />;
   // Estado de carga: el catálogo aún no llegó del backend
   if (!eqCatalog)
     return (
