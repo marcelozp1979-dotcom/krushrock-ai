@@ -166,10 +166,20 @@ def build_proposal_pdf(data: Dict) -> bytes:
     else:
         f80_str = _safe(faena.get("f80_mm"), " mm", 0)
 
-    horas_dia = faena.get("horas_dia")
-    dias_mes  = faena.get("dias_mes")
+    horas_dia         = faena.get("horas_dia")
+    dias_mes          = faena.get("dias_mes")
+    disponibilidad    = faena.get("disponibilidad_pct")
     if horas_dia and dias_mes:
-        jornada_str = f"{horas_dia} h/día · {dias_mes} días/mes"
+        h_prog = horas_dia * dias_mes
+        if disponibilidad is not None:
+            h_efec = h_prog * disponibilidad / 100.0
+            jornada_str = (
+                f"{horas_dia} h/día · {dias_mes} días/mes — "
+                f"{h_prog:.0f} h programadas · {h_efec:.0f} h efectivas "
+                f"({disponibilidad:.0f}% disponibilidad)"
+            )
+        else:
+            jornada_str = f"{horas_dia} h/día · {dias_mes} días/mes"
     else:
         jornada_str = "—"
 
@@ -261,19 +271,22 @@ def build_proposal_pdf(data: Dict) -> bytes:
 
     detail = res.get("products_detail", [])
     if detail:
-        det_data = [["Producto", "Producción (tph)", "Tiempo (meses)", "Cumple plazo"]]
+        det_data = [["Producto", "Producción (tph)", "Tiempo (meses)", "Cumple plazo", "Fuera de rango"]]
         for d in detail:
             nombre = d.get("name") or f"{d.get('min_mm', 0)}–{d.get('max_mm', '?')} mm"
+            oversize = d.get("oversize_pct")
+            oversize_str = f"{oversize:.1f}%" if oversize is not None else "—"
             if d.get("inalcanzable"):
-                det_data.append([nombre, "—", "∞", "No"])
+                det_data.append([nombre, "—", "∞", "No", "—"])
             else:
                 det_data.append([
                     nombre,
                     _safe(d.get("tph_out"), "", 1),
                     _safe(d.get("meses"), "", 1),
                     "Sí" if d.get("cumple") else "No",
+                    oversize_str,
                 ])
-        t_det = Table(det_data, colWidths=[COL * 0.40, COL * 0.20, COL * 0.20, COL * 0.20])
+        t_det = Table(det_data, colWidths=[COL * 0.33, COL * 0.17, COL * 0.17, COL * 0.17, COL * 0.16])
         t_det.setStyle(_th_style())
         story.append(t_det)
 

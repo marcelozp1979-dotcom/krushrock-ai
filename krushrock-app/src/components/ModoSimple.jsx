@@ -102,6 +102,7 @@ export function SimpleMode({ eqCatalog, onBack }) {
   const [meses, setMeses]           = useState(3);
   const [horasDia, setHorasDia]     = useState(8);
   const [diasMes, setDiasMes]       = useState(25);
+  const [disponibilidad, setDisponibilidad] = useState(85);
   const [inchancables, setInchancables] = useState(false);
 
   // ── Ingreso de tamaño de material (3 niveles) ─────────────────────────────
@@ -177,7 +178,8 @@ export function SimpleMode({ eqCatalog, onBack }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rock_type: rockKey, ...buildFeedPayload(),
           products: buildProductsPayload(), duracion_meses: Number(meses), inchancables,
-          horas_dia: Number(horasDia), dias_mes: Number(diasMes), mode: "simple" }),
+          horas_dia: Number(horasDia), dias_mes: Number(diasMes), mode: "simple",
+          disponibilidad_pct: Number(disponibilidad) }),
       });
       if (!resp.ok) {
         const t = await resp.text();
@@ -227,6 +229,7 @@ export function SimpleMode({ eqCatalog, onBack }) {
             inchancables,
             horas_dia: Number(horasDia),
             dias_mes: Number(diasMes),
+            disponibilidad_pct: Number(disponibilidad),
           },
           config: {
             equipos: rec.equipos.map(e => e.clase
@@ -507,6 +510,14 @@ export function SimpleMode({ eqCatalog, onBack }) {
                 <span style={{ color: G.muted, fontSize: 13 }}>días/mes</span>
               </div>
             </div>
+            <div style={{ flex: 0, minWidth: 200 }}>
+              <label style={lbl}>Disponibilidad mecánica</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input type="number" value={disponibilidad} min={50} max={100}
+                  onChange={e => setDisponibilidad(e.target.value)} style={{ ...inp, maxWidth: 90 }} />
+                <span style={{ color: G.muted, fontSize: 13 }}>% (def. 85%)</span>
+              </div>
+            </div>
           </div>
 
           <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer",
@@ -672,6 +683,15 @@ export function SimpleMode({ eqCatalog, onBack }) {
                             </div>
                           </div>
                         </div>
+                        {rec.horas_programadas_mes != null && rec.hours_per_month_used != null && (
+                          <div style={{ fontSize: 12, color: G.muted, background: G.surface,
+                            borderRadius: 6, padding: "6px 12px" }}>
+                            {rec.horas_programadas_mes} h programadas
+                            {rec.hours_per_month_used !== rec.horas_programadas_mes
+                              ? ` · ${rec.hours_per_month_used} h efectivas (${disponibilidad}% disponibilidad)`
+                              : null}
+                          </div>
+                        )}
                         {detail.length > 0 && (
                           <div style={{ overflowX: "auto" }}>
                             <table style={{ width: "100%", borderCollapse: "collapse",
@@ -688,6 +708,8 @@ export function SimpleMode({ eqCatalog, onBack }) {
                                     color: G.muted, fontWeight: 600 }}>Meses</th>
                                   <th style={{ textAlign: "center", padding: "4px 8px",
                                     color: G.muted, fontWeight: 600 }}>Plazo</th>
+                                  <th style={{ textAlign: "right", padding: "4px 8px",
+                                    color: G.muted, fontWeight: 600 }}>Fuera de rango</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -709,10 +731,21 @@ export function SimpleMode({ eqCatalog, onBack }) {
                                       color: d.inalcanzable ? G.red : d.cumple ? G.green : G.accent }}>
                                       {d.inalcanzable ? "✗ imposible" : d.cumple ? "✓" : "✗"}
                                     </td>
+                                    <td style={{ padding: "5px 8px", textAlign: "right",
+                                      color: (d.oversize_pct ?? 0) > 10 ? G.accent : G.muted }}>
+                                      {d.oversize_pct != null ? `${d.oversize_pct}%` : "—"}
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>
                             </table>
+                          </div>
+                        )}
+                        {detail.some(d => (d.oversize_pct ?? 0) > 10) && (
+                          <div style={{ fontSize: 12, color: G.accent,
+                            background: G.faint, borderRadius: 6, padding: "8px 12px" }}>
+                            ⚠ Uno o más productos tienen más del 10% de material por encima del
+                            tamaño máximo solicitado. La columna "Fuera de rango" muestra ese porcentaje.
                           </div>
                         )}
                         {rec.inchancables_recomendado && (

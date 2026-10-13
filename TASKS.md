@@ -758,6 +758,59 @@ cámara de finos. Probar también 0–19 mm. Suite completa verde.
 
 ---
 
+## T-32 · Factor de disponibilidad mecánica · HECHA
+
+Implementa D-26. Hoy `horas_dia × dias_mes` se usa al 100%: 12 × 30 = 360 h/mes productivas.
+
+**Qué hacer:**
+
+1. Agregar el campo **disponibilidad mecánica**, por defecto **85%**, editable por el usuario,
+   junto a horas por día y días por mes.
+2. Las horas efectivas pasan a ser `horas_dia × dias_mes × disponibilidad`.
+3. Mostrar en pantalla las dos cifras, para que el usuario vea de dónde sale el plazo:
+   *"360 h programadas · 306 h efectivas (85% disponibilidad)"*.
+4. El PDF declara el supuesto de disponibilidad usado.
+
+**Cuidado:** esto alarga todos los plazos calculados en torno al 18%. Es el comportamiento
+correcto, pero cambia resultados. Anotar en `MEMORY.md` qué casos de validación se mueven y
+**no ajustar ningún caso** — los casos AggFlow usan sus propias horas y no deben verse afectados
+si el factor se aplica solo cuando el usuario no entrega horas efectivas explícitas.
+
+**No tocar `capR = 0,80`**: es capacidad del equipo, no tiempo (D-26).
+
+**Cómo se sabe que quedó bien:** test que corra el mismo caso con disponibilidad 100% y 85% y
+verifique que el plazo crece en la proporción correcta. Los casos de validación real siguen
+dentro de ±15%.
+
+**Referencia:** DECISIONS.md D-26 y D-12.
+
+---
+
+## T-33 · Declarar el producto fuera de especificación · HECHA
+
+Implementa D-27. El motor propaga la curva completa y puede calcularlo, pero no lo reporta.
+
+**Qué hacer:**
+
+1. Calcular, desde la curva del producto final, el **porcentaje que queda fuera del rango pedido**:
+   cuánto por sobre el tamaño máximo y cuánto por bajo el mínimo.
+2. Mostrarlo en la tarjeta de resultado junto al aprovechamiento. Ejemplo:
+   *"Producto 0–12,7 mm · 4,2% sobre 12,7 mm"*.
+3. Incluirlo en el PDF de propuesta, como dato técnico declarado.
+4. Si el porcentaje supera un umbral razonable, advertir en lenguaje simple que puede no cumplir
+   una especificación estricta y sugerir bajar la malla.
+
+**Contexto para entender el número:** la malla se fija exactamente en el tamaño máximo pedido, sin
+holgura, y la fórmula VSMA asume 90% de eficiencia de clasificación. Algo de sobretamaño es
+inevitable; el punto es declararlo, no eliminarlo.
+
+**Cómo se sabe que quedó bien:** test con un producto 0–12,7 mm que verifique que el resultado
+trae el porcentaje fuera de rango y que es mayor que cero. Suite completa verde.
+
+**Referencia:** DECISIONS.md D-27 · REQUISITOS.md RC-5.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada

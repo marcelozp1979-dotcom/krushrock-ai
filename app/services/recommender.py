@@ -326,6 +326,7 @@ def _per_product_detail(
         tph_unit = float(yld.get("tph_out", 0))
         tph_total = round(tph_unit * n_units, 1)
 
+        oversize_pct = yld.get("oversize_pct", None)
         if tph_total <= 0:
             detail.append({
                 "name": prod.get("name", ""),
@@ -336,6 +337,7 @@ def _per_product_detail(
                 "meses": None,
                 "cumple": False,
                 "inalcanzable": True,
+                "oversize_pct": oversize_pct,
             })
         else:
             meses = round(volumen / (tph_total * hours_per_month), 1) if volumen > 0 else 0.0
@@ -348,6 +350,7 @@ def _per_product_detail(
                 "meses": meses,
                 "cumple": meses <= duracion_meses,
                 "inalcanzable": False,
+                "oversize_pct": oversize_pct,
             })
 
     has_inalcanzable = any(d["inalcanzable"] for d in detail)
@@ -378,6 +381,7 @@ def recommend(
     horas_dia: Optional[float] = None,
     dias_mes: Optional[float] = None,
     hours_per_month_input: Optional[float] = None,
+    disponibilidad_pct: Optional[float] = None,
     _return_all: bool = False,
     mode: str = "advanced",
 ) -> List[Dict]:
@@ -401,10 +405,19 @@ def recommend(
     """
     if hours_per_month_input is not None:
         hours_per_month = float(hours_per_month_input)
+        horas_programadas_mes = hours_per_month
     elif horas_dia and dias_mes:
-        hours_per_month = horas_dia * dias_mes
+        horas_programadas_mes = horas_dia * dias_mes
+        if disponibilidad_pct is not None:
+            hours_per_month = horas_programadas_mes * (disponibilidad_pct / 100.0)
+        else:
+            hours_per_month = horas_programadas_mes
     else:
-        hours_per_month = HOURS_PER_MONTH
+        horas_programadas_mes = HOURS_PER_MONTH
+        if disponibilidad_pct is not None:
+            hours_per_month = horas_programadas_mes * (disponibilidad_pct / 100.0)
+        else:
+            hours_per_month = horas_programadas_mes
     total_volumen = sum(float(p.get("volumen_ton") or 0) for p in products)
     tph_required = total_volumen / max(duracion_meses, 1) / hours_per_month
 
@@ -762,6 +775,7 @@ def recommend(
             "products_detail": [],
             "advertencias": [],
             "hours_per_month_used": round(hours_per_month, 1),
+            "horas_programadas_mes": round(horas_programadas_mes, 1),
             "tph_requerido": round(tph_required, 1),
             "tph_max_alcanzable": 0.0,
             "meses_extra": None,
@@ -907,6 +921,7 @@ def recommend(
                 "products_detail": prods_detail,
                 "advertencias": advertencias,
                 "hours_per_month_used": round(hours_per_month, 1),
+                "horas_programadas_mes": round(horas_programadas_mes, 1),
                 "_cap_sum_tph": sum(
                     node["equipment"].get("cap_max_tph", 0) for node in cand["nodes"]
                 ),
@@ -926,6 +941,7 @@ def recommend(
             "products_detail": [],
             "advertencias": [],
             "hours_per_month_used": round(hours_per_month, 1),
+            "horas_programadas_mes": round(horas_programadas_mes, 1),
             "tph_requerido": round(tph_required, 1),
             "tph_max_alcanzable": 0.0,
             "meses_extra": None,

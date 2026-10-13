@@ -349,6 +349,42 @@ justifica lanzar con nueve clases incompletas.
 
 ---
 
+## D-26 · 13-oct-2026 · Las horas ingresadas son programadas, no efectivas
+
+Hasta ahora `horas_dia × dias_mes` se usaba completo: 12 × 30 = 360 h/mes productivas, sin
+descontar nada por mantención, cambio de mallas, traslados ni fallas.
+
+**A partir de ahora el campo significa horas programadas**, y el software aplica un **factor de
+disponibilidad mecánica, por defecto 85%**, editable por el usuario y declarado como supuesto
+en el PDF.
+
+**Por qué:** 12 × 30 son treinta días seguidos sin parar. En áridos lo normal son 20 a 26 días,
+con disponibilidad de 80–90% en planta móvil. Tomar el número literal produce plazos optimistas
+en torno al 20%, justo el error que se paga en una licitación.
+
+**No confundir con `capR = 0,80`**, que reduce la *capacidad del equipo*, no el *tiempo
+disponible*. Son dos factores distintos y deben seguir siéndolo.
+
+*Decidió: Marcelo.*
+
+---
+
+## D-27 · 13-oct-2026 · El resultado declara cuánto producto queda fuera de especificación
+
+La malla se fija **exactamente** en el tamaño máximo pedido, sin holgura, mientras que el CSS sí
+tiene margen (apunta a P80 = 85% del máximo).
+
+Consecuencia: el producto lleva algo de sobretamaño —partículas alargadas que pasan de canto, y
+el 10% de finos que la eficiencia VSMA asume que no alcanza a pasar— y el software **no lo
+reporta**, aunque el motor propaga la curva completa y puede calcularlo.
+
+**A partir de ahora el resultado declara el porcentaje de producto fuera del rango pedido**, en
+pantalla y en el PDF. Es el número que una comisión evaluadora puede reclamar.
+
+*Decidió: Marcelo.*
+
+---
+
 ## D-11 · anterior · No extraer datos desde AggFlow
 AggFlow se usa solo como referencia de validación, nunca como fuente del catálogo.
 **Por qué:** licencia COMECO.

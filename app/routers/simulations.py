@@ -176,6 +176,7 @@ class RecommendRequest(BaseModel):
     inchancables: bool = False
     horas_dia: Optional[float] = None
     dias_mes: Optional[float] = None
+    disponibilidad_pct: Optional[float] = None  # T-32: disponibilidad mecánica (0-100)
     # modo "simple" → respuesta con clases de equipo (D-23, T-26)
     # modo "advanced" → respuesta con marca y modelo (D-24, comportamiento actual)
     mode: str = "advanced"
@@ -363,6 +364,7 @@ async def recommend_circuit(req: RecommendRequest):
             feed_curve_dict=feed_curve_dict,
             horas_dia=req.horas_dia,
             dias_mes=req.dias_mes,
+            disponibilidad_pct=req.disponibilidad_pct,
             mode=req.mode,
         )
         if req.mode == "simple":
