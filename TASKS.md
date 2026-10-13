@@ -618,7 +618,9 @@ y pasa; ningún equipo del catálogo queda sin capacidad calculable. Suite compl
 
 ---
 
-## T-28 · Completar los cuatro datos que faltan para las clases · PENDIENTE · PRIORIDAD ALTA
+## T-28 · Completar los cuatro datos que faltan para las clases · HECHA PARCIAL · (08-oct-2026)
+*(pendientes y confirmados contra manual: J-1280 sin manual en la carpeta; J-1160 y J-1480 no
+publican tabla de tph; C-1545 solo rangos globales; impactores sin curva de capacidad)*
 
 Previo obligatorio de T-26. Todos los datos están en `manuales/`. **Si alguno no aparece en el
 manual, se anota en `MEMORY.md` y no se inventa.**
@@ -674,7 +676,7 @@ Implementa D-23 y D-25. Lista de clases aprobada en `docs/CLASES_DE_EQUIPO.md`.
 
 ---
 
-## T-27 · Marcar los equipos sin fuente en el modo avanzado · PENDIENTE
+## T-27 · Marcar los equipos sin fuente en el modo avanzado · HECHA · (08-oct-2026, commit `fa36b0a`)
 
 Implementa D-24. Todo equipo del catálogo sin `capacity_source` debe mostrarse marcado como
 **"datos no verificados"** en pantalla y en el PDF de propuesta. Hoy son 74 de 79.
@@ -685,6 +687,37 @@ Mismo tratamiento que RF-4 definió para los equipos que carga el cliente.
 con la marca en la respuesta de la API. Suite completa verde.
 
 **Referencia:** DECISIONS.md D-24 · REQUISITOS.md RF-4 y RF-10.
+
+---
+
+## T-30 · Mostrar las clases de equipo en pantalla y en el PDF · HECHA · (12-oct-2026)
+
+**T-26 quedó solo en el backend.** La API ya sabe devolver clases, pero el usuario sigue viendo
+marcas y modelos. Verificado el 12-oct-2026 con un caso real: la pantalla muestra
+"Powerscreen Maxtrak 1000 · Chancador de cono · CSS 12 mm".
+
+Dos causas:
+
+1. `ModoSimple.jsx` **no envía `mode: "simple"`** en la petición a `/simulations/recommend`.
+   Sin ese dato el backend responde en modo avanzado, con marca y modelo.
+2. Aunque llegara la clase, la pantalla no la lee: sigue mostrando `e.marca` y `e.modelo`.
+
+**Qué hacer — el criterio es qué ve el usuario, no qué devuelve la API:**
+
+1. `ModoSimple.jsx` envía `mode: "simple"` en la petición.
+2. Las tarjetas de recomendación muestran la **clase**, con la nomenclatura de D-25:
+   `Cono de 3 pies (1000 mm) · CSS 12 mm`, `Seleccionadora 4,3×1,7 m · 2 decks · malla 12,7 mm`.
+3. **Desaparece el "o equipo equivalente"**: ya no hay equipo que equivaler.
+4. El PDF de propuesta muestra lo mismo que la pantalla.
+5. **La máquina de referencia no aparece en ninguna parte** (D-25).
+
+**Cómo se sabe que quedó bien:** correr en la app el caso de granito con alimentación 100% bajo
+38 mm y producto 0–12,7 mm, y verificar que **no aparece ninguna marca** en las tarjetas ni en el
+PDF. Requiere prueba visual de Marcelo hasta que exista T-21.
+
+**No tocar el modo avanzado:** sigue mostrando marca y modelo (D-24).
+
+**Referencia:** DECISIONS.md D-23 y D-25 · T-26.
 
 ---
 

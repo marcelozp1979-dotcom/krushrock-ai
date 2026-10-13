@@ -7,6 +7,26 @@ Orden: la más reciente primero.
 
 ---
 
+## 09-oct-2026 — Sesión supervisada (trabajo/2026-10-09) — T-26
+
+**Resultado: T-26 completada. 359 tests verdes, 1 omitido.**
+
+| Tarea | Qué se logró |
+|---|---|
+| T-26 | El modo simple del recomendador devuelve clases de equipo (tamaño físico), no marcas ni modelos. 10 clases definidas. El PDF y la pantalla no muestran marca (D-25). |
+
+---
+
+## 08-oct-2026 — Sesión supervisada (trabajo/2026-10-08c) — T-29
+
+**Resultado: T-29 completada. 329 tests verdes, 1 omitido.**
+
+| Tarea | Qué se logró |
+|---|---|
+| T-29 | jaw_opening_mm cargado para J-960/J-1160/J-1170/J-1480; head_diameter_mm cargado para C-1540. CLASES_DE_EQUIPO.md actualizado. |
+
+---
+
 ## 07-oct-2026 — Sesión supervisada (trabajo/2026-10-07b + trabajo/2026-10-07c) — T-23, T-24
 
 **Resultado: T-23 y T-24 completadas. 333 tests verdes, 1 omitido.**
