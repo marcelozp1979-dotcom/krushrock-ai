@@ -46,6 +46,9 @@ class TestGetClassName:
     def test_cone_c1540(self):
         assert get_class_name("cone", "C-1540") == "Cono de 3 pies (1000 mm)"
 
+    def test_cone_c1540as(self):
+        assert get_class_name("cone", "C-1540 AS") == "Cono de 3 pies, cámara de finos"
+
     def test_cone_c1550plus(self):
         assert get_class_name("cone", "C-1550+") == "Cono de 4¼ pies (1300 mm)"
 
@@ -111,11 +114,15 @@ class TestGetRefModel:
     def test_clase_inexistente_retorna_none(self):
         assert get_ref_model("Clase que no existe") is None
 
+    def test_cono_finos_retorna_c1540as(self):
+        assert get_ref_model("Cono de 3 pies, cámara de finos") == "C-1540 AS"
+
     def test_todas_las_clases_tienen_inverso(self):
-        """Cada clase de los 10 equipos tiene un modelo de referencia definido."""
+        """Cada clase de los 11 equipos tiene un modelo de referencia definido."""
         clases = [
             "Mandíbula 900×600 mm", "Mandíbula 1100×700 mm", "Mandíbula 1070×762 mm",
-            "Cono de 3 pies (1000 mm)", "Cono de 4¼ pies (1300 mm)",
+            "Cono de 3 pies (1000 mm)", "Cono de 3 pies, cámara de finos",
+            "Cono de 4¼ pies (1300 mm)",
             "Seleccionadora 3,65×1,5 m · 2 decks", "Seleccionadora 4,3×1,7 m · 2 decks",
             "Seleccionadora 4,3×1,7 m · 3 decks", "Seleccionadora 6,1×1,52 m · 3 decks",
             "Seleccionadora 6,1×1,70 m · 3 decks",

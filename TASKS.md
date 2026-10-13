@@ -721,6 +721,43 @@ PDF. Requiere prueba visual de Marcelo hasta que exista T-21.
 
 ---
 
+## T-31 · El modo simple no cubre los productos finos · HECHA
+
+**Regresión detectada el 13-oct-2026 con un caso real:** granito, alimentación máxima 38,1 mm,
+producto 0–12,7 mm, 3 meses. Respuesta: *"No se encontraron configuraciones para esos
+parámetros"*. Antes de T-26 el mismo caso se resolvía con un cono cerrando a CSS 12 mm.
+
+**Causa:** las dos clases de cono disponibles en modo simple son C-1540 (CSS mínimo **19 mm**) y
+C-1550+ (CSS mínimo **22 mm**). Ninguna puede producir bajo 19 mm. **El modo simple quedó sin
+poder resolver 0–12,7 mm ni 0–19 mm, que son los áridos más vendidos.**
+
+**Solución, con datos ya extraídos:** el manual del C-1540 documenta la configuración
+**Autosand** con cóncavo de finos (`docs/DATOS_MANUALES_CONOS.md` sección 2.3):
+
+| Configuración | Alimentación máx. | CSS | tph |
+|---|---|---|---|
+| Autosand, excéntrico largo | 63 mm | 13–19 mm | 85–150 |
+| Autosand, excéntrico corto | 63 mm | 13–19 mm | 70–125 |
+
+Es la misma máquina con otra cámara, y cubre exactamente el hueco.
+
+**Qué hacer:**
+
+1. Agregar la clase **"Cono de 3 pies, cámara de finos"** anclada a la configuración Autosand del
+   C-1540, con sus datos de manual y fuente citada. Ojo: alimentación máxima 63 mm, mucho menor
+   que la configuración estándar.
+2. Revisar si falta cobertura en el extremo grueso o en impactores, y anotarlo sin inventar clases.
+3. **Corregir el mensaje de "no hay configuraciones".** Hoy sugiere aumentar el tonelaje o cambiar
+   la roca, que no tiene relación con la causa. Debe decir qué restricción impidió el resultado:
+   por ejemplo *"ningún equipo disponible puede producir material bajo 19 mm"*.
+
+**Cómo se sabe que quedó bien:** el caso de arriba devuelve una recomendación con la clase de
+cámara de finos. Probar también 0–19 mm. Suite completa verde.
+
+**Referencia:** `docs/DATOS_MANUALES_CONOS.md` sección 2.3 · DECISIONS.md D-23 · REQUISITOS.md RF-8.
+
+---
+
 ## Fuera del alcance nocturno — requiere diseño con Marcelo
 
 ### Reemplazar el factor 80% por producción calculada

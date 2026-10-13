@@ -7,6 +7,16 @@ Orden: la más reciente primero.
 
 ---
 
+## 12-oct-2026 — Sesión supervisada (trabajo/2026-10-12) — T-30
+
+**Resultado: T-30 completada. 367 tests verdes, 1 omitido.**
+
+| Tarea | Qué se logró |
+|---|---|
+| T-30 | Pantalla y PDF del modo simple ya no muestran ninguna marca. Las tarjetas muestran clases (ej. "Mandíbula 900×600 mm"). PDF también muestra clase sin "o equipo equivalente". get_ref_model() agrega lookup inverso clase→modelo (D-25). |
+
+---
+
 ## 09-oct-2026 — Sesión supervisada (trabajo/2026-10-09) — T-26
 
 **Resultado: T-26 completada. 359 tests verdes, 1 omitido.**

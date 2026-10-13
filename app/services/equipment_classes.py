@@ -5,9 +5,9 @@ Una clase es una especificación por tamaño físico, no una marca ni un modelo.
 Cada clase tiene una máquina de referencia que ancla sus datos de cálculo,
 pero esa referencia NO se expone al cliente (D-25).
 
-Diez clases completas (con curva de capacidad verificada contra manual):
+Once clases completas (con curva de capacidad verificada contra manual):
   Mandíbulas : J-960 · J-1170 · J-1175
-  Conos      : C-1540 · C-1550+
+  Conos      : C-1540 · C-1540 AS · C-1550+
   Seleccionadoras: 683 · 684 2-deck · 684 3-deck · 694+ · 696 3-deck
 """
 import copy
@@ -24,8 +24,9 @@ _JAW_CLASS: Dict[str, str] = {
 }
 
 _CONE_CLASS: Dict[str, str] = {
-    "C-1540":  "Cono de 3 pies (1000 mm)",
-    "C-1550+": "Cono de 4¼ pies (1300 mm)",
+    "C-1540":    "Cono de 3 pies (1000 mm)",
+    "C-1540 AS": "Cono de 3 pies, cámara de finos",
+    "C-1550+":   "Cono de 4¼ pies (1300 mm)",
 }
 
 _SCREEN_CLASS: Dict[str, str] = {
@@ -49,6 +50,7 @@ _CLASS_DETAIL: Dict[str, str] = {
     "Mandíbula 1100×700 mm":             "Boca 1100×700 mm · CSS 50–150 mm · 90–290 tph",
     "Mandíbula 1070×762 mm":             "Boca 1070×762 mm · CSS 50–175 mm · 113–452 tph",
     "Cono de 3 pies (1000 mm)":          "Diámetro 1000 mm · CSS 19–32 mm · 125–220 tph",
+    "Cono de 3 pies, cámara de finos":   "Diámetro 1000 mm · CSS 13–19 mm · 85–150 tph · alimentación máx. 63 mm",
     "Cono de 4¼ pies (1300 mm)":         "Diámetro 1300 mm · CSS 22–50 mm · 250–589 tph",
     "Seleccionadora 3,65×1,5 m · 2 decks": "3,65×1,5 m · 2 decks · 5,48 m²/deck",
     "Seleccionadora 4,3×1,7 m · 2 decks":  "4,3×1,7 m · 2 decks · 7,31 m²/deck",

@@ -550,7 +550,8 @@ export function SimpleMode({ eqCatalog, onBack }) {
             {recs.length === 0 ? (
               <div style={{ ...sec, color: G.muted, textAlign: "center", padding: 40 }}>
                 No se encontraron configuraciones para esos parámetros.
-                Intenta aumentar el tonelaje mensual o cambiar el tipo de roca.
+                Verifica que el tamaño del producto sea alcanzable con la alimentación indicada,
+                o prueba con un plazo más largo o mayor jornada diaria.
               </div>
             ) : (
               <>

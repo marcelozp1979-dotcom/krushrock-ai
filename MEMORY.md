@@ -13,22 +13,22 @@ Estructura fija de este archivo. El agente **no la cambia**:
 
 # 1 · PARTE DE LA ÚLTIMA SESIÓN
 
-**Fecha:** 12-oct-2026 · **Rama:** `trabajo/2026-10-12` → fusionada a `main` · **Modo:** supervisado
+**Fecha:** 13-oct-2026 · **Rama:** `trabajo/2026-10-13` → fusionada a `main` · **Modo:** supervisado
 
-**Resultado: T-30 completada — pantalla y PDF del modo simple ya no muestran ninguna marca. 367 tests verdes, 1 omitido.**
+**Resultado: T-31 completada — el modo simple ahora resuelve productos bajo 19 mm. 380 tests verdes, 1 omitido.**
 
 | Qué cambió | Detalle en lenguaje de negocio |
 |---|---|
-| Pantalla modo simple | Las tarjetas ya muestran "Mandíbula 900×600 mm · CSS 80 mm" en lugar de "Terex Finlay J-960 o equipo equivalente". Sin marcas, sin "o equipo equivalente". |
-| PDF modo simple | El PDF generado muestra la clase de equipo. Sin marcas, sin "o equipo equivalente". |
-| Resolución interna de referencia | Cuando el frontend pide el PDF con una clase, el backend busca la máquina de referencia internamente y la usa para calcular. Marcelo nunca la ve (D-25). |
-| Nuevos tests | 8 tests nuevos en `test_t26_equipment_classes.py` (get_ref_model) y `test_proposal_pdf.py` (modo simple). |
+| Nueva clase de equipo | "Cono de 3 pies, cámara de finos" — CSS 13–19 mm, alimentación máx. 63 mm, 85–150 tph. Antes no existía ninguna clase de cono con CSS < 19 mm, lo que bloqueaba los áridos más vendidos (0–12,7 mm, 0–19 mm). |
+| Catálogo de equipos | Agregado `C-1540 AS` (Autosand, excéntrico largo) con datos del Manual C-1540 Rev 2.7 sección 2.3. Misma máquina que C-1540 con cóncavo Sand; feed_max 63 mm. |
+| Mensaje de error mejorado | Cuando no hay configuraciones, el mensaje ya no dice "aumenta el tonelaje o cambia la roca" (erróneo). Ahora dice "verifica que el tamaño del producto sea alcanzable con la alimentación indicada". |
+| Nuevos tests | 7 tests en `test_t31_finos.py` (integración + unitarios). Caso canónico: f80=38 mm, producto 0–12,7 mm → devuelve recomendación con la nueva clase. |
 
 **Lo que necesitas revisar (prueba visual necesaria):**
 
-1. **Probar el modo simple en el navegador.** Abrir la app, ir a "Dime qué necesitas", poner roca=caliza, tamaño=150mm, producto Gravilla 0-25mm 5000 ton, 2 meses, y verificar que las tarjetas muestran clases (ej. "Mandíbula 900×600 mm") sin ninguna marca. Descargar el PDF y confirmar lo mismo. Esta verificación visual no la puede hacer el agente.
+1. **Probar el caso que fallaba.** En el modo simple: roca=granito, alimentación=38 mm, producto "Arena 0-12.7mm" 3000 ton, 3 meses. Antes decía "No se encontraron configuraciones". Ahora debe mostrar una tarjeta con "Cono de 3 pies, cámara de finos".
 
-2. **Bloqueos anteriores siguen abiertos.** B-MJ05 (J-1280 sin manual), B-MJ04/B-MJ02 (J-1480/J-1160 sin tabla tph). Ver sección 2.
+2. **Bloqueos anteriores siguen abiertos.** B-MJ05, B-MJ04, B-02, etc. Ver sección 2.
 
 ---
 
@@ -181,39 +181,31 @@ en la simulación o es solo logística. Requiere decisión de Marcelo.
 
 # 3 · DETALLE DE LA ÚLTIMA SESIÓN
 
-### T-30 · Clases de equipo en pantalla y PDF — COMPLETA · Rama `trabajo/2026-10-12`
+### T-31 · Modo simple sin cobertura de finos — COMPLETA · Rama `trabajo/2026-10-13`
 
-**Diagnóstico inicial:**
-- T-26 dejó la API lista pero el frontend nunca enviaba `mode: "simple"` → el backend respondía en modo advanced (con marcas).
-- Aunque llegara la clase, la pantalla leía `eq.marca` y `eq.modelo` que ya no existen en modo simple.
-- El PDF usaba `e.marca` y `e.modelo` → enviaba `undefined` al backend → error silencioso.
+**Causa raíz:** `_viable_cones()` en recommender filtra por `check_crusher_feed(e, jaw_output_p80_mm)`.
+Con f80_alimentación=38 mm, el cono recibe ~40.5 mm de P80 de mandíbula.
+Los dos conos de modo simple tenían css_min ≥ 19 mm → p80 mínimo producible ≥ 18.6 mm → no puede hacer 12.7 mm.
 
-**Cambios en `krushrock-app/src/components/ModoSimple.jsx`:**
-1. `handleRecommend`: agregado `mode: "simple"` al body de fetch.
-2. Tarjeta de equipo: muestra `eq.clase || eq.tipo_legible` en lugar de `eq.marca eq.modelo + " o equipo equivalente"`.
-3. `handleProposal`: envía `{ etapa, clase }` cuando existe clase, `{ etapa, marca, modelo }` en avanzado.
-4. Cabecera de tabla comparativa: usa `e.clase || e.modelo` (evita `undefined`).
+**Datos usados:** Manual Terex Finlay C-1540 Rev 2.7 (16-04-2025), sección 2.3, Autosand excéntrico largo:
+CSS 13 mm: 85–120 tph; CSS 16 mm: 95–130 tph; CSS 19 mm: 100–150 tph. Feed_max: 63 mm.
+
+**Cambios en `app/routers/equipment.py`:**
+- Agregado `C-1540 AS` (Autosand) con css_min=13, css_max=19, feed_max=63, cap 85–150 tph.
+- Misma product_curve que C-1540 (misma geometría de cabeza, curva AS no publicada por separado).
 
 **Cambios en `app/services/equipment_classes.py`:**
-- Agregado `_CLASS_TO_MODEL` (diccionario inverso clase → modelo de referencia).
-- Agregada función `get_ref_model(class_name) → Optional[str]` (uso interno, D-25).
+- `_CONE_CLASS`: agregado `"C-1540 AS": "Cono de 3 pies, cámara de finos"`.
+- `_CLASS_DETAIL`: agregado detalle "Diámetro 1000 mm · CSS 13–19 mm · 85–150 tph · alimentación máx. 63 mm".
 
-**Cambios en `app/routers/reports.py`:**
-- `_EquipoProposal.marca` y `.modelo` ahora son `Optional[str] = None`.
-- Campo `clase: Optional[str] = None` agregado.
-- Lógica `_resolve_equipo()`: si viene `clase` sin `modelo`, llama a `get_ref_model()` para obtener el modelo de referencia, luego busca su `brand` en `_FALLBACK`. Corre `run_config` con la máquina real internamente; Marcelo nunca la ve.
-
-**Cambios en `app/services/proposal_pdf.py`:**
-- Columna del PDF ahora dice "Equipo" (antes "Equipo (marca y modelo)").
-- Si el equipo tiene `clase`, muestra `clase` directamente, sin "o equipo equivalente".
+**Cambios en `krushrock-app/src/components/ModoSimple.jsx`:**
+- Mensaje de "no hay configuraciones" corregido: ya no sugiere aumentar tonelaje (irrelevante). Ahora dice que el tamaño del producto puede estar fuera del rango alcanzable con esa alimentación.
 
 **Tests nuevos:**
-- `TestGetRefModel` en `test_t26_equipment_classes.py`: 5 tests (lookup inverso).
-- `test_endpoint_proposal_modo_simple_retorna_pdf`: endpoint con clase genera PDF válido.
-- `test_build_proposal_pdf_con_clase`: verifica que "o equipo equivalente" no aparece cuando hay clase.
-- `test_endpoint_proposal_clase_desconocida_retorna_422`: clase inválida → 422.
+- `tests/test_t31_finos.py`: 7 tests (3 integración con caso f80=38/producto 12.7 mm + 4 unitarios de la nueva clase).
+- `test_t26_equipment_classes.py`: 2 tests nuevos (get_class_name C-1540 AS, get_ref_model cámara finos).
 
-**Tests:** 367 passed, 1 skipped.
+**Tests:** 380 passed, 1 skipped.
 
 ---
 

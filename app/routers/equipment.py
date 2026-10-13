@@ -239,6 +239,29 @@ _FALLBACK: Dict[str, List[Dict[str, Any]]] = {
             "product_curve_source": "Manual Terex Finlay C-1540 Rev 2.7, Tabla 3.5 p.3-14 — excéntrico largo, digitalizado ±3 puntos; CSS 19 mm como referencia",
         },
         {
+            "brand": "Terex Finlay", "model": "C-1540 AS", "type": "cone",
+            "css_min_mm": 13, "css_max_mm": 19,
+            "cap_min_tph": 85, "cap_max_tph": 150,
+            "feed_max_mm": 63, "decks": None,
+            "extra_specs": {"rpm": 280, "head_diameter_mm": 1000},
+            "notes": "Cono de finos — excéntrico largo, cóncavo Sand (Autosand)",
+            "curves": {"css": [13, 16, 19], "tph": [102.5, 112.5, 125.0]},
+            "capacity_source": "Manual Terex Finlay C-1540 Rev 2.7 (16-04-2025), sección 2.3 (p.3-15) — Autosand, excéntrico largo, cóncavo Sand; punto medio de rangos",
+            # Misma geometría de cabeza que C-1540 — curva de producto Autosand no publicada por separado en Rev 2.7
+            "product_curve": {
+                0.0895: 17,   # 1.70 mm
+                0.1242: 21,   # 2.36 mm
+                0.1763: 26,   # 3.35 mm
+                0.2632: 34,   # 5.0 mm
+                0.3316: 39,   # 6.3 mm
+                0.5263: 54,   # 10 mm
+                0.7368: 68,   # 14 mm
+                1.0526: 86,   # 20 mm
+                1.4737: 100,  # 28 mm
+            },
+            "product_curve_source": "Igual que C-1540 excéntrico largo (misma geometría de cabeza); curva de producto Autosand no publicada por separado en Rev 2.7",
+        },
+        {
             "brand": "Terex Finlay", "model": "C-1545", "type": "cone",
             "css_min_mm": 18, "css_max_mm": 45,
             "cap_min_tph": 175, "cap_max_tph": 240,
