@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from app.services.equipment_classes import (
     get_class_name,
     get_class_detail,
+    get_ref_model,
     apply_equipment_classes,
 )
 from fastapi.testclient import TestClient
@@ -91,6 +92,36 @@ class TestGetClassName:
 
     def test_tipo_vacio(self):
         assert get_class_name("", "J-960") is None
+
+
+# ── Pruebas de get_ref_model (T-30) ──────────────────────────────────────────
+
+class TestGetRefModel:
+    """get_ref_model es el lookup inverso: clase → modelo de referencia (D-25)."""
+
+    def test_mandibula_900_retorna_j960(self):
+        assert get_ref_model("Mandíbula 900×600 mm") == "J-960"
+
+    def test_cono_3_pies_retorna_c1540(self):
+        assert get_ref_model("Cono de 3 pies (1000 mm)") == "C-1540"
+
+    def test_seleccionadora_683_retorna_683(self):
+        assert get_ref_model("Seleccionadora 3,65×1,5 m · 2 decks") == "683"
+
+    def test_clase_inexistente_retorna_none(self):
+        assert get_ref_model("Clase que no existe") is None
+
+    def test_todas_las_clases_tienen_inverso(self):
+        """Cada clase de los 10 equipos tiene un modelo de referencia definido."""
+        clases = [
+            "Mandíbula 900×600 mm", "Mandíbula 1100×700 mm", "Mandíbula 1070×762 mm",
+            "Cono de 3 pies (1000 mm)", "Cono de 4¼ pies (1300 mm)",
+            "Seleccionadora 3,65×1,5 m · 2 decks", "Seleccionadora 4,3×1,7 m · 2 decks",
+            "Seleccionadora 4,3×1,7 m · 3 decks", "Seleccionadora 6,1×1,52 m · 3 decks",
+            "Seleccionadora 6,1×1,70 m · 3 decks",
+        ]
+        for clase in clases:
+            assert get_ref_model(clase) is not None, f"Sin inverso para: {clase}"
 
 
 # ── Pruebas de get_class_detail ───────────────────────────────────────────────

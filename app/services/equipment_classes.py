@@ -83,6 +83,22 @@ def get_class_detail(class_name: str) -> Optional[str]:
     return _CLASS_DETAIL.get(class_name)
 
 
+# Lookup inverso: nombre de clase → modelo de referencia (uso interno, D-25)
+_CLASS_TO_MODEL: Dict[str, str] = {
+    clase: modelo
+    for tipo_map in _CLASS_MAP.values()
+    for modelo, clase in tipo_map.items()
+}
+
+
+def get_ref_model(class_name: str) -> Optional[str]:
+    """
+    Retorna el modelo de referencia para una clase dada.
+    Solo para uso interno del backend (D-25: no se expone al cliente).
+    """
+    return _CLASS_TO_MODEL.get(class_name)
+
+
 def apply_equipment_classes(results: List[Dict]) -> List[Dict]:
     """
     Transforma la lista de resultados de recommend() al formato de clases (D-23, D-25).

@@ -219,9 +219,12 @@ def build_proposal_pdf(data: Dict) -> bytes:
         story.append(Paragraph(f"Unidades en paralelo: {n_units}", S["body"]))
     story.append(Spacer(1, 4))
 
-    eq_data = [["Equipo (marca y modelo)", "Parámetro operativo", "Unidades"]]
+    eq_data = [["Equipo", "Parámetro operativo", "Unidades"]]
     for eq in equipos:
-        nombre = f"{eq.get('marca', '')} {eq.get('modelo', '')} o equipo equivalente".strip()
+        if eq.get("clase"):
+            nombre = eq["clase"]
+        else:
+            nombre = f"{eq.get('marca', '')} {eq.get('modelo', '')} o equipo equivalente".strip()
         if eq.get("css_mm") is not None:
             param = f"CSS {eq['css_mm']} mm"
         elif eq.get("abertura_mm") is not None:

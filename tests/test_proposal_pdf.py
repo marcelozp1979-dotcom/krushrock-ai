@@ -124,3 +124,81 @@ def test_endpoint_proposal_sin_f80_ni_curva_retorna_422():
     }
     resp = client.post("/api/v1/reports/proposal", json=payload)
     assert resp.status_code == 422
+
+
+# ── Tests T-30: modo simple (clase en lugar de marca/modelo) ──────────────────
+
+_PAYLOAD_SIMPLE = {
+    "faena": {
+        "rock_type": "caliza",
+        "f80_mm": 150.0,
+        "products": [{"name": "grava", "min_mm": 0.0, "max_mm": 37.0, "volumen_ton": 5_000.0}],
+        "duracion_meses": 2,
+        "inchancables": False,
+        "horas_dia": 8.0,
+        "dias_mes": 25.0,
+    },
+    "config": {
+        "equipos": [{"etapa": "jaw", "clase": "Mandíbula 900×600 mm"}],
+        "circuit": "open",
+        "n_units": 1,
+    },
+}
+
+
+def test_endpoint_proposal_modo_simple_retorna_pdf():
+    """POST /reports/proposal con clase (modo simple) → 200 y PDF válido."""
+    resp = client.post("/api/v1/reports/proposal", json=_PAYLOAD_SIMPLE)
+    assert resp.status_code == 200, f"HTTP {resp.status_code}: {resp.text[:400]}"
+    assert resp.headers["content-type"] == "application/pdf"
+    assert resp.content[:4] == b"%PDF"
+
+
+def test_build_proposal_pdf_con_clase():
+    """build_proposal_pdf con equipo en clase no muestra 'o equipo equivalente' (D-25)."""
+    import io
+    from pypdf import PdfReader
+    data = {
+        "faena": {
+            "rock_type": "caliza",
+            "f80_mm": 150.0,
+            "horas_dia": 8.0,
+            "dias_mes": 25.0,
+            "duracion_meses": 2,
+            "inchancables": False,
+        },
+        "productos": [{"name": "grava", "min_mm": 0.0, "max_mm": 37.0, "volumen_ton": 5_000.0}],
+        "config": {
+            "equipos": [{"etapa": "jaw", "clase": "Mandíbula 900×600 mm", "css_mm": 80.0}],
+            "circuit": "open",
+            "n_units": 1,
+        },
+        "resultado": {
+            "tph_efectivo": 100.0,
+            "product_fit_pct": 65.0,
+            "meses_requeridos": 1.5,
+            "products_detail": [],
+        },
+    }
+    pdf_bytes = build_proposal_pdf(data)
+    assert pdf_bytes[:4] == b"%PDF"
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    texto = "\n".join(page.extract_text() or "" for page in reader.pages)
+    assert "900" in texto or "Mand" in texto, \
+        f"La clase debe aparecer en el PDF. Texto extraído: {texto[:300]}"
+    assert "o equipo equivalente" not in texto, \
+        f"'o equipo equivalente' no debe aparecer en modo simple (D-25). Texto: {texto[:300]}"
+
+
+def test_endpoint_proposal_clase_desconocida_retorna_422():
+    """Una clase que no existe en las 10 clases → 422."""
+    payload = {
+        **_PAYLOAD_SIMPLE,
+        "config": {
+            "equipos": [{"etapa": "jaw", "clase": "Mandíbula inexistente"}],
+            "circuit": "open",
+            "n_units": 1,
+        },
+    }
+    resp = client.post("/api/v1/reports/proposal", json=payload)
+    assert resp.status_code == 422

@@ -13,26 +13,22 @@ Estructura fija de este archivo. El agente **no la cambia**:
 
 # 1 · PARTE DE LA ÚLTIMA SESIÓN
 
-**Fecha:** 08-oct-2026 · **Rama:** `trabajo/2026-10-08c` → fusionada a `main` · **Modo:** supervisado
+**Fecha:** 12-oct-2026 · **Rama:** `trabajo/2026-10-12` → fusionada a `main` · **Modo:** supervisado
 
-**Resultado: T-29 completada — dimensiones físicas copiadas al catálogo. 329 tests verdes, 1 omitido.**
+**Resultado: T-30 completada — pantalla y PDF del modo simple ya no muestran ninguna marca. 367 tests verdes, 1 omitido.**
 
 | Qué cambió | Detalle en lenguaje de negocio |
 |---|---|
-| J-960: abertura de boca cargada | 900×600 mm — del manual oficial Rev 5.2. La ficha ahora tiene dato confirmado. |
-| J-1160: abertura de boca cargada | 1000×600 mm — del manual oficial Rev 4.8. |
-| J-1170: abertura de boca cargada | 1100×700 mm — del manual oficial Rev 1.0. |
-| J-1480: abertura de boca cargada | 1397×762 mm (Jaques 54"×30") — del manual oficial Rev 291116-10. |
-| C-1540: diámetro de cabeza cargado | 1000 mm (40") — del folleto oficial Terex Finlay 2022. |
-| `docs/CLASES_DE_EQUIPO.md` actualizado | La tabla de mandíbulas ahora tiene abertura y fuente para J-960, J-1160, J-1170, J-1480, J-1175. La tabla de conos tiene diámetro y fuente para los tres modelos. |
+| Pantalla modo simple | Las tarjetas ya muestran "Mandíbula 900×600 mm · CSS 80 mm" en lugar de "Terex Finlay J-960 o equipo equivalente". Sin marcas, sin "o equipo equivalente". |
+| PDF modo simple | El PDF generado muestra la clase de equipo. Sin marcas, sin "o equipo equivalente". |
+| Resolución interna de referencia | Cuando el frontend pide el PDF con una clase, el backend busca la máquina de referencia internamente y la usa para calcular. Marcelo nunca la ve (D-25). |
+| Nuevos tests | 8 tests nuevos en `test_t26_equipment_classes.py` (get_ref_model) y `test_proposal_pdf.py` (modo simple). |
 
-**Lo que necesito de ti:**
+**Lo que necesitas revisar (prueba visual necesaria):**
 
-1. **J-1280: conseguir el manual.** No hay ningún manual de J-1280 en la carpeta de manuales. Sin manual no se puede confirmar la abertura de boca ni incorporarlo a las clases de modo simple. (B-MJ05)
+1. **Probar el modo simple en el navegador.** Abrir la app, ir a "Dime qué necesitas", poner roca=caliza, tamaño=150mm, producto Gravilla 0-25mm 5000 ton, 2 meses, y verificar que las tarjetas muestran clases (ej. "Mandíbula 900×600 mm") sin ninguna marca. Descargar el PDF y confirmar lo mismo. Esta verificación visual no la puede hacer el agente.
 
-2. **J-1480 y J-1160: tabla de capacidad (tph vs CSS).** Sus manuales disponibles tienen solo curvas de granulometría, no tablas de tph. Sin eso no se puede hacer la curva de capacidad para modo simple. (B-MJ04, B-MJ02)
-
-3. **Bloqueos anteriores siguen abiertos.** B-BED01, B-02, B-campana01, B-SC01 ("Rinser 873" vs 873+), y los bloqueos de impactores. Ver sección 2.
+2. **Bloqueos anteriores siguen abiertos.** B-MJ05 (J-1280 sin manual), B-MJ04/B-MJ02 (J-1480/J-1160 sin tabla tph). Ver sección 2.
 
 ---
 
@@ -185,91 +181,39 @@ en la simulación o es solo logística. Requiere decisión de Marcelo.
 
 # 3 · DETALLE DE LA ÚLTIMA SESIÓN
 
-### T-29 · Dimensiones físicas al catálogo — COMPLETA · Rama `trabajo/2026-10-08c`
+### T-30 · Clases de equipo en pantalla y PDF — COMPLETA · Rama `trabajo/2026-10-12`
 
-**Fuentes consultadas:**
-- `docs/DATOS_MANUALES_MANDIBULAS.md`: abertura J-960 (900×600), J-1160 (1000×600), J-1170 (1100×700), J-1480 (1397×762).
-- `docs/DATOS_MANUALES_CONOS.md`: C-1540 no tiene ficha en ese archivo. Fuente usada: folleto oficial Terex Finlay C-1540 (2022) indicado por Marcelo.
+**Diagnóstico inicial:**
+- T-26 dejó la API lista pero el frontend nunca enviaba `mode: "simple"` → el backend respondía en modo advanced (con marcas).
+- Aunque llegara la clase, la pantalla leía `eq.marca` y `eq.modelo` que ya no existen en modo simple.
+- El PDF usaba `e.marca` y `e.modelo` → enviaba `undefined` al backend → error silencioso.
 
-**Búsquedas bloqueadas confirmadas:**
-- J-1280: ningún manual en `manuales/Mandíbulas/`. B-MJ05 confirmado.
-- J-1480 capacidad: Rev 291116-10 solo tiene curvas de granulometría. B-MJ04 confirmado.
-- J-1160 capacidad: Rev 4.8 secciones 3.6/3.7/3.8 sin tabla tph. B-MJ02 confirmado.
+**Cambios en `krushrock-app/src/components/ModoSimple.jsx`:**
+1. `handleRecommend`: agregado `mode: "simple"` al body de fetch.
+2. Tarjeta de equipo: muestra `eq.clase || eq.tipo_legible` en lugar de `eq.marca eq.modelo + " o equipo equivalente"`.
+3. `handleProposal`: envía `{ etapa, clase }` cuando existe clase, `{ etapa, marca, modelo }` en avanzado.
+4. Cabecera de tabla comparativa: usa `e.clase || e.modelo` (evita `undefined`).
 
-**Cambios en `app/routers/equipment.py`:**
-- J-960: `jaw_opening_mm: {width: 900, height: 600}` — Manual Rev 5.2 p.4-4 (PDF p.88).
-- J-1160: `jaw_opening_mm: {width: 1000, height: 600}` — Manual Rev 4.8 p.3-11 (PDF p.85).
-- J-1170: `jaw_opening_mm: {width: 1100, height: 700}` — Manual Rev 1.0 p.3-13 (PDF p.61).
-- J-1480: `jaw_opening_mm: {width: 1397, height: 762}` — Manual Rev 291116-10 IT-3 (PDF p.50).
-- C-1540: `head_diameter_mm: 1000` — Folleto oficial Terex Finlay C-1540 (2022).
+**Cambios en `app/services/equipment_classes.py`:**
+- Agregado `_CLASS_TO_MODEL` (diccionario inverso clase → modelo de referencia).
+- Agregada función `get_ref_model(class_name) → Optional[str]` (uso interno, D-25).
 
-**Cambios en `docs/CLASES_DE_EQUIPO.md`:**
-- Tabla mandíbulas: columna "Fuente abertura" agregada; J-1160 incorporada como clase nueva.
-- Tabla conos: columna "Fuente diámetro" agregada.
-- Resumen §5 actualizado: mandíbulas con abertura confirmada = 4 (falta solo J-1280).
+**Cambios en `app/routers/reports.py`:**
+- `_EquipoProposal.marca` y `.modelo` ahora son `Optional[str] = None`.
+- Campo `clase: Optional[str] = None` agregado.
+- Lógica `_resolve_equipo()`: si viene `clase` sin `modelo`, llama a `get_ref_model()` para obtener el modelo de referencia, luego busca su `brand` en `_FALLBACK`. Corre `run_config` con la máquina real internamente; Marcelo nunca la ve.
 
-**Tests:** 329 passed, 1 skipped.
+**Cambios en `app/services/proposal_pdf.py`:**
+- Columna del PDF ahora dice "Equipo" (antes "Equipo (marca y modelo)").
+- Si el equipo tiene `clase`, muestra `clase` directamente, sin "o equipo equivalente".
 
----
+**Tests nuevos:**
+- `TestGetRefModel` en `test_t26_equipment_classes.py`: 5 tests (lookup inverso).
+- `test_endpoint_proposal_modo_simple_retorna_pdf`: endpoint con clase genera PDF válido.
+- `test_build_proposal_pdf_con_clase`: verifica que "o equipo equivalente" no aparece cuando hay clase.
+- `test_endpoint_proposal_clase_desconocida_retorna_422`: clase inválida → 422.
 
-### T-24 · Seleccionadoras sin área excluidas del recomendador — COMPLETA · Commit `14abd20`
-
-**Causa raíz:** T-15 cargó área solo para 16 de 17 screens del catálogo. M6x20-3D quedó sin
-`area_m2_per_deck`. `nominal_tph()` devuelve 0.0 para esa screen. `_viable_screens()` la
-incluía igualmente (solo filtraba por decks), lo que hacía que el recomendador la propusiera
-con 0 tph de capacidad → "0 tph + 100% aprovechamiento" incoherente.
-
-**Cambios:**
-- `_viable_screens()`: agrega `screen_nominal_tph(e, aperture_mm) > 0` al filtro
-- `app/routers/equipment.py`: M6x20-3D retirada del catálogo (sin manual, sin área)
-- `test_screens_seleccionables_tienen_area()`: trinquete en `test_catalogo_coherencia.py`
-
-**Tests:** 333 passed, 1 skipped.
-
----
-
-### T-23 · Recomendador sin mandíbula obligatoria — COMPLETA · Commit `e2c5dfb`
-
-**Causa raíz del bug:** `_viable_jaws(38.0)` devolvía todas las mandíbulas del catálogo
-(porque sus `feed_max_mm` de 580–1400 mm aceptan 38 mm). Pero el J-960 con CSS_min=40 mm
-no reduce nada con material de 38 mm: 38 < 40 = CSS → el material pasa de largo.
-Además el `if not jaws: return []` impedía generar configs sin mandíbula.
-
-**Cambios en `app/services/recommender.py`:**
-- `_viable_jaws()`: agrega filtro `css_min_mm < feed_max_material_mm`
-- Elimina `if not jaws: return []` (bloqueo B-04)
-- Config F: `cone_screen` (cono + seleccionadora, sin mandíbula)
-- Config G: `screen_only` (seleccionadora sola, cuando feed ya es más fino que el producto)
-- Config H: `hsi_screen` (impactor + seleccionadora)
-- `_viable_hsi(feed_max_mm)`: análogo a `_viable_cones()` para impactores
-- `_make_hsi_node(eq, target_p80_mm)`: análogo a `_make_cone_node()`
-
-**Verificación del caso T-23:**
-- feed: granito, curva 100% < 38 mm, f80=30 mm
-- producto: 0–12,7 mm, 30 000 t, 2 meses
-- Resultado: opción A = `cone_screen` con C-1540 + M6x20-3D
-- Sin mandíbula ✓ · aprovechamiento > 67,5% ✓
-
-**Tests:** `tests/test_t23_no_jaw_precrushed.py` — 5 tests, todos verdes.
-
----
-
-### T-20 · Eliminar motor duplicado del frontend — HECHA PARCIAL · Commit `8e5bcd5`
-
-**Análisis de `engine.js` (672 líneas):**
-- `runSimulation`: llamaba al backend (`POST /simulations/calculate`), no era cálculo local. Correcto.
-- `buildAnalysis`: genera texto diagnóstico. Lógica de display, no simulación.
-- `coneFactor`: usaba P80 = CSS × 1,40–1,90. **Erróneo** (manual C-1540 da ×0,98 en CSS 19mm).
-- `calcYieldsForCSS`, `computeCampaign`, `campaignUnoptTime`: usaban `coneFactor` erróneo. Eliminadas.
-
-**Cambios:**
-- `runSimulation` → `krushrock-app/src/simulation.js` (+ import `G` que faltaba en engine.js)
-- `buildAnalysis` → `krushrock-app/src/analysis.js`
-- `App.jsx`: import `./engine.js` → `./simulation.js`
-- `Resultados.jsx`: import → `../analysis.js`; bloque campaña reemplazado por aviso "próximamente"
-- `engine.js` eliminado
-
-**Bloqueo B-campana01:** motor de campaña usaba `coneFactor` erróneo. Implementar en backend con curvas reales.
+**Tests:** 367 passed, 1 skipped.
 
 ---
 

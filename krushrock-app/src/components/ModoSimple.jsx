@@ -177,7 +177,7 @@ export function SimpleMode({ eqCatalog, onBack }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rock_type: rockKey, ...buildFeedPayload(),
           products: buildProductsPayload(), duracion_meses: Number(meses), inchancables,
-          horas_dia: Number(horasDia), dias_mes: Number(diasMes) }),
+          horas_dia: Number(horasDia), dias_mes: Number(diasMes), mode: "simple" }),
       });
       if (!resp.ok) {
         const t = await resp.text();
@@ -229,7 +229,9 @@ export function SimpleMode({ eqCatalog, onBack }) {
             dias_mes: Number(diasMes),
           },
           config: {
-            equipos: rec.equipos.map(e => ({ etapa: e.etapa, marca: e.marca, modelo: e.modelo })),
+            equipos: rec.equipos.map(e => e.clase
+              ? { etapa: e.etapa, clase: e.clase }
+              : { etapa: e.etapa, marca: e.marca, modelo: e.modelo }),
             circuit: circuitRec,
             n_units: rec.n_units,
           },
@@ -625,8 +627,7 @@ export function SimpleMode({ eqCatalog, onBack }) {
                                 border: `1px solid ${G.border}`, borderRadius: 6,
                                 padding: "6px 12px", display: "flex", flexDirection: "column", gap: 2 }}>
                                 <span style={{ fontSize: 13, color: G.text, fontWeight: 600 }}>
-                                  {eq.marca} {eq.modelo}
-                                  <span style={{ fontWeight: 400, color: G.muted, fontSize: 12 }}> o equipo equivalente</span>
+                                  {eq.clase || eq.tipo_legible}
                                 </span>
                                 {paramLine && (
                                   <span style={{ fontSize: 11, color: G.muted }}>
@@ -866,7 +867,7 @@ export function SimpleMode({ eqCatalog, onBack }) {
                                   color: G.accent, fontWeight: 700 }}>
                                   Recomendación KrushRock
                                   <div style={{ fontSize: 11, fontWeight: 400, color: G.muted, marginTop: 2 }}>
-                                    {recs[Math.min(cmpSugIdx, recs.length - 1)].equipos.map(e => e.modelo).join(" + ")}
+                                    {recs[Math.min(cmpSugIdx, recs.length - 1)].equipos.map(e => e.clase || e.modelo).join(" + ")}
                                   </div>
                                 </th>
                               </tr>

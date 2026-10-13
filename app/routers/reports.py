@@ -20,8 +20,9 @@ router = APIRouter()
 
 class _EquipoProposal(BaseModel):
     etapa: str
-    marca: str
-    modelo: str
+    marca: Optional[str] = None
+    modelo: Optional[str] = None
+    clase: Optional[str] = None   # modo simple (D-23); la marca/modelo se resuelven internamente
 
 
 class _PlantProposal(BaseModel):
@@ -88,10 +89,28 @@ async def generate_proposal(req: ProposalRequest):
          "volumen_ton": p.volumen_ton}
         for p in req.faena.products
     ]
-    equipos_raw = [
-        {"etapa": e.etapa, "marca": e.marca, "modelo": e.modelo}
-        for e in req.config.equipos
-    ]
+    # Resolver clase → modelo de referencia cuando no viene marca/modelo (modo simple, D-25)
+    from app.services.equipment_classes import get_ref_model
+    from app.services.recommender import _FALLBACK  # catálogo interno para buscar marca
+
+    def _resolve_equipo(e: _EquipoProposal) -> dict:
+        if e.clase and not e.modelo:
+            ref_modelo = get_ref_model(e.clase)
+            if ref_modelo is None:
+                raise HTTPException(status_code=422,
+                    detail=f"Clase no reconocida: {e.clase}")
+            etapa_key = e.etapa if e.etapa not in ("screen_1d", "screen_hf") else "screen"
+            catalog = _FALLBACK.get(etapa_key, [])
+            eq_cat = next((eq for eq in catalog
+                           if eq.get("model", "").lower() == ref_modelo.lower()), None)
+            if eq_cat is None:
+                raise HTTPException(status_code=422,
+                    detail=f"Modelo de referencia no encontrado en catálogo: {ref_modelo}")
+            return {"etapa": e.etapa, "marca": eq_cat["brand"], "modelo": eq_cat["model"],
+                    "clase": e.clase}
+        return {"etapa": e.etapa, "marca": e.marca or "", "modelo": e.modelo or ""}
+
+    equipos_raw = [_resolve_equipo(e) for e in req.config.equipos]
 
     try:
         resultado = run_config(
